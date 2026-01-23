@@ -11,7 +11,7 @@ import { Toaster } from './ui/sonner'
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/jdcauto">
       <ScrollToTop />
       <Layout>
         <Routes>
