@@ -34,9 +34,9 @@ export default function Layout({ children }) {
       <div className="bg-gradient-to-r from-gray-900 to-black text-white py-2.5 px-4 border-b border-gray-800">
         <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center text-sm">
           <div className="flex items-center gap-6">
-            <a href="tel:0612345678" className="flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
+            <a href="tel:0556973752" className="flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
               <Phone className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span className="font-medium">06 12 34 56 78</span>
+              <span className="font-medium">05 56 97 37 52</span>
             </a>
             <a href="mailto:contact@jdcauto.fr" className="hidden sm:flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
               <Mail className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -62,10 +62,11 @@ export default function Layout({ children }) {
               }}
               className="flex items-center group"
             >
-              <div className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                <span className="text-gray-900 group-hover:text-gray-700 transition-colors duration-300">JDC</span>
-                <span className="text-red-600 group-hover:text-red-700 transition-colors duration-300"> AUTO</span>
-              </div>
+              <img 
+                src="/LOGO.jpg" 
+                alt="JDC Auto" 
+                className="h-12 sm:h-16 object-contain transition-transform duration-300 group-hover:scale-105"
+              />
             </Link>
 
             {/* Desktop Navigation */}
@@ -149,10 +150,11 @@ export default function Layout({ children }) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* About */}
             <div>
-              <h3 className="text-2xl font-bold mb-4">
-                <span className="text-white">JDC</span>
-                <span className="text-red-600"> AUTO</span>
-              </h3>
+              <img 
+                src="/LOGO.jpg" 
+                alt="JDC Auto" 
+                className="h-12 mb-4 object-contain"
+              />
               <p className="text-gray-400 text-sm leading-relaxed mb-6">
                 Votre agence de transaction automobile de confiance. Achat, vente et reprise de véhicules d'occasion avec garantie et sécurité.
               </p>
@@ -207,7 +209,7 @@ export default function Layout({ children }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 flex-shrink-0" />
-                  <a href="tel:0612345678" className="hover:text-red-500 transition-colors">06 12 34 56 78</a>
+                  <a href="tel:0556973752" className="hover:text-red-500 transition-colors">05 56 97 37 52</a>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 flex-shrink-0" />

@@ -252,13 +252,10 @@ export default function Home() {
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img
-            src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1920&h=1080&auto=format&fit=crop"
+            src="/jdcauto-2.jpg"
             alt="JDC Auto"
             className="w-full h-full object-cover"
             style={{ minHeight: '100%' }}
-            onError={(e) => {
-              e.target.src = 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1920&h=1080&auto=format&fit=crop';
-            }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/70 z-0" />
         </div>
@@ -304,7 +301,7 @@ export default function Home() {
                 Nous contacter
               </Link>
               <a
-                href="tel:0612345678"
+                href="tel:0556973752"
                 className="px-8 py-4 bg-black/20 backdrop-blur-sm hover:bg-black/30 text-white font-semibold rounded-lg transition-all duration-300 border-2 border-white/30 hover:border-white/50"
               >
                 Appeler maintenant

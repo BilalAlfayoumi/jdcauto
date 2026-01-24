@@ -63,8 +63,17 @@ export default function Administrative() {
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="bg-black text-white py-16">
-        <div className="max-w-7xl mx-auto px-4">
+      <div className="relative bg-black text-white py-16 overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/jdcauto-1.jpg"
+            alt="JDC Auto"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/80 z-0" />
+        </div>
+        <div className="relative max-w-7xl mx-auto px-4 z-10">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Carte grise & démarches administratives
           </h1>
@@ -243,11 +252,11 @@ export default function Administrative() {
               Nous contacter
             </Link>
             <a
-              href="tel:0612345678"
+              href="tel:0556973752"
               className="px-8 py-4 bg-black hover:bg-gray-900 text-white font-semibold rounded-md transition-colors inline-flex items-center gap-2"
             >
               <Phone className="w-5 h-5" />
-              06 12 34 56 78
+              05 56 97 37 52
             </a>
           </div>
         </div>
