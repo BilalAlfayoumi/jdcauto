@@ -20,8 +20,8 @@
           var decoded = l.search.slice(1).split('&').map(function(s) { 
             return s.replace(/~and~/g, '&')
           }).join('?');
-          // Preserve the base path (/jdcauto)
-          var basePath = '/jdcauto';
+          // Preserve the base path
+          var basePath = '';
           window.history.replaceState(null, null,
               basePath + decoded + l.hash
           );
