@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - master
   workflow_dispatch:
 
 permissions:
@@ -21,29 +22,31 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: JDC/package-lock.json
-      
+
       - name: Install dependencies
-        working-directory: ./JDC
-        run: npm ci
-      
+        run: |
+          cd JDC
+          npm ci
+
       - name: Build
-        working-directory: ./JDC
-        run: npm run build
-      
+        run: |
+          cd JDC
+          npm run build
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
-      
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './JDC/dist'
+          path: JDC/dist
 
   deploy:
     environment:
@@ -55,4 +58,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
