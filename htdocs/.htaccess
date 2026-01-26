@@ -1,0 +1,22 @@
+# Configuration SPA React - JDC Auto
+RewriteEngine On
+
+# Gestion des fichiers statiques (images, CSS, JS)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Gestion des dossiers
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Rediriger toutes les routes vers index.html (SPA React Router)
+RewriteRule . /index.html [L]
+
+# Cache pour performances
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/jpg "access plus 1 year"
+</IfModule>
