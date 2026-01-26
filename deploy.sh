@@ -46,7 +46,7 @@ git push origin main || echo "⚠️  Erreur lors du push vers GitHub (peut êtr
 
 # Push vers Gandi
 echo "⬆️  Push vers Gandi..."
-git push gandi main || {
+git push gandi master || {
     echo "❌ Erreur lors du push vers Gandi"
     exit 1
 }
