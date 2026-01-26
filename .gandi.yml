@@ -1,9 +1,5 @@
-run:
-  type: static
-  root: ./
-  
 deploy:
   build:
     - cd JDC && npm install
     - cd JDC && npm run build
-    - cp -r JDC/dist/* ./
+    - cp -r JDC/dist/* htdocs/
