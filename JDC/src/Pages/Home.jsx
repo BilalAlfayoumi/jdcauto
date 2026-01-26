@@ -18,10 +18,13 @@ import {
   Handshake,
   CreditCard,
   ChevronRight,
-  Search,
   CheckCircle,
   Users,
-  Clock
+  Clock,
+  Wrench,
+  Paintbrush,
+  MapPin,
+  Truck
 } from 'lucide-react';
 
 export default function Home() {
@@ -33,42 +36,8 @@ export default function Home() {
 
   return (
     <div className="bg-white">
-      {/* Hero Slider */}
+      {/* Hero Slider with integrated search bar */}
       <HeroSlider />
-
-      {/* Search Bar - Below Hero */}
-      <AnimatedSection animation="fade-up" className="max-w-5xl mx-auto px-4 -mt-8 relative z-30">
-        <div className="bg-white rounded-xl shadow-2xl p-6 border border-gray-100">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <select className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 transition-all">
-              <option value="">Marque</option>
-              <option>Renault</option>
-              <option>Peugeot</option>
-              <option>Citroën</option>
-              <option>BMW</option>
-              <option>Mercedes</option>
-              <option>Audi</option>
-            </select>
-            <select className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 transition-all">
-              <option value="">Modèle</option>
-            </select>
-            <select className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 transition-all">
-              <option value="">Prix maxi.</option>
-              <option value="10000">10 000 €</option>
-              <option value="15000">15 000 €</option>
-              <option value="20000">20 000 €</option>
-              <option value="30000">30 000 €</option>
-            </select>
-            <Link
-              to={createPageUrl('Vehicles')}
-              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              <Search className="w-5 h-5" />
-              Rechercher
-            </Link>
-          </div>
-        </div>
-      </AnimatedSection>
 
       {/* Featured Vehicles Carousel */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
@@ -116,38 +85,38 @@ export default function Home() {
             {[
               { 
                 icon: Award, 
-                title: 'Professionnalisme', 
-                desc: 'Une équipe d\'experts automobile à votre service',
+                title: '30 ans d\'expérience', 
+                desc: 'Mandataire depuis plus de 30 ans en Aquitaine',
                 color: 'text-blue-600 bg-blue-50'
               },
               { 
                 icon: Shield, 
                 title: 'Garantie 6 mois minimum', 
-                desc: 'Tous nos véhicules sont garantis et contrôlés',
+                desc: 'Chaque véhicule inspecté et garanti',
                 color: 'text-green-600 bg-green-50'
               },
               { 
-                icon: Lock, 
-                title: 'Achat sécurisé', 
-                desc: 'Transactions sécurisées et transparentes',
-                color: 'text-purple-600 bg-purple-50'
-              },
-              { 
-                icon: Heart, 
-                title: 'Accompagnement personnalisé', 
-                desc: 'Des milliers de clients satisfaits',
-                color: 'text-pink-600 bg-pink-50'
-              },
-              { 
                 icon: Star, 
-                title: 'Meilleur rapport qualité/prix', 
-                desc: 'Véhicules contrôlés et prix justes',
+                title: '+99% de satisfaction', 
+                desc: 'Près de 16 000 véhicules livrés avec succès',
                 color: 'text-yellow-600 bg-yellow-50'
               },
               { 
+                icon: Heart, 
+                title: '2 millions de véhicules', 
+                desc: '7 200 concessions partenaires en Europe',
+                color: 'text-pink-600 bg-pink-50'
+              },
+              { 
+                icon: Car, 
+                title: '10 modèles les plus vendus', 
+                desc: 'Sélection des meilleures références du marché',
+                color: 'text-purple-600 bg-purple-50'
+              },
+              { 
                 icon: TrendingDown, 
-                title: 'Prix compétitifs', 
-                desc: 'Les meilleurs prix du marché',
+                title: 'Recherche sur mesure', 
+                desc: 'Nous trouvons le véhicule de vos rêves',
                 color: 'text-red-600 bg-red-50'
               }
             ].map((item, index) => (
@@ -188,31 +157,59 @@ export default function Home() {
           {[
             {
               icon: Car,
-              title: 'Garantie des véhicules',
-              desc: 'Garantie minimum de 6 mois sur tous nos véhicules d\'occasion',
+              title: 'Vente de véhicules',
+              desc: '10 modèles les plus vendus en France. Recherche sur mesure si véhicule non disponible en stock',
               link: 'Vehicles',
-              features: ['Contrôle technique', 'Garantie mécanique', 'Assistance 24/7']
+              features: ['Garantie 6 mois minimum', 'Véhicules inspectés', '2 millions disponibles']
             },
             {
               icon: Handshake,
               title: 'Reprise de véhicules',
-              desc: 'Estimation gratuite et rapide de votre véhicule en quelques minutes',
+              desc: 'Estimation gratuite et rapide. Reprise immédiate avec paiement sécurisé',
               link: 'TradeIn',
               features: ['Estimation gratuite', 'Reprise immédiate', 'Paiement sécurisé']
             },
             {
               icon: FileText,
-              title: 'Démarches administratives',
-              desc: 'Gestion complète de votre carte grise et de toutes les formalités',
+              title: 'Carte grise',
+              desc: 'Point carte grise : établissement de votre nouvelle carte grise en 15 minutes',
               link: 'Administrative',
-              features: ['Carte grise', 'Changement de propriétaire', 'Démarches en ligne']
+              features: ['Carte grise en 15 min', 'Changement de propriétaire', 'Démarches en ligne']
             },
             {
               icon: CreditCard,
-              title: 'Solutions de financement',
-              desc: 'Crédit auto, LOA et LLD adaptés à votre budget et votre projet',
+              title: 'Financement & LOA',
+              desc: 'Crédit auto, Location avec Option d\'Achat (LOA) adaptés à votre budget',
               link: 'Contact',
               features: ['Crédit auto', 'LOA / LLD', 'Simulation gratuite']
+            },
+            {
+              icon: Wrench,
+              title: 'Mécanique & Entretien',
+              desc: 'Garage multimarque depuis 2003. Entretien, réparations, contrôle antipollution, diagnostics',
+              link: 'Contact',
+              features: ['Entretien véhicules', 'Réparations', 'Diagnostics électroniques']
+            },
+            {
+              icon: Paintbrush,
+              title: 'Carrosserie',
+              desc: 'Services de carrosserie réalisés directement sur notre site à Mérignac',
+              link: 'Contact',
+              features: ['Réparation carrosserie', 'Peinture', 'Sur site']
+            },
+            {
+              icon: MapPin,
+              title: 'Vente de pneus',
+              desc: 'Vente et montage de pneus avec réglage du parallélisme',
+              link: 'Contact',
+              features: ['Vente de pneus', 'Montage', 'Réglage parallélisme']
+            },
+            {
+              icon: Truck,
+              title: 'Dépannage & Remorquage',
+              desc: 'Dépannage et remorquage de votre véhicule en cas de panne dans les plus brefs délais',
+              link: 'Contact',
+              features: ['Dépannage 24/7', 'Remorquage', 'Intervention rapide']
             }
           ].map((service, index) => (
             <AnimatedSection 
@@ -248,38 +245,43 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section className="relative text-white py-20 overflow-hidden min-h-[500px]">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src="/jdcauto-2.jpg"
-            alt="JDC Auto"
-            className="w-full h-full object-cover"
-            style={{ minHeight: '100%' }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/70 z-0" />
-        </div>
-
-        {/* Content */}
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
-          <AnimatedSection animation="fade-up">
-            <div className="max-w-4xl mx-auto text-center">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-8">
-                À propos de JDC Auto
-              </h2>
-              <div className="space-y-6 text-lg text-gray-200 leading-relaxed">
-                <p>
-                  <strong className="text-white">JDC Auto</strong> est une agence de transaction automobile qui se positionne comme un <strong className="text-white">intermédiaire de confiance</strong> entre acheteurs et vendeurs de véhicules d'occasion.
-                </p>
-                <p>
-                  Notre mission est de vous accompagner dans l'achat ou la vente de votre véhicule en toute <strong className="text-white">sécurité et transparence</strong>. Nous prenons en charge toutes les démarches administratives pour vous garantir une transaction sereine.
-                </p>
-                <p>
-                  Avec JDC Auto, bénéficiez d'un service professionnel, de véhicules contrôlés et d'une <strong className="text-white">garantie minimum de 6 mois</strong> sur tous nos véhicules.
-                </p>
+      <section className="bg-gray-50 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Image à gauche */}
+            <AnimatedSection animation="fade-right" className="order-2 lg:order-1">
+              <div className="relative rounded-xl overflow-hidden shadow-2xl">
+                <img
+                  src="/jdcauto-1.jpg"
+                  alt="JDC Auto"
+                  className="w-full h-auto object-contain"
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="high"
+                />
               </div>
-            </div>
-          </AnimatedSection>
+            </AnimatedSection>
+
+            {/* Texte à droite */}
+            <AnimatedSection animation="fade-left" className="order-1 lg:order-2">
+              <div>
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-gray-900">
+                  Une relation de confiance
+                </h2>
+                <div className="space-y-4 text-lg text-gray-700 leading-relaxed">
+                  <p>
+                    Mandataire depuis plus de <strong className="text-red-600">30 ans</strong> en Aquitaine, JDC Auto propose les <strong>10 modèles les plus vendus en France</strong>. Si le véhicule de vos rêves n'est pas en stock, nous nous engageons à le trouver pour vous.
+                  </p>
+                  <p>
+                    Chaque véhicule est inspecté et bénéficie d'une <strong>garantie minimum de 6 mois</strong>. Nous proposons également des services de reprise, financement, LOA, mécanique et carrosserie sur notre site.
+                  </p>
+                  <p>
+                    Avec <strong>7 200 concessions partenaires</strong> et <strong>2 millions de véhicules disponibles</strong> en Europe, nous vous accompagnons dans votre projet. <strong>+99% de satisfaction client</strong> et près de <strong>16 000 véhicules livrés</strong>.
+                  </p>
+                </div>
+              </div>
+            </AnimatedSection>
+          </div>
         </div>
       </section>
 

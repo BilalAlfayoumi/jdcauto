@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useMutation } from '@tanstack/react-query';
@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AnimatedSection from '../Components/AnimatedSection';
-import { useHeroScroll } from '../hooks/useHeroScroll';
+import { useParallax } from '../hooks/useParallax';
 import { createPageUrl } from '../utils';
 
 export default function Contact() {
@@ -41,8 +41,12 @@ export default function Contact() {
 
   const [submitted, setSubmitted] = useState(false);
   const [submittedType, setSubmittedType] = useState(null);
-
-  const heroScroll = useHeroScroll();
+  const { opacity, translateY } = useParallax();
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
 
   const mutationAchat = useMutation({
     mutationFn: (data) => base44.entities.ContactRequest.create(data),
@@ -152,41 +156,56 @@ export default function Contact() {
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Hero Section avec image immersive et animation au scroll */}
-      <section className="relative h-[600px] md:h-[700px] overflow-hidden">
-        {/* Image de fond avec animation */}
+      {/* Hero Section avec image dynamique et effets de scroll */}
+      <div className="relative h-[90vh] min-h-[600px] overflow-hidden">
+        {/* Image de fond avec effets de parallaxe et fade-out */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 w-full h-[120%] bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-out"
           style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920&q=80)',
-            opacity: heroScroll.imageOpacity,
-            transform: `scale(${heroScroll.imageScale})`,
-            transition: 'opacity 0.1s ease-out, transform 0.1s ease-out'
+            backgroundImage: 'url(https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=80)',
+            opacity: isLoaded ? opacity : 0,
+            transform: isLoaded ? `translateY(${translateY}px) scale(1)` : 'translateY(0px) scale(1.1)',
+            transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
+            willChange: 'opacity, transform'
           }}
-        />
-        
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
-        
-        {/* Contenu du hero */}
-        <div className="relative z-10 h-full flex items-center justify-center">
+        >
+          {/* Overlay gradient pour améliorer la lisibilité */}
           <div 
-            className="text-center px-4 max-w-4xl mx-auto"
+            className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80 transition-opacity duration-1000"
             style={{
-              opacity: heroScroll.contentOpacity,
-              transform: `translateY(${heroScroll.contentTranslateY}px)`,
-              transition: 'opacity 0.3s ease-out, transform 0.3s ease-out'
+              opacity: isLoaded ? 1 : 0
             }}
-          >
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6">
-              Contactez notre agence
-            </h1>
-            <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto">
-              Notre équipe est à votre écoute pour répondre à toutes vos questions et vous accompagner dans votre projet automobile
-            </p>
+          />
+        </div>
+
+        {/* Contenu hero */}
+        <div className="relative z-10 h-full flex items-center justify-center">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <div 
+              className="max-w-4xl mx-auto transition-all duration-1000 ease-out"
+              style={{
+                opacity: isLoaded ? 1 : 0,
+                transform: isLoaded ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(30px)',
+                transition: 'opacity 0.8s ease-out 0.2s, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s'
+              }}
+            >
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+                Contactez notre agence
+              </h1>
+              <p 
+                className="text-xl md:text-2xl lg:text-3xl text-gray-200 mb-10 font-light transition-all duration-1000 ease-out"
+                style={{
+                  opacity: isLoaded ? 1 : 0,
+                  transform: isLoaded ? 'translateY(0)' : 'translateY(20px)',
+                  transition: 'opacity 0.8s ease-out 0.4s, transform 0.8s ease-out 0.4s'
+                }}
+              >
+                Notre équipe est à votre écoute pour répondre à toutes vos questions et vous accompagner dans votre projet automobile
+              </p>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Bloc d'informations clés avec icônes */}
       <AnimatedSection animation="fade-up" className="max-w-7xl mx-auto px-4 -mt-20 relative z-20">
@@ -242,10 +261,10 @@ export default function Contact() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2 text-lg">Email</h3>
                 <a 
-                  href="mailto:contact@jdcauto.fr" 
+                  href="mailto:jdcauto33@orange.fr" 
                   className="text-red-600 hover:text-red-700 transition-colors font-semibold break-all"
                 >
-                  contact@jdcauto.fr
+                  jdcauto33@orange.fr
                 </a>
               </div>
             </AnimatedSection>
@@ -269,8 +288,8 @@ export default function Contact() {
               </div>
               
               <p className="text-gray-600 mb-8 leading-relaxed">
-                Notre équipe de conseillers est à votre disposition pour vous accompagner dans votre projet d'achat. 
-                Nous vous aidons à trouver le véhicule qui correspond à vos besoins et à votre budget.
+                Notre équipe commerciale se fera un plaisir de répondre à vos attentes pour toute recherche de véhicules neufs ou d'occasions. 
+                Avec plus de 7 200 concessions partenaires et 2 millions de véhicules disponibles en Europe, nous vous aidons à trouver le véhicule qui correspond à vos besoins et à votre budget.
               </p>
 
               <form onSubmit={handleSubmitAchat} className="space-y-5">
@@ -382,8 +401,8 @@ export default function Contact() {
               </div>
               
               <p className="text-gray-600 mb-8 leading-relaxed">
-                Besoin d'aide pour vos démarches administratives ? Notre service dédié vous accompagne 
-                dans l'obtention de votre carte grise et toutes les formalités d'immatriculation.
+                Nous avons un point carte grise qui vous permettra d'établir votre nouvelle carte grise en 15 minutes. 
+                Notre service dédié vous accompagne dans l'obtention de votre carte grise et toutes les formalités d'immatriculation.
               </p>
 
               <form onSubmit={handleSubmitCarteGrise} className="space-y-5">
@@ -549,10 +568,10 @@ export default function Contact() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-3 text-lg">Email</h3>
                 <a 
-                  href="mailto:contact@jdcauto.fr" 
+                  href="mailto:jdcauto33@orange.fr" 
                   className="text-red-600 hover:text-red-700 transition-colors font-semibold break-all text-sm block"
                 >
-                  contact@jdcauto.fr
+                  jdcauto33@orange.fr
                 </a>
               </div>
             </AnimatedSection>

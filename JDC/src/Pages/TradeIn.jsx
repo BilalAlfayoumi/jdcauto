@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation } from '@tanstack/react-query';
 import ProgressBar from '../Components/ProgressBar';
@@ -27,6 +27,11 @@ export default function TradeIn() {
   const [isSearching, setIsSearching] = useState(false);
   const formSectionRef = useRef(null);
   const { opacity, translateY } = useParallax();
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
   
   const [formData, setFormData] = useState({
     // Step 1: Immatriculation
@@ -224,32 +229,57 @@ export default function TradeIn() {
       <div className="relative h-[90vh] min-h-[600px] overflow-hidden">
         {/* Image de fond avec effets de parallaxe et fade-out */}
         <div 
-          className="absolute inset-0 w-full h-[120%] bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 w-full h-[120%] bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-out"
           style={{
             backgroundImage: 'url(https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80)',
-            opacity: opacity,
-            transform: `translateY(${translateY}px)`,
-            transition: 'opacity 0.1s ease-out, transform 0.1s ease-out',
+            opacity: isLoaded ? opacity : 0,
+            transform: isLoaded ? `translateY(${translateY}px) scale(1)` : 'translateY(0px) scale(1.1)',
+            transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
             willChange: 'opacity, transform'
           }}
         >
           {/* Overlay gradient pour améliorer la lisibilité */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
+          <div 
+            className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80 transition-opacity duration-1000"
+            style={{
+              opacity: isLoaded ? 1 : 0
+            }}
+          />
         </div>
 
         {/* Contenu hero */}
         <div className="relative z-10 h-full flex items-center justify-center">
           <div className="max-w-7xl mx-auto px-4 text-center">
-            <div className="max-w-4xl mx-auto">
+            <div 
+              className="max-w-4xl mx-auto transition-all duration-1000 ease-out"
+              style={{
+                opacity: isLoaded ? 1 : 0,
+                transform: isLoaded ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(30px)',
+                transition: 'opacity 0.8s ease-out 0.2s, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s'
+              }}
+            >
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
                 Reprise de votre voiture au meilleur prix
               </h1>
-              <p className="text-xl md:text-2xl lg:text-3xl text-gray-200 mb-10 font-light">
+              <p 
+                className="text-xl md:text-2xl lg:text-3xl text-gray-200 mb-10 font-light transition-all duration-1000 ease-out"
+                style={{
+                  opacity: isLoaded ? 1 : 0,
+                  transform: isLoaded ? 'translateY(0)' : 'translateY(20px)',
+                  transition: 'opacity 0.8s ease-out 0.4s, transform 0.8s ease-out 0.4s'
+                }}
+              >
                 Estimation rapide, gratuite, sans engagement
               </p>
               <button
                 onClick={scrollToForm}
                 className="px-10 py-5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 inline-flex items-center gap-3 text-lg shadow-2xl hover:shadow-red-500/50"
+                style={{
+                  opacity: isLoaded ? 1 : 0,
+                  transform: isLoaded ? 'scale(1)' : 'scale(0.8)',
+                  transition: 'opacity 0.8s ease-out 0.6s, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s',
+                  animation: isLoaded ? 'pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s' : 'none'
+                }}
               >
                 Estimer mon véhicule
                 <ChevronRight className="w-6 h-6" />
@@ -816,50 +846,120 @@ export default function TradeIn() {
         </div>
       </div>
 
-      {/* Section conversion finale */}
-      <div className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white py-20 md:py-28">
-        <div className="max-w-5xl mx-auto px-4 text-center">
-          <AnimatedSection animation="zoom-in">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Vous souhaitez vendre votre voiture aujourd'hui ?
-            </h2>
-            <p className="text-xl md:text-2xl text-red-100 mb-10 max-w-2xl mx-auto">
-              Obtenez une estimation gratuite en 2 minutes et recevez la meilleure offre du marché
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <button
-                onClick={scrollToForm}
-                className="px-10 py-5 bg-white text-red-600 hover:bg-gray-100 font-bold rounded-lg transition-all transform hover:scale-105 inline-flex items-center gap-3 text-lg shadow-2xl hover:shadow-white/50"
-              >
-                Estimer mon véhicule
-                <ArrowRight className="w-6 h-6" />
-              </button>
-              <button
-                onClick={scrollToForm}
-                className="px-10 py-5 bg-transparent border-2 border-white text-white hover:bg-white/10 font-bold rounded-lg transition-all transform hover:scale-105 inline-flex items-center gap-3 text-lg"
-              >
-                <DollarSign className="w-6 h-6" />
-                Rachat cash immédiat
-              </button>
+      {/* Section conversion finale avec image animée et animations pop au scroll */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white py-20 md:py-28">
+        {/* Image de fond animée */}
+        <div className="absolute inset-0 z-0">
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+            style={{
+              backgroundImage: 'url(https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920&q=80)',
+              animation: 'zoomInOut 20s ease-in-out infinite',
+              transformOrigin: 'center center'
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-black/60" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Contenu texte */}
+            <div className="text-center lg:text-left">
+              {/* Badge */}
+              <AnimatedSection animation="pop" delay={0}>
+                <div className="inline-block mb-4">
+                  <span className="px-4 py-2 bg-red-600/20 border border-red-500/30 rounded-full text-sm font-semibold text-red-400 backdrop-blur-sm">
+                    Estimation gratuite
+                  </span>
+                </div>
+              </AnimatedSection>
+
+              {/* Titre */}
+              <AnimatedSection animation="pop" delay={100}>
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                  Vendez votre voiture au <span className="text-red-500">meilleur prix</span>
+                </h2>
+              </AnimatedSection>
+
+              {/* Description */}
+              <AnimatedSection animation="pop" delay={200}>
+                <p className="text-xl text-gray-300 mb-8 leading-relaxed">
+                  Obtenez une estimation en 2 minutes. Réponse sous 48h. Meilleur prix garanti. Gratuit et sans engagement.
+                </p>
+              </AnimatedSection>
+              
+              {/* Boutons */}
+              <AnimatedSection animation="pop" delay={300}>
+                <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                  <button
+                    onClick={scrollToForm}
+                    className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all transform hover:scale-105 inline-flex items-center justify-center gap-3 text-lg shadow-2xl hover:shadow-red-500/50"
+                  >
+                    Estimer mon véhicule
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={scrollToForm}
+                    className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/20 text-white hover:bg-white/20 font-bold rounded-xl transition-all transform hover:scale-105 inline-flex items-center justify-center gap-3 text-lg"
+                  >
+                    <DollarSign className="w-5 h-5" />
+                    Rachat cash
+                  </button>
+                </div>
+              </AnimatedSection>
+
+              {/* Points de confiance */}
+              <AnimatedSection animation="pop" delay={400}>
+                <div className="flex flex-wrap gap-6 text-sm text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-5 h-5 text-green-400" />
+                    <span>Gratuit</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-5 h-5 text-green-400" />
+                    <span>Sans engagement</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-5 h-5 text-green-400" />
+                    <span>Réponse 48h</span>
+                  </div>
+                </div>
+              </AnimatedSection>
             </div>
 
-            {/* Points de confiance */}
-            <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm">
-              <div className="flex items-center gap-2">
-                <Check className="w-5 h-5" />
-                <span>Gratuit et sans engagement</span>
+            {/* Image animée */}
+            <AnimatedSection animation="pop" delay={200} className="relative">
+              <div className="relative">
+                <div 
+                  className="relative rounded-2xl overflow-hidden shadow-2xl"
+                  style={{
+                    animation: 'float 6s ease-in-out infinite'
+                  }}
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=80"
+                    alt="Véhicule d'occasion"
+                    className="w-full h-[400px] object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                </div>
+                {/* Éléments décoratifs animés */}
+                <div 
+                  className="absolute -top-4 -right-4 w-24 h-24 bg-red-500/20 rounded-full blur-2xl"
+                  style={{
+                    animation: 'pulse 3s ease-in-out infinite'
+                  }}
+                />
+                <div 
+                  className="absolute -bottom-4 -left-4 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl"
+                  style={{
+                    animation: 'pulse 4s ease-in-out infinite'
+                  }}
+                />
               </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-5 h-5" />
-                <span>Réponse sous 48h</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-5 h-5" />
-                <span>Meilleur prix garanti</span>
-              </div>
-            </div>
-          </AnimatedSection>
+            </AnimatedSection>
+          </div>
         </div>
       </div>
     </div>

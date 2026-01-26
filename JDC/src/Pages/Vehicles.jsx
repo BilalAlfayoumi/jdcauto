@@ -18,15 +18,22 @@ import {
 } from 'lucide-react';
 
 export default function Vehicles() {
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  // Read URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlCategory = urlParams.get('category');
+  const urlBrand = urlParams.get('brand');
+  const urlModel = urlParams.get('model');
+  const urlMaxPrice = urlParams.get('maxPrice');
+  
+  const [selectedCategory, setSelectedCategory] = useState(urlCategory || 'all');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('recent'); // 'recent', 'price-asc', 'price-desc', 'year-asc', 'year-desc', 'mileage-asc', 'mileage-desc'
   
   const [filters, setFilters] = useState({
-    brand: '',
-    model: '',
+    brand: urlBrand || '',
+    model: urlModel || '',
     minPrice: 0,
-    maxPrice: 100000,
+    maxPrice: urlMaxPrice ? parseInt(urlMaxPrice) : 100000,
     minYear: 2010,
     maxYear: new Date().getFullYear(),
     maxMileage: null,
@@ -35,6 +42,14 @@ export default function Vehicles() {
   });
 
   const [tempFilters, setTempFilters] = useState(filters); // Pour le panneau mobile
+  
+  // Initialize filters from URL on mount
+  useEffect(() => {
+    if (urlCategory) setSelectedCategory(urlCategory);
+    if (urlBrand) setFilters(prev => ({ ...prev, brand: urlBrand }));
+    if (urlModel) setFilters(prev => ({ ...prev, model: urlModel }));
+    if (urlMaxPrice) setFilters(prev => ({ ...prev, maxPrice: parseInt(urlMaxPrice) }));
+  }, []); // Only on mount
   const [showFilters, setShowFilters] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -86,7 +101,8 @@ export default function Vehicles() {
     if (selectedCategory !== 'all' && vehicle.category !== selectedCategory) return false;
     if (filters.brand && vehicle.brand !== filters.brand) return false;
     if (filters.model && vehicle.model !== filters.model) return false;
-    if (vehicle.price < filters.minPrice || vehicle.price > filters.maxPrice) return false;
+    if (vehicle.price < filters.minPrice) return false;
+    if (filters.maxPrice && vehicle.price > filters.maxPrice) return false;
     if (vehicle.year < filters.minYear || vehicle.year > filters.maxYear) return false;
     if (filters.maxMileage && vehicle.mileage > filters.maxMileage) return false;
     if (filters.fuelTypes.length > 0 && !filters.fuelTypes.includes(vehicle.fuel_type)) return false;

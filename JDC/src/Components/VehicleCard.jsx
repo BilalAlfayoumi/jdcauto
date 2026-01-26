@@ -8,7 +8,10 @@ export default function VehicleCard({ vehicle, index = 0 }) {
   return (
     <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 group">
       {/* Image */}
-      <div className="relative overflow-hidden aspect-[4/3]">
+      <Link
+        to={createPageUrl('VehicleDetail') + `?id=${vehicle.id}`}
+        className="relative overflow-hidden aspect-[4/3] block group/image"
+      >
         <ImageWithAnimation
           src={vehicle.image_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&auto=format&fit=crop'}
           alt={`${vehicle.brand} ${vehicle.model}`}
@@ -16,17 +19,23 @@ export default function VehicleCard({ vehicle, index = 0 }) {
           animation="zoom-in"
           delay={index * 100}
         />
+        {/* Overlay "Voir" au hover */}
+        <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover/image:opacity-100">
+          <span className="text-white font-bold text-lg md:text-xl bg-red-600 px-6 py-3 rounded-lg shadow-lg transform scale-95 group-hover/image:scale-100 transition-transform duration-300">
+            Voir
+          </span>
+        </div>
         {vehicle.status === 'Réservé' && (
-          <div className="absolute top-4 left-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+          <div className="absolute top-4 left-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold z-10">
             RÉSERVÉ
           </div>
         )}
         {vehicle.status === 'Vendu' && (
-          <div className="absolute top-4 left-4 bg-gray-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+          <div className="absolute top-4 left-4 bg-gray-500 text-white px-3 py-1 rounded-full text-xs font-semibold z-10">
             VENDU
           </div>
         )}
-      </div>
+      </Link>
 
       {/* Content */}
       <div className="p-5">

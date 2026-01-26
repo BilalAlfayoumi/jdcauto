@@ -38,9 +38,9 @@ export default function Layout({ children }) {
               <Phone className="w-4 h-4 group-hover:scale-110 transition-transform" />
               <span className="font-medium">05 56 97 37 52</span>
             </a>
-            <a href="mailto:contact@jdcauto.fr" className="hidden sm:flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
+            <a href="mailto:jdcauto33@orange.fr" className="hidden sm:flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
               <Mail className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span className="font-medium">contact@jdcauto.fr</span>
+              <span className="font-medium">jdcauto33@orange.fr</span>
             </a>
           </div>
           <div className="hidden md:flex items-center gap-2 text-xs text-gray-300">
@@ -66,6 +66,10 @@ export default function Layout({ children }) {
                 src="/LOGO.jpg" 
                 alt="JDC Auto" 
                 className="h-12 sm:h-16 object-contain transition-transform duration-300 group-hover:scale-105"
+                onError={(e) => {
+                  console.error('Logo image failed to load');
+                  e.target.style.display = 'none';
+                }}
               />
             </Link>
 
@@ -154,9 +158,13 @@ export default function Layout({ children }) {
                 src="/LOGO.jpg" 
                 alt="JDC Auto" 
                 className="h-12 mb-4 object-contain"
+                onError={(e) => {
+                  console.error('Logo image failed to load in footer');
+                  e.target.style.display = 'none';
+                }}
               />
               <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                Votre agence de transaction automobile de confiance. Achat, vente et reprise de véhicules d'occasion avec garantie et sécurité.
+                Mandataire depuis plus de 30 ans en Aquitaine. Garage automobile multimarque à Mérignac depuis 2003. Services : vente, reprise, financement, LOA, mécanique, carrosserie, carte grise. +99% de satisfaction client, près de 16 000 véhicules livrés.
               </p>
               {/* Social Media */}
               <div className="flex gap-4">
@@ -213,7 +221,7 @@ export default function Layout({ children }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 flex-shrink-0" />
-                  <a href="mailto:contact@jdcauto.fr" className="hover:text-red-500 transition-colors">contact@jdcauto.fr</a>
+                  <a href="mailto:jdcauto33@orange.fr" className="hover:text-red-500 transition-colors">jdcauto33@orange.fr</a>
                 </div>
               </div>
             </div>
