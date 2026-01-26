@@ -53,7 +53,7 @@ git push gandi master || {
 
 # Déploiement sur le serveur Gandi
 echo "🚀 Déploiement sur le serveur..."
-ssh a1ec35a4-fabe-11f0-b829-00163e816020@git.sd3.gpaas.net deploy jdcauto.fr.git || {
+ssh a1ec35a4-fabe-11f0-b829-00163e816020@git.sd3.gpaas.net deploy www.jdcauto.fr.git || {
     echo "❌ Erreur lors du déploiement"
     exit 1
 }

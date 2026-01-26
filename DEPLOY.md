@@ -6,7 +6,7 @@ Ce guide explique comment déployer le site JDC Auto sur l'hébergeur Gandi.
 
 Le remote Gandi a été configuré avec les informations suivantes :
 - **Remote name**: `gandi`
-- **URL**: `git+ssh://a1ec35a4-fabe-11f0-b829-00163e816020@git.sd3.gpaas.net/jdcauto.fr.git`
+- **URL**: `git+ssh://a1ec35a4-fabe-11f0-b829-00163e816020@git.sd3.gpaas.net/www.jdcauto.fr.git`
 
 ## Méthode 1 : Script de déploiement automatique (Recommandé)
 
@@ -45,7 +45,7 @@ git push gandi main
 ### Étape 3 : Déployer sur le serveur
 
 ```bash
-ssh a1ec35a4-fabe-11f0-b829-00163e816020@git.sd3.gpaas.net deploy jdcauto.fr.git
+ssh a1ec35a4-fabe-11f0-b829-00163e816020@git.sd3.gpaas.net deploy www.jdcauto.fr.git
 ```
 
 ## Authentification SSH
@@ -57,7 +57,7 @@ Pour la première utilisation, vous devrez :
 ## Vérification
 
 Après le déploiement, votre site devrait être disponible sur :
-- **URL**: https://jdcauto.fr
+- **URL**: https://www.jdcauto.fr
 
 ## Remotes Git configurés
 
