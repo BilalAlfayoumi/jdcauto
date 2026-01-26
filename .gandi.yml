@@ -1,12 +1,9 @@
-build:
-  type: nodejs
-  version: 18
-  
 run:
   type: static
-  root: JDC/dist
+  root: ./
   
 deploy:
   build:
     - cd JDC && npm install
     - cd JDC && npm run build
+    - cp -r JDC/dist/* ./
