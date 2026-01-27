@@ -26,29 +26,6 @@ export default function VehicleDetail() {
   const [isLightboxOpen, setIsLightboxOpen] = React.useState(false);
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = React.useState(0);
 
-  // Keyboard navigation for lightbox
-  React.useEffect(() => {
-    if (!isLightboxOpen) return;
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setIsLightboxOpen(false);
-        return;
-      }
-
-      if (!vehicle?.photos || vehicle.photos.length <= 1) return;
-
-      if (e.key === 'ArrowLeft') {
-        setLightboxPhotoIndex(prev => prev > 0 ? prev - 1 : vehicle.photos.length - 1);
-      } else if (e.key === 'ArrowRight') {
-        setLightboxPhotoIndex(prev => prev < vehicle.photos.length - 1 ? prev + 1 : 0);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isLightboxOpen, vehicle?.photos]);
-
   const { data: vehicle, isLoading } = useQuery({
     queryKey: ['vehicle', vehicleId],
     queryFn: async () => {
@@ -79,6 +56,29 @@ export default function VehicleDetail() {
     },
     enabled: !!vehicleId,
   });
+
+  // Keyboard navigation for lightbox
+  React.useEffect(() => {
+    if (!isLightboxOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsLightboxOpen(false);
+        return;
+      }
+
+      if (!vehicle?.photos || vehicle.photos.length <= 1) return;
+
+      if (e.key === 'ArrowLeft') {
+        setLightboxPhotoIndex(prev => prev > 0 ? prev - 1 : vehicle.photos.length - 1);
+      } else if (e.key === 'ArrowRight') {
+        setLightboxPhotoIndex(prev => prev < vehicle.photos.length - 1 ? prev + 1 : 0);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, vehicle?.photos]);
 
   if (isLoading) {
     return (
