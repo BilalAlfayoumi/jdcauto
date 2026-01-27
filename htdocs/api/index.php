@@ -487,6 +487,39 @@ class SimpleVehiclesAPI {
     }
     
     /**
+     * Récupérer tous les messages de contact (pour API)
+     */
+    private function getContacts() {
+        try {
+            $this->ensureContactTableExists();
+            
+            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 100;
+            $status = $_GET['status'] ?? null;
+            
+            $sql = "SELECT * FROM contact_requests";
+            $params = [];
+            
+            if ($status) {
+                $sql .= " WHERE status = ?";
+                $params[] = $status;
+            }
+            
+            $sql .= " ORDER BY created_at DESC LIMIT ?";
+            $params[] = $limit;
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $contacts = $stmt->fetchAll();
+            
+            return $this->success($contacts);
+            
+        } catch (PDOException $e) {
+            error_log("Erreur récupération contacts: " . $e->getMessage());
+            return $this->error('Erreur lors de la récupération des messages', 500);
+        }
+    }
+    
+    /**
      * S'assurer que la table contact_requests existe
      */
     private function ensureContactTableExists() {
@@ -530,8 +563,21 @@ class SimpleVehiclesAPI {
         $headers .= "Reply-To: " . $data['email'] . "\r\n";
         $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
         
-        // Envoyer l'email (peut échouer silencieusement si non configuré)
-        @mail($to, $subject, $message, $headers);
+        // Logger la tentative d'envoi
+        error_log("📧 Tentative envoi email à: $to");
+        error_log("📧 Sujet: $subject");
+        
+        // Envoyer l'email et logger le résultat
+        $result = @mail($to, $subject, $message, $headers);
+        
+        if ($result) {
+            error_log("✅ Email envoyé avec succès à: $to");
+        } else {
+            error_log("❌ Échec envoi email à: $to - La fonction mail() peut ne pas être configurée sur ce serveur");
+        }
+        
+        // Note: Sur Gandi, la fonction mail() peut nécessiter une configuration spéciale
+        // Les messages sont toujours stockés en base de données, donc accessibles via l'API
     }
     
     private function error($message, $code = 400) {
