@@ -9,7 +9,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 0); // Désactiver en production
 ini_set('log_errors', 1);
 
-// Auto-loader simple pour les classes
+// Auto-loader simple pour les classes (optionnel)
 spl_autoload_register(function ($className) {
     $paths = [
         __DIR__ . '/classes/',
@@ -26,8 +26,7 @@ spl_autoload_register(function ($className) {
     }
 });
 
-// Inclure les fichiers nécessaires
-require_once __DIR__ . '/config/database.php';
+// Note: Configuration base de données intégrée ci-dessous (pas besoin d'inclure)
 
 /**
  * Configuration base de données pour Gandi
@@ -44,19 +43,45 @@ class GandiDatabaseConfig {
     public static function getConnection() {
         if (self::$connection === null) {
             try {
+                // Essayer d'abord avec la base, sinon sans base pour créer
                 $dsn = "mysql:host=" . self::$host . ";dbname=" . self::$dbname . ";charset=utf8mb4";
                 
                 self::$connection = new PDO($dsn, self::$username, self::$password, [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                    PDO::ATTR_TIMEOUT => 5
                 ]);
                 
             } catch (PDOException $e) {
-                error_log("Erreur BDD Gandi: " . $e->getMessage());
-                http_response_code(500);
-                echo json_encode(['error' => 'Service temporairement indisponible']);
-                exit;
+                // Si la base n'existe pas, essayer sans base
+                if (strpos($e->getMessage(), 'Unknown database') !== false) {
+                    try {
+                        $dsn = "mysql:host=" . self::$host . ";charset=utf8mb4";
+                        $tempPdo = new PDO($dsn, self::$username, self::$password, [
+                            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                            PDO::ATTR_TIMEOUT => 5
+                        ]);
+                        
+                        // Créer la base
+                        $tempPdo->exec("CREATE DATABASE IF NOT EXISTS `" . self::$dbname . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                        
+                        // Réessayer avec la base
+                        $dsn = "mysql:host=" . self::$host . ";dbname=" . self::$dbname . ";charset=utf8mb4";
+                        self::$connection = new PDO($dsn, self::$username, self::$password, [
+                            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                            PDO::ATTR_EMULATE_PREPARES => false
+                        ]);
+                        
+                    } catch (PDOException $e2) {
+                        error_log("Erreur BDD Gandi (création): " . $e2->getMessage());
+                        throw $e2;
+                    }
+                } else {
+                    error_log("Erreur BDD Gandi: " . $e->getMessage());
+                    throw $e;
+                }
             }
         }
         
@@ -72,7 +97,12 @@ class SimpleVehiclesAPI {
     private $pdo;
     
     public function __construct() {
-        $this->pdo = GandiDatabaseConfig::getConnection();
+        try {
+            $this->pdo = GandiDatabaseConfig::getConnection();
+        } catch (Exception $e) {
+            // Si pas de connexion, on continue quand même pour retourner une erreur propre
+            $this->pdo = null;
+        }
     }
     
     public function handleRequest() {
@@ -109,8 +139,22 @@ class SimpleVehiclesAPI {
     }
     
     private function getVehicles() {
+        if ($this->pdo === null) {
+            return $this->error('Base de données non configurée. Veuillez exécuter install/setup.php', 503);
+        }
+        
         $limit = min((int)($_GET['limit'] ?? 12), 50);
         $status = $_GET['status'] ?? 'Disponible';
+        
+        // Vérifier si la table existe
+        try {
+            $checkTable = $this->pdo->query("SHOW TABLES LIKE 'vehicles'");
+            if ($checkTable->rowCount() === 0) {
+                return $this->error('Base de données non initialisée. Veuillez exécuter install/setup.php', 503);
+            }
+        } catch (PDOException $e) {
+            return $this->error('Erreur base de données: ' . $e->getMessage(), 500);
+        }
         
         // Requête simple pour commencer
         $sql = "
