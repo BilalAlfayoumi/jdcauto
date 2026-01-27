@@ -30,7 +30,7 @@ export default function Vehicles() {
     brand: urlBrand || '',
     model: urlModel || '',
     minPrice: 0,
-    maxPrice: urlMaxPrice ? parseInt(urlMaxPrice) : 500000, // Augmenter par défaut pour inclure véhicules de luxe
+    maxPrice: urlMaxPrice ? parseInt(urlMaxPrice) : null, // Sera ajusté après chargement des données
     minYear: 2010,
     maxYear: new Date().getFullYear(),
     maxMileage: null,
@@ -60,16 +60,31 @@ export default function Vehicles() {
   });
 
   // Get price and year ranges from data
-  // Utiliser des valeurs fixes élevées pour permettre de filtrer tous les véhicules
-  const priceRange = {
-    min: allVehicles.length > 0 ? Math.min(...allVehicles.map(v => v.price)) : 0,
-    max: 500000 // Toujours 500k pour permettre de voir tous les véhicules, même les plus chers
-  };
+  // Calculer dynamiquement mais avec marge de sécurité pour éviter problèmes d'arrondi
+  const priceRange = allVehicles.length > 0 ? {
+    min: Math.min(...allVehicles.map(v => v.price)),
+    // Arrondir vers le haut (Math.ceil) et ajouter 10% de marge pour éviter problèmes d'arrondi des curseurs
+    max: Math.ceil(Math.max(...allVehicles.map(v => v.price)) * 1.1)
+  } : { min: 0, max: 500000 };
 
-  const yearRange = {
-    min: allVehicles.length > 0 ? Math.min(...allVehicles.map(v => v.year)) : 2010,
-    max: new Date().getFullYear() + 1 // Année actuelle + 1 pour marge
-  };
+  const yearRange = allVehicles.length > 0 ? {
+    min: Math.min(...allVehicles.map(v => v.year)),
+    // Année max + 1 pour marge
+    max: Math.max(...allVehicles.map(v => v.year)) + 1
+  } : { min: 2010, max: new Date().getFullYear() + 1 };
+
+  // Ajuster maxPrice après chargement des données si pas défini ou trop bas
+  useEffect(() => {
+    if (allVehicles.length > 0 && priceRange.max) {
+      const currentMax = filters.maxPrice || 0;
+      if (currentMax < priceRange.max) {
+        setFilters(prev => ({
+          ...prev,
+          maxPrice: priceRange.max
+        }));
+      }
+    }
+  }, [allVehicles.length, priceRange.max]);
 
   // Get unique brands
   const uniqueBrands = [...new Set(allVehicles.map(v => v.brand))].sort();
@@ -93,7 +108,7 @@ export default function Vehicles() {
     if (filters.brand && vehicle.brand !== filters.brand) return false;
     if (filters.model && vehicle.model !== filters.model) return false;
     if (vehicle.price < filters.minPrice) return false;
-    if (filters.maxPrice && vehicle.price > filters.maxPrice) return false;
+    if (filters.maxPrice !== null && vehicle.price > filters.maxPrice) return false;
     if (vehicle.year < filters.minYear || vehicle.year > filters.maxYear) return false;
     if (filters.maxMileage && vehicle.mileage > filters.maxMileage) return false;
     // Filtre carburant avec normalisation (insensible à la casse)
@@ -258,7 +273,7 @@ export default function Vehicles() {
                     <input
                       type="range"
                       min={priceRange.min}
-                      max={500000}
+                      max={priceRange.max}
                       step="1000"
                       value={filters.minPrice}
                       onChange={(e) => setFilters({ ...filters, minPrice: parseInt(e.target.value) })}
@@ -267,7 +282,7 @@ export default function Vehicles() {
                     <input
                       type="range"
                       min={priceRange.min}
-                      max={500000}
+                      max={priceRange.max}
                       step="1000"
                       value={filters.maxPrice}
                       onChange={(e) => setFilters({ ...filters, maxPrice: parseInt(e.target.value) })}
@@ -285,7 +300,7 @@ export default function Vehicles() {
                     <input
                       type="range"
                       min={yearRange.min}
-                      max={new Date().getFullYear() + 1}
+                      max={yearRange.max}
                       value={filters.minYear}
                       onChange={(e) => setFilters({ ...filters, minYear: parseInt(e.target.value) })}
                       className="w-full accent-red-600"
@@ -293,7 +308,7 @@ export default function Vehicles() {
                     <input
                       type="range"
                       min={yearRange.min}
-                      max={new Date().getFullYear() + 1}
+                      max={yearRange.max}
                       value={filters.maxYear}
                       onChange={(e) => setFilters({ ...filters, maxYear: parseInt(e.target.value) })}
                       className="w-full accent-red-600"
