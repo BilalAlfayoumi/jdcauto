@@ -42,6 +42,11 @@ export default function VehicleCard({ vehicle, index = 0 }) {
         {/* Title */}
         <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-red-600 transition-colors">
           {vehicle.brand} {vehicle.model}
+          {vehicle.quantity > 1 && (
+            <span className="ml-2 text-sm font-normal text-gray-600">
+              ({vehicle.quantity} disponibles)
+            </span>
+          )}
         </h3>
 
         {/* Price */}

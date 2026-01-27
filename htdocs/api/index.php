@@ -193,31 +193,61 @@ class SimpleVehiclesAPI {
             $hasEtat = in_array('etat', $availableColumns);
             $hasDateModif = in_array('date_modif', $availableColumns);
             
-            $sql = "SELECT " . implode(', ', $selectFields) . " FROM vehicles";
+            // D'abord, obtenir les groupes (marque + modèle) avec leur quantité
+            $groupSql = "SELECT marque, modele, COUNT(*) as quantity
+                        FROM vehicles";
             
-            // Ajouter WHERE si colonne etat existe
             if ($hasEtat) {
-                $sql .= " WHERE etat = ?";
+                $groupSql .= " WHERE etat = ?";
             }
             
-            // Ajouter ORDER BY si colonne date_modif existe
+            $groupSql .= " GROUP BY marque, modele";
+            
             if ($hasDateModif) {
-                $sql .= " ORDER BY date_modif DESC";
+                $groupSql .= " ORDER BY MAX(date_modif) DESC";
             } else if (in_array('id', $availableColumns)) {
-                $sql .= " ORDER BY id DESC";
+                $groupSql .= " ORDER BY MAX(id) DESC";
             }
             
-            $sql .= " LIMIT ?";
+            $groupSql .= " LIMIT ?";
             
-            $stmt = $this->pdo->prepare($sql);
-            
+            $groupStmt = $this->pdo->prepare($groupSql);
             if ($hasEtat) {
-                $stmt->execute([$status, $limit]);
+                $groupStmt->execute([$status, $limit]);
             } else {
-                $stmt->execute([$limit]);
+                $groupStmt->execute([$limit]);
             }
+            $groups = $groupStmt->fetchAll();
             
-            $vehicles = $stmt->fetchAll();
+            // Pour chaque groupe, récupérer le véhicule représentatif
+            $vehicles = [];
+            foreach ($groups as $group) {
+                $representativeSql = "SELECT " . implode(', ', $selectFields) . " 
+                                      FROM vehicles 
+                                      WHERE marque = ? AND modele = ?";
+                if ($hasEtat) {
+                    $representativeSql .= " AND etat = ?";
+                }
+                if ($hasDateModif) {
+                    $representativeSql .= " ORDER BY date_modif DESC";
+                } else if (in_array('id', $availableColumns)) {
+                    $representativeSql .= " ORDER BY id DESC";
+                }
+                $representativeSql .= " LIMIT 1";
+                
+                $repStmt = $this->pdo->prepare($representativeSql);
+                if ($hasEtat) {
+                    $repStmt->execute([$group['marque'], $group['modele'], $status]);
+                } else {
+                    $repStmt->execute([$group['marque'], $group['modele']]);
+                }
+                $representative = $repStmt->fetch();
+                
+                if ($representative) {
+                    $representative['quantity'] = (int)$group['quantity'];
+                    $vehicles[] = $representative;
+                }
+            }
             
         } catch (PDOException $e) {
             error_log("Erreur requête getVehicles: " . $e->getMessage());
@@ -258,6 +288,7 @@ class SimpleVehiclesAPI {
             $vehicle['model'] = $vehicle['modele'] ?? '';
             $vehicle['status'] = $vehicle['etat'] ?? 'Disponible';
             $vehicle['category'] = $vehicle['carrosserie'] ?? '';
+            $vehicle['quantity'] = isset($vehicle['quantity']) ? (int)$vehicle['quantity'] : 1;
         }
         
         return $this->success($vehicles);
