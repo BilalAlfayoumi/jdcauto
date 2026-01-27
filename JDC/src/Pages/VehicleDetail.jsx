@@ -26,6 +26,29 @@ export default function VehicleDetail() {
   const [isLightboxOpen, setIsLightboxOpen] = React.useState(false);
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = React.useState(0);
 
+  // Keyboard navigation for lightbox
+  React.useEffect(() => {
+    if (!isLightboxOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsLightboxOpen(false);
+        return;
+      }
+
+      if (!vehicle?.photos || vehicle.photos.length <= 1) return;
+
+      if (e.key === 'ArrowLeft') {
+        setLightboxPhotoIndex(prev => prev > 0 ? prev - 1 : vehicle.photos.length - 1);
+      } else if (e.key === 'ArrowRight') {
+        setLightboxPhotoIndex(prev => prev < vehicle.photos.length - 1 ? prev + 1 : 0);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, vehicle?.photos]);
+
   const { data: vehicle, isLoading } = useQuery({
     queryKey: ['vehicle', vehicleId],
     queryFn: async () => {
@@ -100,34 +123,49 @@ export default function VehicleDetail() {
             {/* Image Gallery */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
               {/* Main Image */}
-              <div className="relative">
+              <div className="relative cursor-pointer group" onClick={() => {
+                setLightboxPhotoIndex(selectedPhotoIndex);
+                setIsLightboxOpen(true);
+              }}>
                 <ImageWithAnimation
                   src={vehicle.photos && vehicle.photos.length > 0 
                     ? vehicle.photos[selectedPhotoIndex] 
                     : vehicle.image_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1200&auto=format&fit=crop'}
                   alt={`${vehicle.brand} ${vehicle.model} - Photo ${selectedPhotoIndex + 1}`}
-                  className="w-full h-96 object-cover"
+                  className="w-full h-96 object-cover group-hover:opacity-90 transition-opacity"
                   animation="zoom-in"
                 />
+                {/* Overlay hint on hover */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <div className="bg-white/90 text-gray-900 px-4 py-2 rounded-lg font-semibold text-sm">
+                    Cliquez pour agrandir
+                  </div>
+                </div>
                 {/* Navigation arrows if multiple photos */}
                 {vehicle.photos && vehicle.photos.length > 1 && (
                   <>
                     <button
-                      onClick={() => setSelectedPhotoIndex(prev => prev > 0 ? prev - 1 : vehicle.photos.length - 1)}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPhotoIndex(prev => prev > 0 ? prev - 1 : vehicle.photos.length - 1);
+                      }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all z-10"
                       aria-label="Photo précédente"
                     >
                       <ChevronLeft className="w-6 h-6" />
                     </button>
                     <button
-                      onClick={() => setSelectedPhotoIndex(prev => prev < vehicle.photos.length - 1 ? prev + 1 : 0)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all rotate-180"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPhotoIndex(prev => prev < vehicle.photos.length - 1 ? prev + 1 : 0);
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all z-10"
                       aria-label="Photo suivante"
                     >
-                      <ChevronLeft className="w-6 h-6" />
+                      <ChevronRight className="w-6 h-6" />
                     </button>
                     {/* Photo counter */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm font-semibold">
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm font-semibold z-10">
                       {selectedPhotoIndex + 1} / {vehicle.photos.length}
                     </div>
                   </>
@@ -141,8 +179,12 @@ export default function VehicleDetail() {
                     {vehicle.photos.map((photo, index) => (
                       <button
                         key={index}
-                        onClick={() => setSelectedPhotoIndex(index)}
-                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                        onClick={() => {
+                          setSelectedPhotoIndex(index);
+                          setLightboxPhotoIndex(index);
+                          setIsLightboxOpen(true);
+                        }}
+                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
                           selectedPhotoIndex === index
                             ? 'border-red-600 ring-2 ring-red-300'
                             : 'border-gray-300 hover:border-red-400'
@@ -314,6 +356,71 @@ export default function VehicleDetail() {
           </div>
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      {isLightboxOpen && vehicle && (
+        <div 
+          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          {/* Close Button */}
+          <button
+            onClick={() => setIsLightboxOpen(false)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-50 bg-black/50 hover:bg-black/70 p-3 rounded-full"
+            aria-label="Fermer"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          {/* Image Container */}
+          <div 
+            className="relative max-w-7xl w-full h-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={
+                vehicle.photos && vehicle.photos.length > 0
+                  ? vehicle.photos[lightboxPhotoIndex]
+                  : vehicle.image_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1200&auto=format&fit=crop'
+              }
+              alt={`${vehicle.brand} ${vehicle.model} - Photo ${lightboxPhotoIndex + 1}`}
+              className="max-w-full max-h-full object-contain"
+            />
+
+            {/* Navigation Arrows */}
+            {vehicle.photos && vehicle.photos.length > 1 && (
+              <>
+                <button
+                  onClick={() => setLightboxPhotoIndex(prev => prev > 0 ? prev - 1 : vehicle.photos.length - 1)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-4 rounded-full transition-all backdrop-blur-sm"
+                  aria-label="Photo précédente"
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+                <button
+                  onClick={() => setLightboxPhotoIndex(prev => prev < vehicle.photos.length - 1 ? prev + 1 : 0)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-4 rounded-full transition-all backdrop-blur-sm"
+                  aria-label="Photo suivante"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+
+                {/* Photo Counter */}
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/50 text-white px-6 py-3 rounded-full text-base font-semibold backdrop-blur-sm">
+                  {lightboxPhotoIndex + 1} / {vehicle.photos.length}
+                </div>
+              </>
+            )}
+
+            {/* Keyboard Navigation Hint */}
+            {vehicle.photos && vehicle.photos.length > 1 && (
+              <div className="absolute bottom-8 right-8 text-white/70 text-sm">
+                Utilisez les flèches pour naviguer
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
