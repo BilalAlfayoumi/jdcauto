@@ -21,6 +21,9 @@ class JDCAutoAPIClient {
       Vehicle: {
         filter: this._filterVehicles.bind(this),
         list: this._listVehicles.bind(this)
+      },
+      ContactRequest: {
+        create: this._createContactRequest.bind(this)
       }
     };
   }
@@ -115,6 +118,52 @@ class JDCAutoAPIClient {
     } catch (error) {
       console.error('Erreur list():', error);
       console.error('Stack:', error.stack);
+      throw error;
+    }
+  }
+  
+  /**
+   * Créer une demande de contact
+   */
+  async _createContactRequest(data) {
+    console.log('📧 Création demande de contact:', data);
+    
+    try {
+      // Construire l'URL
+      let url;
+      if (this.baseURL.startsWith('http://') || this.baseURL.startsWith('https://')) {
+        url = new URL(this.baseURL);
+      } else {
+        url = new URL(this.baseURL, window.location.origin);
+      }
+      url.searchParams.append('action', 'contact');
+      
+      // Envoyer la requête POST
+      const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Erreur serveur' }));
+        throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Erreur lors de l\'envoi du message');
+      }
+      
+      console.log('✅ Message de contact envoyé avec succès:', result.data);
+      return result.data;
+      
+    } catch (error) {
+      console.error('❌ Erreur création contact:', error);
       throw error;
     }
   }

@@ -67,18 +67,19 @@ export default function VehicleDetail() {
         return;
       }
 
-      if (!vehicle?.photos || vehicle.photos.length <= 1) return;
+      const photos = vehicle?.photos;
+      if (!photos || photos.length <= 1) return;
 
       if (e.key === 'ArrowLeft') {
-        setLightboxPhotoIndex(prev => prev > 0 ? prev - 1 : vehicle.photos.length - 1);
+        setLightboxPhotoIndex(prev => prev > 0 ? prev - 1 : photos.length - 1);
       } else if (e.key === 'ArrowRight') {
-        setLightboxPhotoIndex(prev => prev < vehicle.photos.length - 1 ? prev + 1 : 0);
+        setLightboxPhotoIndex(prev => prev < photos.length - 1 ? prev + 1 : 0);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isLightboxOpen, vehicle?.photos]);
+  }, [isLightboxOpen, vehicle]);
 
   if (isLoading) {
     return (

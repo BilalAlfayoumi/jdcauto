@@ -90,7 +90,7 @@ class GandiDatabaseConfig {
 }
 
 /**
- * API REST simplifiée pour véhicules
+ * API REST simplifiée pour véhicules et contact
  */
 class SimpleVehiclesAPI {
     
@@ -109,7 +109,7 @@ class SimpleVehiclesAPI {
         // CORS pour React
         header('Content-Type: application/json; charset=utf-8');
         header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, OPTIONS');
+        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
         header('Access-Control-Allow-Headers: Content-Type');
         
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -117,7 +117,7 @@ class SimpleVehiclesAPI {
             exit;
         }
         
-        $action = $_GET['action'] ?? 'vehicles';
+        $action = $_GET['action'] ?? ($_POST['action'] ?? 'vehicles');
         
         try {
             switch ($action) {
@@ -129,6 +129,8 @@ class SimpleVehiclesAPI {
                     return $this->getBrands();
                 case 'search':
                     return $this->search();
+                case 'contact':
+                    return $this->createContactRequest();
                 default:
                     return $this->error('Action non reconnue', 404);
             }
@@ -416,6 +418,120 @@ class SimpleVehiclesAPI {
             'timestamp' => date('c')
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
+    }
+    
+    /**
+     * Créer une demande de contact
+     */
+    private function createContactRequest() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return $this->error('Méthode non autorisée. Utilisez POST.', 405);
+        }
+        
+        // Lire les données JSON du body
+        $json = file_get_contents('php://input');
+        $data = json_decode($json, true);
+        
+        if (!$data) {
+            // Essayer avec $_POST si JSON échoue
+            $data = $_POST;
+        }
+        
+        // Validation des champs requis
+        $required = ['first_name', 'last_name', 'email', 'phone', 'message', 'type'];
+        foreach ($required as $field) {
+            if (empty($data[$field])) {
+                return $this->error("Le champ '$field' est requis", 400);
+            }
+        }
+        
+        // Validation email
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            return $this->error('Email invalide', 400);
+        }
+        
+        try {
+            // Vérifier si la table existe, sinon la créer
+            $this->ensureContactTableExists();
+            
+            // Insérer la demande de contact
+            $sql = "INSERT INTO contact_requests 
+                    (first_name, last_name, email, phone, message, type, subject, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                $data['first_name'],
+                $data['last_name'],
+                $data['email'],
+                $data['phone'],
+                $data['message'],
+                $data['type'],
+                $data['subject'] ?? 'Demande de contact'
+            ]);
+            
+            $contactId = $this->pdo->lastInsertId();
+            
+            // Optionnel: Envoyer un email (si configuré)
+            $this->sendContactEmail($data);
+            
+            return $this->success([
+                'id' => $contactId,
+                'message' => 'Votre message a été envoyé avec succès'
+            ]);
+            
+        } catch (PDOException $e) {
+            error_log("Erreur création contact: " . $e->getMessage());
+            return $this->error('Erreur lors de l\'enregistrement du message', 500);
+        }
+    }
+    
+    /**
+     * S'assurer que la table contact_requests existe
+     */
+    private function ensureContactTableExists() {
+        $sql = "CREATE TABLE IF NOT EXISTS contact_requests (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            first_name VARCHAR(100) NOT NULL,
+            last_name VARCHAR(100) NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            phone VARCHAR(20) NOT NULL,
+            message TEXT NOT NULL,
+            type VARCHAR(50) NOT NULL,
+            subject VARCHAR(255),
+            status VARCHAR(20) DEFAULT 'new',
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_email (email),
+            INDEX idx_type (type),
+            INDEX idx_status (status),
+            INDEX idx_created_at (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        
+        $this->pdo->exec($sql);
+    }
+    
+    /**
+     * Envoyer un email de notification (optionnel)
+     */
+    private function sendContactEmail($data) {
+        // Email de destination (à configurer)
+        $to = 'jdcauto33@orange.fr';
+        $subject = 'Nouvelle demande de contact - ' . ($data['subject'] ?? 'Site JDC Auto');
+        
+        $message = "Nouvelle demande de contact reçue:\n\n";
+        $message .= "Type: " . ($data['type'] === 'achat' ? 'Achat de véhicule' : 'Carte grise') . "\n";
+        $message .= "Nom: " . $data['first_name'] . " " . $data['last_name'] . "\n";
+        $message .= "Email: " . $data['email'] . "\n";
+        $message .= "Téléphone: " . $data['phone'] . "\n\n";
+        $message .= "Message:\n" . $data['message'] . "\n";
+        
+        $headers = "From: noreply@jdcauto.fr\r\n";
+        $headers .= "Reply-To: " . $data['email'] . "\r\n";
+        $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        
+        // Envoyer l'email (peut échouer silencieusement si non configuré)
+        @mail($to, $subject, $message, $headers);
     }
     
     private function error($message, $code = 400) {
