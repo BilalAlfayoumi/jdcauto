@@ -98,7 +98,7 @@ export default function MobileFilterPanel({
                 <input
                   type="range"
                   min={priceRange.min}
-                  max={priceRange.max}
+                  max={500000}
                   step="1000"
                   value={filters.minPrice}
                   onChange={(e) => setFilters({ ...filters, minPrice: parseInt(e.target.value) })}
@@ -110,7 +110,7 @@ export default function MobileFilterPanel({
                 <input
                   type="range"
                   min={priceRange.min}
-                  max={priceRange.max}
+                  max={500000}
                   step="1000"
                   value={filters.maxPrice}
                   onChange={(e) => setFilters({ ...filters, maxPrice: parseInt(e.target.value) })}
@@ -145,7 +145,7 @@ export default function MobileFilterPanel({
                 <input
                   type="range"
                   min={yearRange.min}
-                  max={yearRange.max}
+                  max={new Date().getFullYear() + 1}
                   value={filters.minYear}
                   onChange={(e) => setFilters({ ...filters, minYear: parseInt(e.target.value) })}
                   className="w-full accent-red-600"
@@ -156,7 +156,7 @@ export default function MobileFilterPanel({
                 <input
                   type="range"
                   min={yearRange.min}
-                  max={yearRange.max}
+                  max={new Date().getFullYear() + 1}
                   value={filters.maxYear}
                   onChange={(e) => setFilters({ ...filters, maxYear: parseInt(e.target.value) })}
                   className="w-full accent-red-600"
