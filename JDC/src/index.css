@@ -17,6 +17,30 @@ html {
   display: none;
 }
 
+/* Custom scrollbar for filter sidebar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #dc2626 #f3f4f6;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #dc2626;
+  border-radius: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #b91c1c;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {

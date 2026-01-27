@@ -545,9 +545,21 @@ class SimpleVehiclesAPI {
     }
     
     /**
-     * Envoyer un email de notification (optionnel)
+     * Envoyer un email de notification via SMTP Gandi
+     * 
+     * CONFIGURATION REQUISE:
+     * 1. Créer une boîte mail dans votre panel Gandi (ex: contact@jdcauto.fr)
+     * 2. Récupérer le mot de passe de cette boîte mail
+     * 3. Modifier les constantes ci-dessous avec vos identifiants
      */
     private function sendContactEmail($data) {
+        // ⚙️ CONFIGURATION - À MODIFIER AVEC VOS IDENTIFIANTS GANDI
+        // Créez une boîte mail dans votre panel Gandi (ex: contact@jdcauto.fr)
+        $smtp_host = 'mail.gandi.net'; // Serveur SMTP Gandi
+        $smtp_port = 587; // Port SMTP (587 pour TLS, 465 pour SSL)
+        $smtp_username = 'contact@jdcauto.fr'; // ⚠️ REMPLACER par votre boîte mail Gandi
+        $smtp_password = 'VOTRE_MOT_DE_PASSE'; // ⚠️ REMPLACER par le mot de passe de la boîte mail
+        
         // Email de destination - TEST avec belallfym@gmail.com, puis remettre jdcauto33@orange.fr
         $to = 'belallfym@gmail.com'; // TODO: Remettre 'jdcauto33@orange.fr' après tests
         $subject = 'Nouvelle demande de contact - ' . ($data['subject'] ?? 'Site JDC Auto');
@@ -559,25 +571,120 @@ class SimpleVehiclesAPI {
         $message .= "Téléphone: " . $data['phone'] . "\n\n";
         $message .= "Message:\n" . $data['message'] . "\n";
         
-        $headers = "From: noreply@jdcauto.fr\r\n";
+        // Essayer d'abord avec mail() native (peut fonctionner si configuré)
+        $headers = "From: " . $smtp_username . "\r\n";
         $headers .= "Reply-To: " . $data['email'] . "\r\n";
         $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
         
-        // Logger la tentative d'envoi
         error_log("📧 Tentative envoi email à: $to");
         error_log("📧 Sujet: $subject");
         
-        // Envoyer l'email et logger le résultat
         $result = @mail($to, $subject, $message, $headers);
         
         if ($result) {
-            error_log("✅ Email envoyé avec succès à: $to");
-        } else {
-            error_log("❌ Échec envoi email à: $to - La fonction mail() peut ne pas être configurée sur ce serveur");
+            error_log("✅ Email envoyé avec succès via mail() à: $to");
+            return true;
         }
         
-        // Note: Sur Gandi, la fonction mail() peut nécessiter une configuration spéciale
-        // Les messages sont toujours stockés en base de données, donc accessibles via l'API
+        // Si mail() échoue, essayer avec SMTP manuel
+        error_log("⚠️ mail() a échoué, tentative SMTP manuel...");
+        return $this->sendEmailViaSMTP($smtp_host, $smtp_port, $smtp_username, $smtp_password, $to, $subject, $message, $data['email']);
+    }
+    
+    /**
+     * Envoyer un email via SMTP manuel (si mail() ne fonctionne pas)
+     */
+    private function sendEmailViaSMTP($host, $port, $username, $password, $to, $subject, $message, $replyTo) {
+        // Vérifier si les identifiants sont configurés
+        if ($password === 'VOTRE_MOT_DE_PASSE' || empty($username) || empty($password)) {
+            error_log("❌ SMTP non configuré - Veuillez configurer les identifiants dans sendContactEmail()");
+            return false;
+        }
+        
+        try {
+            // Connexion SMTP
+            $socket = @fsockopen($host, $port, $errno, $errstr, 10);
+            if (!$socket) {
+                error_log("❌ Impossible de se connecter au serveur SMTP $host:$port - $errstr ($errno)");
+                return false;
+            }
+            
+            // Lire la réponse initiale
+            $response = fgets($socket, 515);
+            if (substr($response, 0, 3) !== '220') {
+                error_log("❌ Réponse SMTP inattendue: $response");
+                fclose($socket);
+                return false;
+            }
+            
+            // EHLO
+            fputs($socket, "EHLO " . $host . "\r\n");
+            $response = fgets($socket, 515);
+            
+            // STARTTLS si port 587
+            if ($port == 587) {
+                fputs($socket, "STARTTLS\r\n");
+                $response = fgets($socket, 515);
+                if (substr($response, 0, 3) === '220') {
+                    stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+                    fputs($socket, "EHLO " . $host . "\r\n");
+                    $response = fgets($socket, 515);
+                }
+            }
+            
+            // Authentification
+            fputs($socket, "AUTH LOGIN\r\n");
+            $response = fgets($socket, 515);
+            
+            fputs($socket, base64_encode($username) . "\r\n");
+            $response = fgets($socket, 515);
+            
+            fputs($socket, base64_encode($password) . "\r\n");
+            $response = fgets($socket, 515);
+            
+            if (substr($response, 0, 3) !== '235') {
+                error_log("❌ Échec authentification SMTP: $response");
+                fclose($socket);
+                return false;
+            }
+            
+            // Envoi de l'email
+            fputs($socket, "MAIL FROM: <" . $username . ">\r\n");
+            $response = fgets($socket, 515);
+            
+            fputs($socket, "RCPT TO: <" . $to . ">\r\n");
+            $response = fgets($socket, 515);
+            
+            fputs($socket, "DATA\r\n");
+            $response = fgets($socket, 515);
+            
+            $emailData = "From: " . $username . "\r\n";
+            $emailData .= "To: " . $to . "\r\n";
+            $emailData .= "Reply-To: " . $replyTo . "\r\n";
+            $emailData .= "Subject: " . $subject . "\r\n";
+            $emailData .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $emailData .= "\r\n";
+            $emailData .= $message . "\r\n";
+            $emailData .= ".\r\n";
+            
+            fputs($socket, $emailData);
+            $response = fgets($socket, 515);
+            
+            if (substr($response, 0, 3) === '250') {
+                error_log("✅ Email envoyé avec succès via SMTP à: $to");
+                fputs($socket, "QUIT\r\n");
+                fclose($socket);
+                return true;
+            } else {
+                error_log("❌ Échec envoi email SMTP: $response");
+                fclose($socket);
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            error_log("❌ Erreur SMTP: " . $e->getMessage());
+            return false;
+        }
     }
     
     private function error($message, $code = 400) {

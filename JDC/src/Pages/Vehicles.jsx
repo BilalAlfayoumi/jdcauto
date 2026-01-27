@@ -209,8 +209,9 @@ export default function Vehicles() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar - Desktop only */}
           <aside className="hidden lg:block lg:w-80">
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-48">
-              <div className="flex justify-between items-center mb-6">
+            <div className="bg-white rounded-lg shadow-md sticky top-24 max-h-[calc(100vh-8rem)] flex flex-col">
+              {/* Header - Fixed */}
+              <div className="flex justify-between items-center p-6 pb-4 border-b border-gray-200">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                   <Filter className="w-5 h-5" />
                   Filtres
@@ -223,7 +224,8 @@ export default function Vehicles() {
                 </button>
               </div>
 
-              <div className="space-y-6">
+              {/* Scrollable content */}
+              <div className="p-6 pt-4 overflow-y-auto flex-1 space-y-6 scrollbar-thin">
                 {/* Marque */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
