@@ -15,6 +15,95 @@ const API_BASE_URL = import.meta.env.PROD
 class JDCAutoAPIClient {
   constructor() {
     this.baseURL = API_BASE_URL;
+    
+    // Créer les méthodes avec le bon contexte this
+    this.entities = {
+      Vehicle: {
+        filter: this._filterVehicles.bind(this),
+        list: this._listVehicles.bind(this)
+      }
+    };
+  }
+  
+  /**
+   * Filtre les véhicules - méthode interne avec bon contexte
+   */
+  async _filterVehicles(filters = {}, sortBy = '-created_date', limit = null) {
+    console.log('🔍 filter() appelé avec:', { filters, sortBy, limit });
+    const params = {
+      action: 'vehicles',
+      limit: limit || 50,
+      sort: this.parseSortBy(sortBy)
+    };
+    
+    // Appliquer filtres - TOUJOURS filtrer par Disponible par défaut
+    params.status = filters.status || 'Disponible';
+    
+    if (filters.marque) params.marque = filters.marque;
+    if (filters.modele) params.modele = filters.modele;
+    if (filters.category) params.category = filters.category;
+    
+    try {
+      console.log('🌐 Appel API avec params:', params);
+      const vehicles = await this.request(params);
+      console.log('📦 Réponse API brute:', vehicles);
+      
+      // Vérifier que vehicles est un tableau
+      if (!Array.isArray(vehicles)) {
+        console.error('❌ API n\'a pas retourné un tableau:', vehicles);
+        return this.getFallbackVehicles(limit);
+      }
+      
+      if (vehicles.length === 0) {
+        console.warn('⚠️ API retourne 0 véhicules');
+        return [];
+      }
+      
+      console.log(`✅ API retourne ${vehicles.length} véhicules`);
+      
+      // Transformation pour compatibilité totale
+      return vehicles.map(vehicle => ({
+        ...vehicle,
+        id: vehicle.id?.toString() || vehicle.reference || '',
+        brand: vehicle.brand || vehicle.marque || '',
+        model: vehicle.model || vehicle.modele || '',
+        price: vehicle.price || parseFloat(vehicle.prix_vente || 0),
+        mileage: vehicle.mileage || parseInt(vehicle.kilometrage || 0),
+        year: vehicle.year || parseInt(vehicle.annee || new Date().getFullYear()),
+        fuel_type: vehicle.fuel_type || vehicle.energie || 'Essence',
+        gearbox: vehicle.gearbox || (vehicle.typeboite === 'A' ? 'Automatique' : 'Manuelle'),
+        status: vehicle.status || vehicle.etat || 'Disponible',
+        description: vehicle.description || `${vehicle.marque || vehicle.brand} ${vehicle.modele || vehicle.model}`,
+        image_url: vehicle.image_url || this.getPlaceholderImage(vehicle.marque || vehicle.brand),
+        category: vehicle.category || vehicle.carrosserie || 'Berline',
+        marque: vehicle.marque || vehicle.brand,
+        modele: vehicle.modele || vehicle.model,
+        prix_vente: vehicle.prix_vente || vehicle.price,
+        kilometrage: vehicle.kilometrage || vehicle.mileage,
+        annee: vehicle.annee || vehicle.year
+      }));
+      
+    } catch (error) {
+      console.error('Erreur filter():', error);
+      console.error('Stack:', error.stack);
+      return this.getFallbackVehicles(limit);
+    }
+  }
+  
+  /**
+   * Liste tous les véhicules - méthode interne avec bon contexte
+   */
+  async _listVehicles(sortBy = '-created_date', limit = null) {
+    console.log('📋 list() appelé avec sortBy:', sortBy, 'limit:', limit);
+    try {
+      const result = await this.entities.Vehicle.filter({ status: 'Disponible' }, sortBy, limit);
+      console.log('📋 list() retourne', result?.length || 0, 'véhicules');
+      return result;
+    } catch (error) {
+      console.error('Erreur list():', error);
+      console.error('Stack:', error.stack);
+      throw error;
+    }
   }
   
   /**
@@ -73,90 +162,6 @@ class JDCAutoAPIClient {
     }
   }
   
-  /**
-   * Interface compatible avec l'ancien système base44
-   */
-  entities = {
-    Vehicle: {
-      /**
-       * Filtre les véhicules - Compatible avec: base44.entities.Vehicle.filter()
-       */
-      async filter(filters = {}, sortBy = '-created_date', limit = null) {
-        console.log('🔍 filter() appelé avec:', { filters, sortBy, limit });
-        const params = {
-          action: 'vehicles',
-          limit: limit || 50,
-          sort: this.parseSortBy(sortBy)
-        };
-        
-        // Appliquer filtres - TOUJOURS filtrer par Disponible par défaut
-        params.status = filters.status || 'Disponible';
-        
-        if (filters.marque) params.marque = filters.marque;
-        if (filters.modele) params.modele = filters.modele;
-        if (filters.category) params.category = filters.category;
-        
-        try {
-          console.log('🌐 Appel API avec params:', params);
-          const vehicles = await this.request(params);
-          console.log('📦 Réponse API brute:', vehicles);
-          
-          // Vérifier que vehicles est un tableau
-          if (!Array.isArray(vehicles)) {
-            console.error('❌ API n\'a pas retourné un tableau:', vehicles);
-            return this.getFallbackVehicles(limit);
-          }
-          
-          if (vehicles.length === 0) {
-            console.warn('⚠️ API retourne 0 véhicules');
-            return [];
-          }
-          
-          console.log(`✅ API retourne ${vehicles.length} véhicules`);
-          
-          // Transformation pour compatibilité totale
-          // L'API retourne déjà certains champs transformés (price, mileage, brand, model)
-          // Mais on s'assure que tous les champs nécessaires sont présents
-          return vehicles.map(vehicle => ({
-            ...vehicle,
-            // Champs attendus par les composants React (utiliser valeurs API si disponibles)
-            id: vehicle.id?.toString() || vehicle.reference || '',
-            brand: vehicle.brand || vehicle.marque || '',
-            model: vehicle.model || vehicle.modele || '',
-            price: vehicle.price || parseFloat(vehicle.prix_vente || 0),
-            mileage: vehicle.mileage || parseInt(vehicle.kilometrage || 0),
-            year: vehicle.year || parseInt(vehicle.annee || new Date().getFullYear()),
-            fuel_type: vehicle.fuel_type || vehicle.energie || 'Essence',
-            gearbox: vehicle.gearbox || (vehicle.typeboite === 'A' ? 'Automatique' : 'Manuelle'),
-            status: vehicle.status || vehicle.etat || 'Disponible',
-            description: vehicle.description || `${vehicle.marque || vehicle.brand} ${vehicle.modele || vehicle.model}`,
-            image_url: vehicle.image_url || this.getPlaceholderImage(vehicle.marque || vehicle.brand),
-            category: vehicle.category || vehicle.carrosserie || 'Berline',
-            // Conserver les champs originaux pour référence
-            marque: vehicle.marque || vehicle.brand,
-            modele: vehicle.modele || vehicle.model,
-            prix_vente: vehicle.prix_vente || vehicle.price,
-            kilometrage: vehicle.kilometrage || vehicle.mileage,
-            annee: vehicle.annee || vehicle.year
-          }));
-          
-        } catch (error) {
-          console.error('Erreur filter():', error);
-          return this.getFallbackVehicles(limit);
-        }
-      },
-      
-      /**
-       * Liste tous les véhicules - Compatible avec: base44.entities.Vehicle.list()
-       */
-      async list(sortBy = '-created_date', limit = null) {
-        console.log('📋 list() appelé avec sortBy:', sortBy, 'limit:', limit);
-        const result = await this.entities.Vehicle.filter({ status: 'Disponible' }, sortBy, limit);
-        console.log('📋 list() retourne', result?.length || 0, 'véhicules');
-        return result;
-      }
-    }
-  };
   
   /**
    * Parser le format sortBy
