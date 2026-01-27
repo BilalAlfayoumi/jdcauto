@@ -30,7 +30,7 @@ export default function Vehicles() {
     brand: urlBrand || '',
     model: urlModel || '',
     minPrice: 0,
-    maxPrice: urlMaxPrice ? parseInt(urlMaxPrice) : 100000,
+    maxPrice: urlMaxPrice ? parseInt(urlMaxPrice) : 500000, // Augmenter par défaut pour inclure véhicules de luxe
     minYear: 2010,
     maxYear: new Date().getFullYear(),
     maxMileage: null,
@@ -63,12 +63,22 @@ export default function Vehicles() {
   const priceRange = allVehicles.length > 0 ? {
     min: Math.min(...allVehicles.map(v => v.price)),
     max: Math.max(...allVehicles.map(v => v.price))
-  } : { min: 0, max: 100000 };
+  } : { min: 0, max: 500000 }; // Augmenter le max par défaut pour inclure véhicules de luxe
 
   const yearRange = allVehicles.length > 0 ? {
     min: Math.min(...allVehicles.map(v => v.year)),
     max: Math.max(...allVehicles.map(v => v.year))
   } : { min: 2010, max: new Date().getFullYear() };
+
+  // Mettre à jour maxPrice si les données sont chargées et que le maxPrice actuel est trop bas
+  useEffect(() => {
+    if (allVehicles.length > 0 && priceRange.max > filters.maxPrice) {
+      setFilters(prev => ({
+        ...prev,
+        maxPrice: priceRange.max
+      }));
+    }
+  }, [allVehicles.length, priceRange.max]);
 
   // Get unique brands
   const uniqueBrands = [...new Set(allVehicles.map(v => v.brand))].sort();
