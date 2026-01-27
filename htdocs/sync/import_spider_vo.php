@@ -99,7 +99,7 @@ try {
             $existing = $stmt->fetch();
             
             if ($existing) {
-                // Mise à jour
+                // Mise à jour - FORCER mise à jour de toutes les colonnes
                 $sql = "
                     UPDATE vehicles SET
                         marque = ?, modele = ?, version = ?, prix_vente = ?, kilometrage = ?,
@@ -108,7 +108,8 @@ try {
                         puissancedyn = ?, finition = ?, updated_at = NOW()
                     WHERE reference = ?
                 ";
-                $pdo->prepare($sql)->execute([
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([
                     $marque, $modele, $version, $prix_vente, $kilometrage,
                     $annee, $energie, $typeboite, $carrosserie, $etat,
                     $description, $couleurexterieur, $nbrplace, $nbrporte,
@@ -136,40 +137,50 @@ try {
                 $imported++;
             }
             
-            // Importer photos
+            // Importer photos - Structure XML: <photos><photo>URL</photo></photos>
+            // Supprimer anciennes photos d'abord
+            $pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id = ?")->execute([$vehicleId]);
+            
+            $photoOrder = 0;
+            
+            // Vérifier si photos existent
             if (isset($vehiculeXML->photos) && isset($vehiculeXML->photos->photo)) {
-                // Supprimer anciennes photos
-                $pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id = ?")->execute([$vehicleId]);
-                
-                $photoOrder = 0;
-                foreach ($vehiculeXML->photos->photo as $photoXML) {
-                    // Essayer différentes méthodes d'extraction
+                // SimpleXML retourne toujours un tableau même pour un seul élément
+                foreach ($vehiculeXML->photos->photo as $photoElement) {
+                    // Extraire l'URL - peut être dans le contenu CDATA ou attribut
                     $photoUrl = null;
                     
-                    // Méthode 1: attribut url
-                    if (isset($photoXML['url'])) {
-                        $photoUrl = trim((string)$photoXML['url']);
-                    }
-                    // Méthode 2: élément url
-                    elseif (isset($photoXML->url)) {
-                        $photoUrl = $getCdata($photoXML->url);
-                    }
-                    // Méthode 3: contenu direct (CDATA)
-                    else {
-                        $photoUrl = trim((string)$photoXML);
+                    // Méthode 1: Contenu direct (CDATA) - comme dans test_xml_parsing.php
+                    $photoUrl = trim((string)$photoElement);
+                    
+                    // Méthode 2: Si vide, essayer attribut url
+                    if (empty($photoUrl) && isset($photoElement['url'])) {
+                        $photoUrl = trim((string)$photoElement['url']);
                     }
                     
-                    // Nettoyer l'URL
-                    if ($photoUrl) {
+                    // Méthode 3: Si vide, essayer élément url enfant
+                    if (empty($photoUrl) && isset($photoElement->url)) {
+                        $photoUrl = trim((string)$photoElement->url);
+                    }
+                    
+                    // Valider et insérer
+                    if (!empty($photoUrl)) {
+                        // Nettoyer l'URL
                         $photoUrl = trim($photoUrl);
-                        // Vérifier que c'est une URL valide
-                        if (filter_var($photoUrl, FILTER_VALIDATE_URL) || strpos($photoUrl, 'http') === 0) {
-                            $pdo->prepare("
-                                INSERT INTO vehicle_photos (vehicle_id, photo_url, photo_order, created_at)
-                                VALUES (?, ?, ?, NOW())
-                            ")->execute([$vehicleId, $photoUrl, $photoOrder]);
-                            $photoOrder++;
-                            $photosImported++;
+                        
+                        // Vérifier que c'est une URL valide (http/https)
+                        if (strpos($photoUrl, 'http://') === 0 || strpos($photoUrl, 'https://') === 0) {
+                            try {
+                                $pdo->prepare("
+                                    INSERT INTO vehicle_photos (vehicle_id, photo_url, photo_order, created_at)
+                                    VALUES (?, ?, ?, NOW())
+                                ")->execute([$vehicleId, $photoUrl, $photoOrder]);
+                                $photoOrder++;
+                                $photosImported++;
+                            } catch (PDOException $e) {
+                                // Ignorer erreur photo individuelle
+                                error_log("Erreur import photo pour véhicule $vehicleId: " . $e->getMessage());
+                            }
                         }
                     }
                 }
