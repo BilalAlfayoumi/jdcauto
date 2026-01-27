@@ -132,9 +132,17 @@ class SimpleVehiclesAPI {
                 default:
                     return $this->error('Action non reconnue', 404);
             }
+        } catch (PDOException $e) {
+            error_log("Erreur PDO API: " . $e->getMessage() . " | Code: " . $e->getCode());
+            // En mode debug, retourner l'erreur détaillée
+            $debug = $_GET['debug'] ?? false;
+            $message = $debug ? $e->getMessage() : 'Erreur base de données';
+            return $this->error($message, 500);
         } catch (Exception $e) {
-            error_log("Erreur API: " . $e->getMessage());
-            return $this->error('Erreur serveur', 500);
+            error_log("Erreur API: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString());
+            $debug = $_GET['debug'] ?? false;
+            $message = $debug ? $e->getMessage() : 'Erreur serveur';
+            return $this->error($message, 500);
         }
     }
     
@@ -156,57 +164,100 @@ class SimpleVehiclesAPI {
             return $this->error('Erreur base de données: ' . $e->getMessage(), 500);
         }
         
-        // Requête simple pour commencer
-        $sql = "
-            SELECT 
-                id,
-                reference,
-                marque,
-                modele, 
-                version,
-                prix_vente,
-                kilometrage,
-                annee,
-                energie,
-                typeboite,
-                carrosserie,
-                etat,
-                couleurexterieur,
-                description,
-                finition
-            FROM vehicles 
-            WHERE etat = ? 
-            ORDER BY date_modif DESC 
-            LIMIT ?
-        ";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$status, $limit]);
-        $vehicles = $stmt->fetchAll();
-        
-        // Récupérer une photo pour chaque véhicule
-        foreach ($vehicles as &$vehicle) {
-            $photoStmt = $this->pdo->prepare("
-                SELECT photo_url 
-                FROM vehicle_photos 
-                WHERE vehicle_id = ? 
-                ORDER BY photo_order 
-                LIMIT 1
-            ");
-            $photoStmt->execute([$vehicle['id']]);
-            $photo = $photoStmt->fetch();
+        // Requête simple pour commencer - avec gestion colonnes manquantes
+        try {
+            // Vérifier les colonnes disponibles
+            $columnsStmt = $this->pdo->query("SHOW COLUMNS FROM vehicles");
+            $availableColumns = $columnsStmt->fetchAll(PDO::FETCH_COLUMN);
             
-            // Format pour compatibilité React
-            $vehicle['price'] = (float)$vehicle['prix_vente'];
-            $vehicle['mileage'] = (int)$vehicle['kilometrage'];
-            $vehicle['year'] = (int)$vehicle['annee'];
-            $vehicle['fuel_type'] = $vehicle['energie'];
-            $vehicle['gearbox'] = $vehicle['typeboite'] === 'A' ? 'Automatique' : 'Manuelle';
-            $vehicle['brand'] = $vehicle['marque'];
-            $vehicle['model'] = $vehicle['modele'];
-            $vehicle['status'] = $vehicle['etat'];
-            $vehicle['category'] = $vehicle['carrosserie'];
-            $vehicle['image_url'] = $photo['photo_url'] ?? '';
+            // Construire la requête avec seulement les colonnes existantes
+            $selectFields = [];
+            $wantedFields = [
+                'id', 'reference', 'marque', 'modele', 'version', 
+                'prix_vente', 'kilometrage', 'annee', 'energie', 
+                'typeboite', 'carrosserie', 'etat', 'couleurexterieur', 
+                'description', 'finition', 'date_modif', 'date_creation'
+            ];
+            
+            foreach ($wantedFields as $field) {
+                if (in_array($field, $availableColumns)) {
+                    $selectFields[] = $field;
+                }
+            }
+            
+            if (empty($selectFields)) {
+                return $this->error('Aucune colonne valide trouvée dans la table vehicles', 500);
+            }
+            
+            // Vérifier si la colonne etat existe
+            $hasEtat = in_array('etat', $availableColumns);
+            $hasDateModif = in_array('date_modif', $availableColumns);
+            
+            $sql = "SELECT " . implode(', ', $selectFields) . " FROM vehicles";
+            
+            // Ajouter WHERE si colonne etat existe
+            if ($hasEtat) {
+                $sql .= " WHERE etat = ?";
+            }
+            
+            // Ajouter ORDER BY si colonne date_modif existe
+            if ($hasDateModif) {
+                $sql .= " ORDER BY date_modif DESC";
+            } else if (in_array('id', $availableColumns)) {
+                $sql .= " ORDER BY id DESC";
+            }
+            
+            $sql .= " LIMIT ?";
+            
+            $stmt = $this->pdo->prepare($sql);
+            
+            if ($hasEtat) {
+                $stmt->execute([$status, $limit]);
+            } else {
+                $stmt->execute([$limit]);
+            }
+            
+            $vehicles = $stmt->fetchAll();
+            
+        } catch (PDOException $e) {
+            error_log("Erreur requête getVehicles: " . $e->getMessage());
+            throw $e;
+        }
+        
+        // Récupérer une photo pour chaque véhicule (si table existe)
+        foreach ($vehicles as &$vehicle) {
+            try {
+                // Vérifier si la table vehicle_photos existe
+                $checkPhotos = $this->pdo->query("SHOW TABLES LIKE 'vehicle_photos'");
+                if ($checkPhotos->rowCount() > 0 && isset($vehicle['id'])) {
+                    $photoStmt = $this->pdo->prepare("
+                        SELECT photo_url 
+                        FROM vehicle_photos 
+                        WHERE vehicle_id = ? 
+                        ORDER BY photo_order 
+                        LIMIT 1
+                    ");
+                    $photoStmt->execute([$vehicle['id']]);
+                    $photo = $photoStmt->fetch();
+                    $vehicle['image_url'] = $photo['photo_url'] ?? '';
+                } else {
+                    $vehicle['image_url'] = '';
+                }
+            } catch (PDOException $e) {
+                // Si erreur photos, continuer sans photo
+                $vehicle['image_url'] = '';
+            }
+            
+            // Format pour compatibilité React (avec valeurs par défaut)
+            $vehicle['price'] = isset($vehicle['prix_vente']) ? (float)$vehicle['prix_vente'] : 0;
+            $vehicle['mileage'] = isset($vehicle['kilometrage']) ? (int)$vehicle['kilometrage'] : 0;
+            $vehicle['year'] = isset($vehicle['annee']) ? (int)$vehicle['annee'] : 0;
+            $vehicle['fuel_type'] = $vehicle['energie'] ?? '';
+            $vehicle['gearbox'] = (isset($vehicle['typeboite']) && $vehicle['typeboite'] === 'A') ? 'Automatique' : 'Manuelle';
+            $vehicle['brand'] = $vehicle['marque'] ?? '';
+            $vehicle['model'] = $vehicle['modele'] ?? '';
+            $vehicle['status'] = $vehicle['etat'] ?? 'Disponible';
+            $vehicle['category'] = $vehicle['carrosserie'] ?? '';
         }
         
         return $this->success($vehicles);
