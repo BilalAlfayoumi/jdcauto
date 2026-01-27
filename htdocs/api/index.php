@@ -515,8 +515,8 @@ class SimpleVehiclesAPI {
      * Envoyer un email de notification (optionnel)
      */
     private function sendContactEmail($data) {
-        // Email de destination (à configurer)
-        $to = 'jdcauto33@orange.fr';
+        // Email de destination - TEST avec belallfym@gmail.com, puis remettre jdcauto33@orange.fr
+        $to = 'belallfym@gmail.com'; // TODO: Remettre 'jdcauto33@orange.fr' après tests
         $subject = 'Nouvelle demande de contact - ' . ($data['subject'] ?? 'Site JDC Auto');
         
         $message = "Nouvelle demande de contact reçue:\n\n";
