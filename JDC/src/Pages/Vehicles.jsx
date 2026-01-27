@@ -58,7 +58,9 @@ export default function Vehicles() {
   // Fetch all vehicles
   const { data: allVehicles = [], isLoading } = useQuery({
     queryKey: ['vehicles'],
-    queryFn: () => base44.entities.Vehicle.list('-created_date'),
+    queryFn: () => base44.entities.Vehicle.list('-created_date', 100), // Augmenter limite à 100
+    staleTime: 0, // Toujours rafraîchir
+    cacheTime: 0, // Pas de cache
   });
 
   // Get price and year ranges from data

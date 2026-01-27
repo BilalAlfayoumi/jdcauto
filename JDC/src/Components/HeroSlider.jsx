@@ -45,7 +45,9 @@ export default function HeroSlider() {
   // Fetch total available vehicles count and data for filters
   const { data: allVehicles = [] } = useQuery({
     queryKey: ['vehicles-count'],
-    queryFn: () => base44.entities.Vehicle.filter({ status: 'Disponible' }, '-created_date'),
+    queryFn: () => base44.entities.Vehicle.filter({ status: 'Disponible' }, '-created_date', 100), // Limite 100
+    staleTime: 0, // Toujours rafraîchir
+    cacheTime: 0, // Pas de cache
   });
   
   const availableCount = allVehicles.length;
