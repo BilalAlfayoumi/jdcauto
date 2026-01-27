@@ -58,11 +58,14 @@ class JDCAutoAPIClient {
       return data.data;
       
     } catch (error) {
-      console.error('Erreur API JDC Auto:', error);
+      console.error('❌ Erreur API JDC Auto:', error);
+      console.error('URL appelée:', url.toString());
+      console.error('Paramètres:', params);
       
       // Mode dégradé avec données par défaut en cas d'erreur
       if (params.action === 'vehicles') {
-        console.warn('Mode dégradé: utilisation de données par défaut');
+        console.warn('⚠️ Mode dégradé: utilisation de données par défaut');
+        console.warn('Vérifiez que l\'API est accessible à:', url.toString());
         return this.getFallbackVehicles();
       }
       
@@ -96,6 +99,19 @@ class JDCAutoAPIClient {
         
         try {
           const vehicles = await this.request(params);
+          
+          // Vérifier que vehicles est un tableau
+          if (!Array.isArray(vehicles)) {
+            console.error('❌ API n\'a pas retourné un tableau:', vehicles);
+            return this.getFallbackVehicles(limit);
+          }
+          
+          if (vehicles.length === 0) {
+            console.warn('⚠️ API retourne 0 véhicules');
+            return [];
+          }
+          
+          console.log(`✅ API retourne ${vehicles.length} véhicules`);
           
           // Transformation pour compatibilité totale
           // L'API retourne déjà certains champs transformés (price, mileage, brand, model)
