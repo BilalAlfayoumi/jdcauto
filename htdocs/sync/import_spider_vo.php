@@ -189,6 +189,7 @@ try {
                     // Supprimer anciennes photos
                     $deleteStmt = $pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id = ?");
                     $deleteStmt->execute([$vehicleId]);
+                    $deletedCount = $deleteStmt->rowCount();
                     
                     // Insérer les nouvelles photos
                     $photoStmt = $pdo->prepare("
@@ -196,20 +197,36 @@ try {
                         VALUES (?, ?, ?, NOW())
                     ");
                     
+                    $insertedCount = 0;
                     foreach ($photosToImport as $photo) {
                         try {
-                            $photoStmt->execute([$vehicleId, $photo['url'], $photo['order']]);
-                            $photosImported++;
+                            $result = $photoStmt->execute([$vehicleId, $photo['url'], $photo['order']]);
+                            if ($result) {
+                                $photosImported++;
+                                $insertedCount++;
+                            } else {
+                                $errorInfo = $photoStmt->errorInfo();
+                                echo "<!-- Erreur insertion photo véhicule $vehicleId (ordre {$photo['order']}): " . htmlspecialchars($errorInfo[2] ?? 'Erreur inconnue') . " -->\n";
+                                error_log("Erreur insertion photo véhicule $vehicleId: " . print_r($errorInfo, true));
+                            }
                         } catch (PDOException $e) {
                             // Afficher erreur pour debug
-                            echo "<!-- Erreur photo véhicule $vehicleId: " . htmlspecialchars($e->getMessage()) . " -->\n";
-                            error_log("Erreur import photo pour véhicule $vehicleId: " . $e->getMessage());
+                            echo "<!-- Erreur PDO photo véhicule $vehicleId (ordre {$photo['order']}): " . htmlspecialchars($e->getMessage()) . " -->\n";
+                            error_log("Erreur PDO import photo pour véhicule $vehicleId: " . $e->getMessage());
                         }
+                    }
+                    
+                    // Log pour debug
+                    if ($insertedCount < count($photosToImport)) {
+                        echo "<!-- ATTENTION: Seulement $insertedCount/" . count($photosToImport) . " photos insérées pour véhicule $vehicleId -->\n";
                     }
                 } catch (PDOException $e) {
                     echo "<!-- Erreur suppression photos véhicule $vehicleId: " . htmlspecialchars($e->getMessage()) . " -->\n";
                     error_log("Erreur suppression photos pour véhicule $vehicleId: " . $e->getMessage());
                 }
+            } else {
+                // Log si pas de photos à importer
+                echo "<!-- Pas de photos à importer pour véhicule $vehicleId (référence: $reference) -->\n";
             }
             
             $photoCount = count($photosToImport);
