@@ -17,7 +17,8 @@ import {
   FileText,
   DollarSign,
   ArrowRight,
-  Check
+  Check,
+  Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 
