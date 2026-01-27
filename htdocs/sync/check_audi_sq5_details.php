@@ -29,12 +29,12 @@ try {
     exit;
 }
 
-// Récupérer tous les AUDI SQ5 avec tous les détails
+// Récupérer tous les AUDI SQ5 avec tous les détails disponibles
 $stmt = $pdo->query("
     SELECT id, reference, reference_externe, marque, modele, version, 
            prix_vente, kilometrage, annee, energie, typeboite, 
            couleurexterieur, carrosserie, nbrplace, nbrporte,
-           etat, description, finition, date_mec, numero_serie, immat
+           etat, description, finition, date_mec
     FROM vehicles 
     WHERE marque = 'AUDI' AND modele = 'SQ5'
     ORDER BY reference
@@ -47,7 +47,7 @@ echo "<p class='info'>Comparaison de tous les champs pour détecter les vrais do
 if (count($vehicles) > 0) {
     echo "<div style='overflow-x:auto;'>";
     echo "<table>\n";
-    echo "<tr><th>ID</th><th>Réf</th><th>Réf Ext</th><th>Version</th><th>Prix</th><th>Km</th><th>Année</th><th>Énergie</th><th>Boîte</th><th>Couleur</th><th>Carrosserie</th><th>Places</th><th>Portes</th><th>État</th><th>Date MEC</th><th>N° Série</th><th>Immat</th></tr>\n";
+    echo "<tr><th>ID</th><th>Réf</th><th>Réf Ext</th><th>Version</th><th>Prix</th><th>Km</th><th>Année</th><th>Énergie</th><th>Boîte</th><th>Couleur</th><th>Carrosserie</th><th>Places</th><th>Portes</th><th>État</th><th>Date MEC</th></tr>\n";
     
     // Comparer avec le premier pour détecter les doublons
     $firstVehicle = $vehicles[0];
@@ -63,16 +63,8 @@ if (count($vehicles) > 0) {
             $sameKm = $vehicle['kilometrage'] == $firstVehicle['kilometrage'];
             $sameYear = $vehicle['annee'] == $firstVehicle['annee'];
             $sameVersion = $vehicle['version'] == $firstVehicle['version'];
-            $sameSerie = $vehicle['numero_serie'] == $firstVehicle['numero_serie'] && !empty($vehicle['numero_serie']);
-            $sameImmat = $vehicle['immat'] == $firstVehicle['immat'] && !empty($vehicle['immat']);
-            
-            // Si même numéro de série ou immatriculation, c'est un vrai doublon
-            if ($sameSerie || $sameImmat) {
-                $isDuplicate = true;
-                $duplicateClass = 'duplicate';
-            }
-            // Si toutes les caractéristiques sont identiques, probable doublon
-            elseif ($samePrice && $sameKm && $sameYear && $sameVersion) {
+            // Si toutes les caractéristiques principales sont identiques, probable doublon
+            if ($samePrice && $sameKm && $sameYear && $sameVersion) {
                 $isDuplicate = true;
                 $duplicateClass = 'duplicate';
             }
@@ -94,8 +86,6 @@ if (count($vehicles) > 0) {
         echo "<td>{$vehicle['nbrporte']}</td>";
         echo "<td>{$vehicle['etat']}</td>";
         echo "<td>{$vehicle['date_mec']}</td>";
-        echo "<td>" . htmlspecialchars(substr($vehicle['numero_serie'] ?? '', 0, 20)) . "</td>";
-        echo "<td>" . htmlspecialchars($vehicle['immat'] ?? '') . "</td>";
         echo "</tr>\n";
     }
     echo "</table>\n";
@@ -111,9 +101,9 @@ if (count($vehicles) > 0) {
             $vehicle['prix_vente'] . '|' . 
             $vehicle['kilometrage'] . '|' . 
             $vehicle['annee'] . '|' . 
-            $vehicle['version'] . '|' .
-            ($vehicle['numero_serie'] ?? '') . '|' .
-            ($vehicle['immat'] ?? '')
+            ($vehicle['version'] ?? '') . '|' .
+            ($vehicle['couleurexterieur'] ?? '') . '|' .
+            ($vehicle['date_mec'] ?? '')
         );
         
         if (!isset($groups[$key])) {
@@ -130,11 +120,11 @@ if (count($vehicles) > 0) {
             echo "<ul>\n";
             foreach ($group as $v) {
                 echo "<li>Référence: <strong>{$v['reference']}</strong> (ID: {$v['id']})";
-                if (!empty($v['numero_serie'])) {
-                    echo " - N° série: {$v['numero_serie']}";
+                if (!empty($v['reference_externe'])) {
+                    echo " - Réf externe: {$v['reference_externe']}";
                 }
-                if (!empty($v['immat'])) {
-                    echo " - Immat: {$v['immat']}";
+                if (!empty($v['date_mec'])) {
+                    echo " - Date MEC: {$v['date_mec']}";
                 }
                 echo "</li>\n";
             }
