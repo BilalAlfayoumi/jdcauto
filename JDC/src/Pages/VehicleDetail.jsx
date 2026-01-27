@@ -17,10 +17,8 @@ import {
   Mail,
   X,
   ChevronRight,
-  Hash,
   Car,
-  Zap,
-  FileText
+  Zap
 } from 'lucide-react';
 
 export default function VehicleDetail() {
@@ -261,28 +259,6 @@ export default function VehicleDetail() {
               <div className="mb-8 pb-8 border-b">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Les informations clés</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Référence */}
-                  {vehicle.reference && (
-                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Hash className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <span className="text-sm text-gray-600 block">Référence</span>
-                        <p className="font-semibold text-gray-900">{vehicle.reference}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Version constructeur */}
-                  {vehicle.version && (
-                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <FileText className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <span className="text-sm text-gray-600 block">Version constructeur</span>
-                        <p className="font-semibold text-gray-900">{vehicle.version}</p>
-                      </div>
-                    </div>
-                  )}
-                  
                   {/* Première mise en circulation */}
                   {vehicle.first_registration && (
                     <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">

@@ -44,7 +44,7 @@ export default function Contact() {
   const { opacity, translateY } = useParallax();
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapError, setMapError] = useState(false);
-  
+
   useEffect(() => {
     setIsLoaded(true);
   }, []);
@@ -188,11 +188,11 @@ export default function Contact() {
                 opacity: isLoaded ? 1 : 0,
                 transform: isLoaded ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(30px)',
                 transition: 'opacity 0.8s ease-out 0.2s, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s'
-              }}
-            >
+            }}
+          >
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-                Contactez notre agence
-              </h1>
+              Contactez notre agence
+            </h1>
               <p 
                 className="text-xl md:text-2xl lg:text-3xl text-gray-200 mb-10 font-light transition-all duration-1000 ease-out"
                 style={{
@@ -201,8 +201,8 @@ export default function Contact() {
                   transition: 'opacity 0.8s ease-out 0.4s, transform 0.8s ease-out 0.4s'
                 }}
               >
-                Notre équipe est à votre écoute pour répondre à toutes vos questions et vous accompagner dans votre projet automobile
-              </p>
+              Notre équipe est à votre écoute pour répondre à toutes vos questions et vous accompagner dans votre projet automobile
+            </p>
             </div>
           </div>
         </div>
