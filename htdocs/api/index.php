@@ -31,13 +31,13 @@ require_once __DIR__ . '/config/database.php';
 
 /**
  * Configuration base de données pour Gandi
- * ⚠️ À ADAPTER avec vos vraies informations Gandi
+ * ✅ CONFIGURÉ avec les paramètres Gandi
  */
 class GandiDatabaseConfig {
-    private static $host = 'mysql-jdcauto.gpaas.net'; // À adapter
-    private static $dbname = 'jdcauto'; // À adapter  
-    private static $username = 'votre-user'; // À adapter
-    private static $password = 'votre-password'; // À adapter
+    private static $host = 'localhost'; // Gandi utilise localhost
+    private static $dbname = 'jdcauto'; // Base de données principale
+    private static $username = 'root'; // Utilisateur Gandi par défaut
+    private static $password = ''; // Mot de passe vide par défaut Gandi
     
     private static $connection = null;
     

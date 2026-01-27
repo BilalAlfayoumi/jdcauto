@@ -12,13 +12,13 @@ echo "<!DOCTYPE html>\n<html><head><title>Installation JDC Auto Spider-VO</title
 echo "<style>body{font-family:monospace;max-width:800px;margin:20px auto;line-height:1.6;} .success{color:#059669;} .error{color:#dc2626;} .info{color:#0284c7;}</style></head><body>";
 echo "<h1>🚀 Installation JDC Auto - Intégration Spider-VO</h1>\n";
 
-// Configuration temporaire pour installation (⚠️ SÉCURISER EN PRODUCTION)
+// Configuration pour installation Gandi ✅
 class InstallConfig {
-    // ⚠️ À REMPLACER par vos vraies informations Gandi
+    // ✅ CONFIGURÉ selon les paramètres Gandi fournis
     const DB_HOST = 'localhost';
     const DB_NAME = 'jdcauto';
     const DB_USER = 'root';
-    const DB_PASS = '';
+    const DB_PASS = ''; // Mot de passe vide par défaut Gandi
     
     private static $pdo = null;
     
