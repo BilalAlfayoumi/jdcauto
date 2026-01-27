@@ -1,31 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import HeroSliderFixed from '../Components/HeroSliderFixed';
 
 export default function HomeSimple() {
   return (
     <div className="bg-white min-h-screen">
-      {/* Header Hero Simple */}
-      <section className="bg-gradient-to-r from-red-600 to-red-700 text-white py-20">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            🎉 JDC Auto - Site React Fonctionnel !
-          </h1>
-          <p className="text-xl mb-8 text-red-100">
-            Mandataire automobile depuis 30 ans en Aquitaine
-          </p>
-          <div className="space-y-4">
-            <div className="bg-green-500 text-white p-4 rounded-lg">
-              <strong>✅ SUCCÈS - React fonctionne sans HeroSlider !</strong>
-            </div>
-            <div className="bg-blue-500 text-white p-4 rounded-lg">
-              <strong>📱 Optimisations mobile intégrées !</strong>
-              <br />
-              <small>HeroSlider avec recherche sortant du cadre est prêt</small>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Hero Slider Fixed - avec optimisations mobile */}
+      <HeroSliderFixed />
       
       {/* Navigation Simple */}
       <section className="max-w-4xl mx-auto px-4 py-16">
@@ -69,9 +51,9 @@ export default function HomeSimple() {
               <strong className="text-green-800">✅ Tailwind CSS</strong>
               <p className="text-green-600">Styles chargés</p>
             </div>
-            <div className="bg-orange-100 p-4 rounded-lg">
-              <strong className="text-orange-800">🔧 HeroSlider</strong>
-              <p className="text-orange-600">Désactivé temporairement</p>
+            <div className="bg-green-100 p-4 rounded-lg">
+              <strong className="text-green-800">✅ HeroSlider</strong>
+              <p className="text-green-600">Version corrigée active</p>
             </div>
             <div className="bg-orange-100 p-4 rounded-lg">
               <strong className="text-orange-800">📱 Mobile</strong>
