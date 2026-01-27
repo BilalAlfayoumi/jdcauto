@@ -90,7 +90,7 @@ export default function MobileFilterPanel({
           {/* Prix */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">
-              3. Prix ({filters.minPrice.toLocaleString('fr-FR')} € - {filters.maxPrice.toLocaleString('fr-FR')} €)
+              3. Prix ({filters.minPrice.toLocaleString('fr-FR')} € - {(filters.maxPrice || priceRange.max || 0).toLocaleString('fr-FR')} €)
             </label>
             <div className="space-y-4">
               <div>
@@ -112,7 +112,7 @@ export default function MobileFilterPanel({
                   min={priceRange.min}
                   max={priceRange.max}
                   step="1000"
-                  value={filters.maxPrice}
+                  value={filters.maxPrice || priceRange.max || 0}
                   onChange={(e) => setFilters({ ...filters, maxPrice: parseInt(e.target.value) })}
                   className="w-full accent-red-600"
                 />
