@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Home from './Pages/Home'
+import HomeSimple from './Pages/HomeSimple'
 import Vehicles from './Pages/Vehicles'
 import VehicleDetail from './Pages/VehicleDetail'
 import TradeIn from './Pages/TradeIn'
@@ -15,7 +16,7 @@ function App() {
       <ScrollToTop />
       <Layout>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<HomeSimple />} />
           <Route path="/vehicles" element={<Vehicles />} />
           <Route path="/vehicle-detail" element={<VehicleDetail />} />
           <Route path="/trade-in" element={<TradeIn />} />
