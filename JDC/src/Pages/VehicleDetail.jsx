@@ -289,22 +289,43 @@ export default function VehicleDetail() {
               {vehicle.description && (
                 <div className="mb-8">
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">Description</h2>
-                  <div className="text-gray-700 leading-relaxed whitespace-pre-line">
+                  <div className="text-gray-700 leading-relaxed">
                     {vehicle.description.split('\n').map((line, idx) => {
+                      const trimmedLine = line.trim();
+                      if (!trimmedLine) return <br key={idx} />;
+                      
+                      // Détecter les titres principaux (PRIX HT, PRIX TTC, OPTIONS ET ÉQUIPEMENTS)
+                      if (trimmedLine.match(/^(PRIX|OPTIONS|ÉQUIPEMENTS|EQUIPEMENTS)/i)) {
+                        return <h3 key={idx} className="font-bold text-lg mt-6 mb-3 text-gray-900">{trimmedLine}</h3>;
+                      }
+                      
                       // Détecter les sections d'équipements
-                      if (line.includes('OPTIONS ET ÉQUIPEMENTS') || line.includes('ÉQUIPEMENTS') || line.includes('EQUIPEMENTS')) {
-                        return <h3 key={idx} className="font-bold text-lg mt-6 mb-3 text-gray-900">{line}</h3>;
+                      if (trimmedLine.includes('OPTIONS ET ÉQUIPEMENTS') || trimmedLine.includes('ÉQUIPEMENTS') || trimmedLine.includes('EQUIPEMENTS')) {
+                        return <h3 key={idx} className="font-bold text-lg mt-6 mb-3 text-gray-900">{trimmedLine}</h3>;
                       }
-                      // Détecter les catégories d'équipements (Audio, Conduite, etc.)
-                      if (line.match(/^[A-Z][a-z]+ - [A-Z]/) || line.match(/^[A-Z][a-z]+ :$/)) {
-                        return <h4 key={idx} className="font-semibold mt-4 mb-2 text-gray-800">{line}</h4>;
+                      
+                      // Détecter les prix (PRIX HT, PRIX TTC)
+                      if (trimmedLine.match(/^PRIX\s+(HT|TTC)/i)) {
+                        return <p key={idx} className="font-semibold text-lg mt-4 mb-2 text-gray-900">{trimmedLine}</p>;
                       }
+                      
+                      // Détecter les catégories d'équipements (Audio - Télécommunications, Conduite :, etc.)
+                      if (trimmedLine.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)*\s*[-:]/) || trimmedLine.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)*\s*:$/)) {
+                        return <h4 key={idx} className="font-semibold mt-4 mb-2 text-gray-800 border-b border-gray-200 pb-1">{trimmedLine}</h4>;
+                      }
+                      
                       // Détecter les équipements (commencent par -)
-                      if (line.trim().startsWith('-')) {
-                        return <p key={idx} className="ml-4">{line}</p>;
+                      if (trimmedLine.startsWith('-')) {
+                        return <p key={idx} className="ml-4 mb-1">{trimmedLine}</p>;
                       }
-                      // Texte normal
-                      return <p key={idx}>{line}</p>;
+                      
+                      // Détecter les listes numérotées ou avec puces
+                      if (trimmedLine.match(/^[\d•·]\s/)) {
+                        return <p key={idx} className="ml-4 mb-1">{trimmedLine}</p>;
+                      }
+                      
+                      // Texte normal (paragraphe)
+                      return <p key={idx} className="mb-2">{trimmedLine}</p>;
                     })}
                   </div>
                 </div>

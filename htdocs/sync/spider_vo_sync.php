@@ -141,11 +141,24 @@ foreach ($vehicles as $vehiculeXML) {
         $carrosserie = $getCdata($vehiculeXML->carrosserie) ?: 'BERLINE';
         $etat = $getCdata($vehiculeXML->etat) ?: 'Disponible';
         
-        // Description nettoyée
+        // Description complète - préserver la structure
         $description = $getCdata($vehiculeXML->description);
         if ($description) {
+            // Remplacer les <br> par des sauts de ligne
             $description = preg_replace('/<br\s*\/?>/i', "\n", $description);
-            $description = preg_replace('/\s+/', ' ', $description);
+            // Remplacer les balises HTML restantes par des sauts de ligne ou espaces
+            $description = preg_replace('/<\/p>/i', "\n", $description);
+            $description = preg_replace('/<p[^>]*>/i', "", $description);
+            $description = preg_replace('/<\/div>/i', "\n", $description);
+            $description = preg_replace('/<div[^>]*>/i', "", $description);
+            // Supprimer les autres balises HTML mais garder le texte
+            $description = strip_tags($description);
+            // Normaliser les sauts de ligne multiples (max 2 sauts consécutifs)
+            $description = preg_replace('/\n{3,}/', "\n\n", $description);
+            // Nettoyer les espaces en début/fin de ligne mais garder les sauts de ligne
+            $description = preg_replace('/[ \t]+/m', ' ', $description); // Espaces multiples sur une ligne
+            $description = preg_replace('/^[ \t]+/m', '', $description); // Espaces en début de ligne
+            $description = preg_replace('/[ \t]+$/m', '', $description); // Espaces en fin de ligne
             $description = trim($description);
         }
         
