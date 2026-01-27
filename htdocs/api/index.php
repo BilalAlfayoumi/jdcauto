@@ -196,6 +196,9 @@ class SimpleVehiclesAPI {
             $hasDateModif = in_array('date_modif', $availableColumns);
             
             // D'abord, obtenir les groupes (marque + modèle) avec leur quantité
+            // On augmente le LIMIT pour être sûr d'inclure tous les groupes
+            $groupLimit = max($limit * 2, 50); // Au moins 50 groupes pour être sûr
+            
             $groupSql = "SELECT marque, modele, COUNT(*) as quantity
                         FROM vehicles";
             
@@ -205,7 +208,10 @@ class SimpleVehiclesAPI {
             
             $groupSql .= " GROUP BY marque, modele";
             
-            if ($hasDateModif) {
+            // Utiliser MAX(updated_at) si disponible, sinon date_modif, sinon id
+            if (in_array('updated_at', $availableColumns)) {
+                $groupSql .= " ORDER BY MAX(updated_at) DESC";
+            } else if ($hasDateModif) {
                 $groupSql .= " ORDER BY MAX(date_modif) DESC";
             } else if (in_array('id', $availableColumns)) {
                 $groupSql .= " ORDER BY MAX(id) DESC";
@@ -215,9 +221,9 @@ class SimpleVehiclesAPI {
             
             $groupStmt = $this->pdo->prepare($groupSql);
             if ($hasEtat) {
-                $groupStmt->execute([$status, $limit]);
+                $groupStmt->execute([$status, $groupLimit]);
             } else {
-                $groupStmt->execute([$limit]);
+                $groupStmt->execute([$groupLimit]);
             }
             $groups = $groupStmt->fetchAll();
             
@@ -230,7 +236,10 @@ class SimpleVehiclesAPI {
                 if ($hasEtat) {
                     $representativeSql .= " AND etat = ?";
                 }
-                if ($hasDateModif) {
+                // Utiliser updated_at si disponible, sinon date_modif, sinon id
+                if (in_array('updated_at', $availableColumns)) {
+                    $representativeSql .= " ORDER BY updated_at DESC";
+                } else if ($hasDateModif) {
                     $representativeSql .= " ORDER BY date_modif DESC";
                 } else if (in_array('id', $availableColumns)) {
                     $representativeSql .= " ORDER BY id DESC";
