@@ -153,6 +153,7 @@ foreach ($vehicles as $vehiculeXML) {
         $nbrplace = $getCdata($vehiculeXML->nbrplace) ? (int)$getCdata($vehiculeXML->nbrplace) : null;
         $nbrporte = $getCdata($vehiculeXML->nbrporte) ? (int)$getCdata($vehiculeXML->nbrporte) : null;
         $puissancedyn = $getCdata($vehiculeXML->puissancedyn);
+        $puissance_fiscale = $getCdata($vehiculeXML->puissance_fiscale);
         $finition = $getCdata($vehiculeXML->finition);
         $date_mec = $getCdata($vehiculeXML->date_mec);
         
@@ -169,14 +170,14 @@ foreach ($vehicles as $vehiculeXML) {
                     marque = ?, modele = ?, version = ?, prix_vente = ?, kilometrage = ?,
                     annee = ?, energie = ?, typeboite = ?, carrosserie = ?, etat = ?,
                     description = ?, couleurexterieur = ?, nbrplace = ?, nbrporte = ?,
-                    puissancedyn = ?, finition = ?, date_mec = ?, updated_at = NOW()
+                    puissancedyn = ?, puissance_fiscale = ?, finition = ?, date_mec = ?, updated_at = NOW()
                 WHERE reference = ?
             ";
             $pdo->prepare($sql)->execute([
                 $marque, $modele, $version, $prix_vente, $kilometrage,
                 $annee, $energie, $typeboite, $carrosserie, $etat,
                 $description, $couleurexterieur, $nbrplace, $nbrporte,
-                $puissancedyn, $finition, $date_mec, $reference
+                $puissancedyn, $puissance_fiscale, $finition, $date_mec, $reference
             ]);
             $vehicleId = $existing['id'];
             $updated++;
@@ -186,13 +187,13 @@ foreach ($vehicles as $vehiculeXML) {
                 INSERT INTO vehicles 
                 (reference, marque, modele, version, prix_vente, kilometrage, annee, energie, 
                  typeboite, carrosserie, etat, description, couleurexterieur, nbrplace, 
-                 nbrporte, puissancedyn, finition, date_mec, created_at, updated_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                 nbrporte, puissancedyn, puissance_fiscale, finition, date_mec, created_at, updated_at) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
             ";
             $pdo->prepare($sql)->execute([
                 $reference, $marque, $modele, $version, $prix_vente, $kilometrage,
                 $annee, $energie, $typeboite, $carrosserie, $etat, $description,
-                $couleurexterieur, $nbrplace, $nbrporte, $puissancedyn, $finition, $date_mec
+                $couleurexterieur, $nbrplace, $nbrporte, $puissancedyn, $puissance_fiscale, $finition, $date_mec
             ]);
             $vehicleId = $pdo->lastInsertId();
             $imported++;

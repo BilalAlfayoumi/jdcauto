@@ -51,7 +51,16 @@ export default function VehicleDetail() {
         status: v.status || v.etat,
         category: v.category || v.carrosserie,
         image_url: v.image_url || v.photos?.[0] || '',
-        photos: v.photos || []
+        photos: v.photos || [],
+        // Champs supplémentaires
+        color: v.color || v.couleurexterieur || null,
+        doors: v.doors || v.nbrporte || null,
+        seats: v.seats || v.nbrplace || null,
+        power: v.power || v.puissancedyn || null,
+        fiscal_power: v.fiscal_power || v.puissance_fiscale || null,
+        first_registration: v.first_registration || v.date_mec || null,
+        version: v.version || null,
+        finition: v.finition || null
       };
     },
     enabled: !!vehicleId,
@@ -278,11 +287,26 @@ export default function VehicleDetail() {
 
               {/* Description */}
               {vehicle.description && (
-                <div>
+                <div className="mb-8">
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">Description</h2>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                    {vehicle.description}
-                  </p>
+                  <div className="text-gray-700 leading-relaxed whitespace-pre-line">
+                    {vehicle.description.split('\n').map((line, idx) => {
+                      // Détecter les sections d'équipements
+                      if (line.includes('OPTIONS ET ÉQUIPEMENTS') || line.includes('ÉQUIPEMENTS') || line.includes('EQUIPEMENTS')) {
+                        return <h3 key={idx} className="font-bold text-lg mt-6 mb-3 text-gray-900">{line}</h3>;
+                      }
+                      // Détecter les catégories d'équipements (Audio, Conduite, etc.)
+                      if (line.match(/^[A-Z][a-z]+ - [A-Z]/) || line.match(/^[A-Z][a-z]+ :$/)) {
+                        return <h4 key={idx} className="font-semibold mt-4 mb-2 text-gray-800">{line}</h4>;
+                      }
+                      // Détecter les équipements (commencent par -)
+                      if (line.trim().startsWith('-')) {
+                        return <p key={idx} className="ml-4">{line}</p>;
+                      }
+                      // Texte normal
+                      return <p key={idx}>{line}</p>;
+                    })}
+                  </div>
                 </div>
               )}
             </div>

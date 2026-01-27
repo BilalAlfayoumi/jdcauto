@@ -375,6 +375,16 @@ class SimpleVehiclesAPI {
         $vehicle['status'] = $vehicle['etat'];
         $vehicle['category'] = $vehicle['carrosserie'];
         
+        // Champs supplémentaires
+        $vehicle['color'] = $vehicle['couleurexterieur'] ?? null;
+        $vehicle['doors'] = isset($vehicle['nbrporte']) ? (int)$vehicle['nbrporte'] : null;
+        $vehicle['seats'] = isset($vehicle['nbrplace']) ? (int)$vehicle['nbrplace'] : null;
+        $vehicle['power'] = $vehicle['puissancedyn'] ?? null;
+        $vehicle['fiscal_power'] = $vehicle['puissance_fiscale'] ?? null;
+        $vehicle['first_registration'] = $vehicle['date_mec'] ?? null;
+        $vehicle['version'] = $vehicle['version'] ?? null;
+        $vehicle['finition'] = $vehicle['finition'] ?? null;
+        
         return $this->success($vehicle);
     }
     
