@@ -2,6 +2,13 @@
 AddDefaultCharset UTF-8
 RewriteEngine On
 
+# Permettre l'accès aux fichiers de test
+RewriteCond %{REQUEST_URI} ^/(test|test-mobile|diagnostic)\.html$ [OR]
+RewriteCond %{REQUEST_URI} ^/api/ [OR]
+RewriteCond %{REQUEST_URI} ^/sync/ [OR]
+RewriteCond %{REQUEST_URI} ^/install/
+RewriteRule ^ - [L]
+
 # Exclure les assets de la redirection (IMPORTANT!)
 RewriteCond %{REQUEST_URI} ^/assets/ [OR]
 RewriteCond %{REQUEST_URI} \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$
