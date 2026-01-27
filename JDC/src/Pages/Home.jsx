@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import HeroSlider from '../Components/HeroSlider';
+import HeroSliderFixed from '../Components/HeroSliderFixed';
 import VehicleCarousel from '../Components/VehicleCarousel';
 import AnimatedSection from '../Components/AnimatedSection';
 import { 
@@ -28,16 +28,24 @@ import {
 } from 'lucide-react';
 
 export default function Home() {
-  // Fetch featured vehicles
-  const { data: vehicles = [], isLoading } = useQuery({
-    queryKey: ['vehicles-featured'],
-    queryFn: () => base44.entities.Vehicle.filter({ status: 'Disponible' }, '-created_date', 8),
-  });
+  // Fetch featured vehicles - TEMPORAIREMENT DÉSACTIVÉ (causait crash)
+  // const { data: vehicles = [], isLoading } = useQuery({
+  //   queryKey: ['vehicles-featured'],
+  //   queryFn: () => base44.entities.Vehicle.filter({ status: 'Disponible' }, '-created_date', 8),
+  // });
+  
+  // Mock data temporaire pour éviter crash useQuery
+  const vehicles = [
+    { id: '1', brand: 'Renault', model: 'Clio V', price: 14990, image_url: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800' },
+    { id: '2', brand: 'BMW', model: 'Série 3', price: 32900, image_url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800' },
+    { id: '3', brand: 'Mercedes', model: 'Classe A', price: 28900, image_url: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800' }
+  ];
+  const isLoading = false;
 
   return (
     <div className="bg-white">
-      {/* Hero Slider with integrated search bar */}
-      <HeroSlider />
+      {/* Hero Slider with integrated search bar - Version mobile optimisée */}
+      <HeroSliderFixed />
 
       {/* Featured Vehicles Carousel */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
