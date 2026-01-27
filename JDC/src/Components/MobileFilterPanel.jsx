@@ -209,28 +209,6 @@ export default function MobileFilterPanel({
             </div>
           </div>
 
-          {/* Catégorie */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              8. Catégorie
-            </label>
-            <div className="space-y-2">
-              {['all', 'Voiture', 'Camion', 'Utilitaire'].map(category => (
-                <label key={category} className="flex items-center gap-3 cursor-pointer group p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <input
-                    type="radio"
-                    name="category"
-                    checked={filters.category === category}
-                    onChange={() => setFilters({ ...filters, category })}
-                    className="w-5 h-5 text-red-600 border-gray-300 focus:ring-red-500"
-                  />
-                  <span className="text-base text-gray-700 group-hover:text-red-600 transition-colors">
-                    {category === 'all' ? 'Toutes' : category}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Footer Actions */}

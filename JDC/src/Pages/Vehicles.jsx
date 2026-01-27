@@ -20,12 +20,9 @@ import {
 export default function Vehicles() {
   // Read URL parameters
   const urlParams = new URLSearchParams(window.location.search);
-  const urlCategory = urlParams.get('category');
   const urlBrand = urlParams.get('brand');
   const urlModel = urlParams.get('model');
   const urlMaxPrice = urlParams.get('maxPrice');
-  
-  const [selectedCategory, setSelectedCategory] = useState(urlCategory || 'all');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('recent'); // 'recent', 'price-asc', 'price-desc', 'year-asc', 'year-desc', 'mileage-asc', 'mileage-desc'
   
@@ -45,7 +42,6 @@ export default function Vehicles() {
   
   // Initialize filters from URL on mount
   useEffect(() => {
-    if (urlCategory) setSelectedCategory(urlCategory);
     if (urlBrand) setFilters(prev => ({ ...prev, brand: urlBrand }));
     if (urlModel) setFilters(prev => ({ ...prev, model: urlModel }));
     if (urlMaxPrice) setFilters(prev => ({ ...prev, maxPrice: parseInt(urlMaxPrice) }));
@@ -88,26 +84,33 @@ export default function Vehicles() {
     max: Math.max(...allVehicles.map(v => v.mileage))
   } : { min: 0, max: 200000 };
 
-  // Categories
-  const categories = [
-    { id: 'all', name: 'Tous', icon: Car },
-    { id: 'Voiture', name: 'Voitures', icon: Car },
-    { id: 'Camion', name: 'Camions', icon: Truck },
-    { id: 'Utilitaire', name: 'Utilitaires', icon: Package }
-  ];
+  // Categories - Supprimé car il n'y a que des voitures
 
   // Filter vehicles
   const filteredVehicles = allVehicles.filter(vehicle => {
     if (vehicle.status !== 'Disponible') return false;
-    // Utiliser selectedCategory pour la catégorie (géré séparément)
-    if (selectedCategory !== 'all' && vehicle.category !== selectedCategory) return false;
     if (filters.brand && vehicle.brand !== filters.brand) return false;
     if (filters.model && vehicle.model !== filters.model) return false;
     if (vehicle.price < filters.minPrice) return false;
     if (filters.maxPrice && vehicle.price > filters.maxPrice) return false;
     if (vehicle.year < filters.minYear || vehicle.year > filters.maxYear) return false;
     if (filters.maxMileage && vehicle.mileage > filters.maxMileage) return false;
-    if (filters.fuelTypes.length > 0 && !filters.fuelTypes.includes(vehicle.fuel_type)) return false;
+    // Filtre carburant avec normalisation (insensible à la casse)
+    if (filters.fuelTypes.length > 0) {
+      const vehicleFuelNormalized = (vehicle.fuel_type || '').toUpperCase().trim();
+      const matches = filters.fuelTypes.some(fuel => {
+        const fuelNormalized = fuel.toUpperCase().trim();
+        // Mapping des valeurs (Essence -> ESSENCE, Diesel -> DIESEL, etc.)
+        if (fuelNormalized === 'ESSENCE' && vehicleFuelNormalized === 'ESSENCE') return true;
+        if (fuelNormalized === 'DIESEL' && vehicleFuelNormalized === 'DIESEL') return true;
+        if (fuelNormalized === 'HYBRIDE' && vehicleFuelNormalized.includes('HYBRIDE')) return true;
+        if ((fuelNormalized === 'ÉLECTRIQUE' || fuelNormalized === 'ELECTRIQUE') && 
+            (vehicleFuelNormalized.includes('ÉLECTRIQUE') || vehicleFuelNormalized.includes('ELECTRIQUE'))) return true;
+        if (fuelNormalized === 'GPL' && vehicleFuelNormalized.includes('GPL')) return true;
+        return false;
+      });
+      if (!matches) return false;
+    }
     if (filters.gearboxes.length > 0 && !filters.gearboxes.includes(vehicle.gearbox)) return false;
     return true;
   });
@@ -133,7 +136,7 @@ export default function Vehicles() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, selectedCategory, sortBy]);
+  }, [filters, sortBy]);
 
   const toggleFuelType = (fuelType) => {
     setFilters(prev => ({
@@ -163,21 +166,15 @@ export default function Vehicles() {
       maxYear: yearRange.max,
       maxMileage: null,
       fuelTypes: [],
-      gearboxes: [],
-      category: 'all'
+      gearboxes: []
     };
     setFilters(resetFiltersState);
     setTempFilters(resetFiltersState);
-    setSelectedCategory('all');
   };
 
   // Gestion du panneau mobile
   const openMobileFilter = () => {
-    // Copier les filtres actuels dans tempFilters avec la catégorie
-    setTempFilters({
-      ...filters,
-      category: selectedCategory
-    });
+    setTempFilters(filters);
     setIsMobileFilterOpen(true);
   };
 
@@ -186,12 +183,7 @@ export default function Vehicles() {
   };
 
   const applyMobileFilters = () => {
-    // Appliquer les filtres (sans category qui est géré séparément)
-    const { category, ...filtersToApply } = tempFilters;
-    setFilters(filtersToApply);
-    if (category) {
-      setSelectedCategory(category);
-    }
+    setFilters(tempFilters);
     setIsMobileFilterOpen(false);
   };
 
@@ -205,39 +197,13 @@ export default function Vehicles() {
       maxYear: yearRange.max,
       maxMileage: null,
       fuelTypes: [],
-      gearboxes: [],
-      category: 'all'
+      gearboxes: []
     };
     setTempFilters(resetFiltersState);
   };
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      {/* Categories */}
-      <div className="bg-white shadow-md py-6 sticky top-[73px] z-40">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-wrap justify-center gap-4">
-            {categories.map((category) => {
-              const Icon = category.icon;
-              const isActive = selectedCategory === category.id;
-              return (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`flex items-center gap-3 px-6 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 ${
-                    isActive
-                      ? 'bg-red-600 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{category.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
