@@ -82,7 +82,7 @@ export default function VehicleCarousel({ vehicles, isLoading }) {
         }}
       >
         {vehicles.map((vehicle, index) => (
-          <div key={vehicle.id} className="flex-shrink-0 w-80">
+          <div key={vehicle.id} className="flex-shrink-0 w-80 flex">
             <VehicleCard vehicle={vehicle} index={index} />
           </div>
         ))}

@@ -6,7 +6,7 @@ import ImageWithAnimation from './ImageWithAnimation';
 
 export default function VehicleCard({ vehicle, index = 0 }) {
   return (
-    <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 group">
+    <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 group h-full flex flex-col">
       {/* Image */}
       <Link
         to={createPageUrl('VehicleDetail') + `?id=${vehicle.id || vehicle.reference || ''}`}
@@ -38,7 +38,7 @@ export default function VehicleCard({ vehicle, index = 0 }) {
       </Link>
 
       {/* Content */}
-      <div className="p-5">
+      <div className="p-5 flex-1 flex flex-col">
         {/* Title */}
         <div className="mb-2">
           <h3 className="text-xl font-bold text-gray-900 group-hover:text-red-600 transition-colors">
@@ -59,7 +59,7 @@ export default function VehicleCard({ vehicle, index = 0 }) {
         </div>
 
         {/* Details Grid */}
-        <div className="grid grid-cols-2 gap-3 mb-4 text-sm text-gray-600">
+        <div className="grid grid-cols-2 gap-3 mb-4 text-sm text-gray-600 flex-1">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gray-400" />
             <span>{vehicle.year}</span>
@@ -81,7 +81,7 @@ export default function VehicleCard({ vehicle, index = 0 }) {
         {/* Button */}
         <Link
           to={createPageUrl('VehicleDetail') + `?id=${vehicle.id}`}
-          className="block w-full bg-black text-white text-center py-3 rounded-md hover:bg-red-600 transition-colors font-semibold"
+          className="block w-full bg-black text-white text-center py-3 rounded-md hover:bg-red-600 transition-colors font-semibold mt-auto"
         >
           Voir le véhicule
         </Link>
