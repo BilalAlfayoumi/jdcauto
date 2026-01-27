@@ -21,9 +21,9 @@ $dbname = 'jdcauto';
 $username = 'root';
 $password = '';
 
-// ⚠️ IMPORTANT : Remplacer par votre vraie URL Spider-VO
-// L'URL doit être fournie par Spider-VO dans votre compte
-$spiderVoXmlUrl = 'https://votre-compte.spider-vo.com/export.xml'; // À CONFIGURER
+// ⚠️ IMPORTANT : URL du flux XML Spider-VO
+// URL fournie par Spider-VO dans votre compte
+$spiderVoXmlUrl = 'https://www.spider-vo.net/export,st2div6b0860458b-fbb07722e1-03df2748e1-6e82247ae0.html';
 
 // Si pas d'URL configurée, utiliser le fichier local en fallback
 $xmlFile = __DIR__ . '/../../export.xml';
@@ -94,8 +94,12 @@ if ($useLocalFile && file_exists($xmlFile)) {
     logMessage("XML chargé avec succès (" . number_format(strlen($xmlContent)) . " bytes)", 'success');
 }
 
-// Compter véhicules
-$vehicles = $xml->vehicule ?? [];
+// Compter véhicules (gérer les deux structures possibles)
+if (isset($xml->vehicules)) {
+    $vehicles = $xml->vehicules->vehicule ?? [];
+} else {
+    $vehicles = $xml->vehicule ?? [];
+}
 $totalVehicles = count($vehicles);
 logMessage("Véhicules trouvés dans le flux: $totalVehicles", 'info');
 
