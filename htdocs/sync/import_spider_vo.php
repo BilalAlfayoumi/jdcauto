@@ -67,7 +67,7 @@ $photosImported = 0;
 
 echo "<h2>📊 Import en cours...</h2>\n";
 echo "<table border='1' cellpadding='5' style='border-collapse:collapse;width:100%;'>\n";
-echo "<tr><th>Référence</th><th>Marque</th><th>Modèle</th><th>Prix</th><th>Action</th></tr>\n";
+echo "<tr><th>Référence</th><th>Marque</th><th>Modèle</th><th>Prix</th><th>Action</th><th>Photos</th></tr>\n";
 
 $pdo->beginTransaction();
 
@@ -218,7 +218,7 @@ try {
             
         } catch (Exception $e) {
             $errors++;
-            echo "<tr><td colspan='5' class='error'>❌ Erreur: " . htmlspecialchars($e->getMessage()) . "</td></tr>\n";
+            echo "<tr><td colspan='6' class='error'>❌ Erreur: " . htmlspecialchars($e->getMessage()) . "</td></tr>\n";
         }
     }
     
