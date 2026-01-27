@@ -9,7 +9,7 @@ export default function VehicleCard({ vehicle, index = 0 }) {
     <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 group">
       {/* Image */}
       <Link
-        to={createPageUrl('VehicleDetail') + `?id=${vehicle.id}`}
+        to={createPageUrl('VehicleDetail') + `?id=${vehicle.id || vehicle.reference || ''}`}
         className="relative overflow-hidden aspect-[4/3] block group/image"
       >
         <ImageWithAnimation

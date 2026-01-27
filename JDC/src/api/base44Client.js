@@ -62,9 +62,13 @@ class JDCAutoAPIClient {
       console.log(`✅ API retourne ${vehicles.length} véhicules`);
       
       // Transformation pour compatibilité totale
-      return vehicles.map(vehicle => ({
-        ...vehicle,
-        id: vehicle.id?.toString() || vehicle.reference || '',
+      return vehicles.map(vehicle => {
+        const transformed = {
+          ...vehicle,
+          // IMPORTANT: Préserver l'ID numérique original
+          id: vehicle.id ? parseInt(vehicle.id) : (vehicle.reference || ''),
+          // Garder aussi l'ID en string pour compatibilité
+          idString: vehicle.id?.toString() || vehicle.reference || '',
         brand: vehicle.brand || vehicle.marque || '',
         model: vehicle.model || vehicle.modele || '',
         price: vehicle.price || parseFloat(vehicle.prix_vente || 0),
@@ -81,7 +85,15 @@ class JDCAutoAPIClient {
         prix_vente: vehicle.prix_vente || vehicle.price,
         kilometrage: vehicle.kilometrage || vehicle.mileage,
         annee: vehicle.annee || vehicle.year
-      }));
+      };
+      
+      // Log pour debug
+      if (transformed.id) {
+        console.log(`🔗 Véhicule ${transformed.marque} ${transformed.modele} - ID: ${transformed.id}`);
+      }
+      
+      return transformed;
+    });
       
     } catch (error) {
       console.error('Erreur filter():', error);

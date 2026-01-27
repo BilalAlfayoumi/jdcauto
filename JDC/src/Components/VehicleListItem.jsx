@@ -9,7 +9,7 @@ export default function VehicleListItem({ vehicle }) {
     <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group flex flex-col md:flex-row">
       {/* Image */}
       <Link
-        to={createPageUrl('VehicleDetail') + `?id=${vehicle.id}`}
+        to={createPageUrl('VehicleDetail') + `?id=${vehicle.id || vehicle.reference || ''}`}
         className="relative overflow-hidden md:w-80 aspect-[4/3] md:aspect-auto flex-shrink-0 block group/image"
       >
         <ImageWithAnimation
@@ -79,7 +79,7 @@ export default function VehicleListItem({ vehicle }) {
 
         {/* Button */}
         <Link
-          to={createPageUrl('VehicleDetail') + `?id=${vehicle.id}`}
+          to={createPageUrl('VehicleDetail') + `?id=${vehicle.id || vehicle.reference || ''}`}
           className="inline-block text-center bg-black text-white py-3 px-6 rounded-md hover:bg-red-600 transition-colors font-semibold w-full md:w-auto"
         >
           Voir le véhicule
