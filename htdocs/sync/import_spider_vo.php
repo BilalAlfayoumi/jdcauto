@@ -143,14 +143,34 @@ try {
                 
                 $photoOrder = 0;
                 foreach ($vehiculeXML->photos->photo as $photoXML) {
-                    $photoUrl = $getCdata($photoXML->url) ?: $getCdata($photoXML);
+                    // Essayer différentes méthodes d'extraction
+                    $photoUrl = null;
+                    
+                    // Méthode 1: attribut url
+                    if (isset($photoXML['url'])) {
+                        $photoUrl = trim((string)$photoXML['url']);
+                    }
+                    // Méthode 2: élément url
+                    elseif (isset($photoXML->url)) {
+                        $photoUrl = $getCdata($photoXML->url);
+                    }
+                    // Méthode 3: contenu direct (CDATA)
+                    else {
+                        $photoUrl = trim((string)$photoXML);
+                    }
+                    
+                    // Nettoyer l'URL
                     if ($photoUrl) {
-                        $pdo->prepare("
-                            INSERT INTO vehicle_photos (vehicle_id, photo_url, photo_order, created_at)
-                            VALUES (?, ?, ?, NOW())
-                        ")->execute([$vehicleId, $photoUrl, $photoOrder]);
-                        $photoOrder++;
-                        $photosImported++;
+                        $photoUrl = trim($photoUrl);
+                        // Vérifier que c'est une URL valide
+                        if (filter_var($photoUrl, FILTER_VALIDATE_URL) || strpos($photoUrl, 'http') === 0) {
+                            $pdo->prepare("
+                                INSERT INTO vehicle_photos (vehicle_id, photo_url, photo_order, created_at)
+                                VALUES (?, ?, ?, NOW())
+                            ")->execute([$vehicleId, $photoUrl, $photoOrder]);
+                            $photoOrder++;
+                            $photosImported++;
+                        }
                     }
                 }
             }

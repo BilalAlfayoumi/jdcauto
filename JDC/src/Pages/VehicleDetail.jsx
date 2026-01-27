@@ -24,8 +24,30 @@ export default function VehicleDetail() {
   const { data: vehicle, isLoading } = useQuery({
     queryKey: ['vehicle', vehicleId],
     queryFn: async () => {
-      const vehicles = await base44.entities.Vehicle.filter({ id: vehicleId });
-      return vehicles[0];
+      if (!vehicleId) return null;
+      // Utiliser l'action vehicle?id= directement
+      const response = await fetch(`/api/index.php?action=vehicle&id=${vehicleId}`);
+      if (!response.ok) throw new Error('Véhicule non trouvé');
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Erreur API');
+      
+      // Transformation pour compatibilité
+      const v = data.data;
+      return {
+        ...v,
+        id: v.id?.toString() || v.reference,
+        brand: v.brand || v.marque,
+        model: v.model || v.modele,
+        price: v.price || parseFloat(v.prix_vente || 0),
+        mileage: v.mileage || parseInt(v.kilometrage || 0),
+        year: v.year || parseInt(v.annee || new Date().getFullYear()),
+        fuel_type: v.fuel_type || v.energie,
+        gearbox: v.gearbox || (v.typeboite === 'A' ? 'Automatique' : 'Manuelle'),
+        status: v.status || v.etat,
+        category: v.category || v.carrosserie,
+        image_url: v.image_url || v.photos?.[0] || '',
+        photos: v.photos || []
+      };
     },
     enabled: !!vehicleId,
   });
