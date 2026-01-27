@@ -145,10 +145,27 @@ header('Content-Type: text/html; charset=utf-8');
             
             if (count($luxe) > 0) {
                 echo '<div class="success">✅ ' . count($luxe) . ' véhicule(s) PORSCHE/LAMBORGHINI trouvé(s) dans la base</div>';
-                echo '<table>';
-                echo '<tr><th>ID</th><th>Marque</th><th>Modèle</th><th>Prix</th><th>Km</th><th>Année</th><th>État</th><th>Créé le</th></tr>';
+                
+                // Compter par état
+                $parEtat = [];
                 foreach ($luxe as $v) {
-                    $etatClass = $v['etat'] === 'Disponible' ? 'success' : 'warning';
+                    $etat = $v['etat'] ?? 'N/A';
+                    $parEtat[$etat] = ($parEtat[$etat] ?? 0) + 1;
+                }
+                
+                echo '<p><strong>Répartition par état:</strong> ';
+                foreach ($parEtat as $etat => $count) {
+                    $color = $etat === 'Disponible' ? '#10b981' : ($etat === 'Vendu' ? '#dc2626' : '#f59e0b');
+                    echo '<span style="background: ' . $color . '; color: white; padding: 3px 10px; border-radius: 5px; margin: 0 5px;">' . htmlspecialchars($etat) . ': ' . $count . '</span>';
+                }
+                echo '</p>';
+                
+                echo '<table>';
+                echo '<tr><th>ID</th><th>Marque</th><th>Modèle</th><th>Prix</th><th>Km</th><th>Année</th><th>État</th><th>Créé le</th><th>Modifié le</th></tr>';
+                foreach ($luxe as $v) {
+                    $etat = $v['etat'] ?? 'N/A';
+                    $etatClass = $etat === 'Disponible' ? 'success' : ($etat === 'Vendu' ? 'error' : 'warning');
+                    $etatStyle = $etat === 'Disponible' ? 'background: #10b981; color: white;' : ($etat === 'Vendu' ? 'background: #dc2626; color: white;' : 'background: #f59e0b; color: white;');
                     echo '<tr>';
                     echo '<td>' . htmlspecialchars($v['id']) . '</td>';
                     echo '<td><strong>' . htmlspecialchars($v['marque']) . '</strong></td>';
@@ -156,13 +173,33 @@ header('Content-Type: text/html; charset=utf-8');
                     echo '<td>' . number_format($v['prix_vente'] ?? 0, 0, ',', ' ') . ' €</td>';
                     echo '<td>' . number_format($v['kilometrage'] ?? 0, 0, ',', ' ') . ' km</td>';
                     echo '<td>' . htmlspecialchars($v['annee'] ?? 'N/A') . '</td>';
-                    echo '<td><span class="' . $etatClass . '">' . htmlspecialchars($v['etat'] ?? 'N/A') . '</span></td>';
+                    echo '<td><span style="' . $etatStyle . ' padding: 3px 10px; border-radius: 5px;">' . htmlspecialchars($etat) . '</span></td>';
                     echo '<td>' . htmlspecialchars($v['created_at'] ?? 'N/A') . '</td>';
+                    echo '<td>' . htmlspecialchars($v['updated_at'] ?? ($v['date_modif'] ?? 'N/A')) . '</td>';
                     echo '</tr>';
                 }
                 echo '</table>';
+                
+                // Vérifier combien sont "Disponible"
+                $disponibles = array_filter($luxe, function($v) {
+                    return ($v['etat'] ?? '') === 'Disponible';
+                });
+                
+                if (count($disponibles) === 0) {
+                    echo '<div class="error">⚠️ PROBLÈME DÉTECTÉ: Aucun véhicule PORSCHE/LAMBORGHINI n\'est en état "Disponible" !</div>';
+                    echo '<div class="warning">💡 L\'API filtre par défaut sur <code>etat = "Disponible"</code>, donc ces véhicules ne seront pas visibles sur le site.</div>';
+                    echo '<div class="info">🔧 Solution: Vérifier dans Spider-VO si ces véhicules sont toujours disponibles, ou modifier leur état dans la base de données.</div>';
+                } else {
+                    echo '<div class="success">✅ ' . count($disponibles) . ' véhicule(s) PORSCHE/LAMBORGHINI sont en état "Disponible" et devraient être visibles</div>';
+                }
             } else {
                 echo '<div class="error">❌ Aucun véhicule PORSCHE ou LAMBORGHINI trouvé dans la base de données</div>';
+                echo '<div class="warning">💡 Possible causes:</div>';
+                echo '<ul style="margin-left: 20px; margin-top: 10px;">';
+                echo '<li>Les véhicules ont été supprimés de Spider-VO</li>';
+                echo '<li>La synchronisation a échoué</li>';
+                echo '<li>Les véhicules ont été supprimés manuellement</li>';
+                echo '</ul>';
             }
             echo '</div>';
             
