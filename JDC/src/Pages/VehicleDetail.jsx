@@ -14,13 +14,17 @@ import {
   DoorOpen,
   ChevronLeft,
   Phone,
-  Mail
+  Mail,
+  X,
+  ChevronRight
 } from 'lucide-react';
 
 export default function VehicleDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const vehicleId = urlParams.get('id');
   const [selectedPhotoIndex, setSelectedPhotoIndex] = React.useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = React.useState(false);
+  const [lightboxPhotoIndex, setLightboxPhotoIndex] = React.useState(0);
 
   const { data: vehicle, isLoading } = useQuery({
     queryKey: ['vehicle', vehicleId],

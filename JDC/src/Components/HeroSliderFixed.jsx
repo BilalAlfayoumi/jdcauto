@@ -3,9 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { ChevronRight, ChevronLeft, ChevronDown, Search } from 'lucide-react';
 import ImageWithAnimation from './ImageWithAnimation';
-// Temporairement désactiver useQuery pour diagnostics
-// import { base44 } from '@/api/base44Client';
-// import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 const heroSlides = [
   {
@@ -35,20 +33,60 @@ export default function HeroSliderFixed() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   
-  // Données mock statiques au lieu de useQuery (pour éviter le crash)
-  const mockVehicles = [
-    { brand: 'Renault', model: 'Clio', category: 'Citadine' },
-    { brand: 'BMW', model: 'Série 3', category: 'Berline' },
-    { brand: 'Mercedes', model: 'Classe A', category: 'Compacte' }
-  ];
+  // Fetch real vehicles data from API
+  const { data: allVehicles = [] } = useQuery({
+    queryKey: ['vehicles', 'hero-search'],
+    queryFn: async () => {
+      const response = await fetch('/api/index.php?action=vehicles&limit=100');
+      if (!response.ok) throw new Error('Erreur API');
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Erreur API');
+      return data.data || [];
+    },
+    staleTime: 0,
+    cacheTime: 0,
+  });
   
-  const availableCount = mockVehicles.length;
-  const uniqueBrands = ['BMW', 'Mercedes', 'Renault', 'Peugeot', 'Citroën'];
-  const uniqueCategories = ['Citadine', 'Berline', 'SUV', 'Compacte'];
+  // Calculate real data from vehicles
+  const availableCount = allVehicles.length;
+  
+  // Get unique brands from real vehicles
+  const uniqueBrands = [...new Set(allVehicles.map(v => v.brand || v.marque))].filter(Boolean).sort();
+  
+  // Get unique models for selected brand
+  const uniqueModels = searchFilters.brand
+    ? [...new Set(allVehicles
+        .filter(v => (v.brand || v.marque) === searchFilters.brand)
+        .map(v => v.model || v.modele)
+      )].filter(Boolean).sort()
+    : [];
+  
+  // Calculate price range from real vehicles
+  const priceRange = allVehicles.length > 0 
+    ? {
+        min: Math.min(...allVehicles.map(v => v.price || parseFloat(v.prix_vente || 0))),
+        max: Math.max(...allVehicles.map(v => v.price || parseFloat(v.prix_vente || 0)))
+      }
+    : { min: 0, max: 100000 };
+  
+  // Generate price options based on real data
+  const priceOptions = [];
+  if (priceRange.max > 0) {
+    const step = Math.ceil(priceRange.max / 5);
+    for (let i = step; i <= priceRange.max; i += step) {
+      priceOptions.push(i);
+    }
+    // Add max price if not already included
+    if (priceOptions[priceOptions.length - 1] < priceRange.max) {
+      priceOptions.push(priceRange.max);
+    }
+  } else {
+    // Fallback prices
+    priceOptions.push(10000, 15000, 20000, 30000, 50000);
+  }
   
   // Search filters state
   const [searchFilters, setSearchFilters] = useState({
-    category: '',
     brand: '',
     model: '',
     maxPrice: ''
@@ -56,7 +94,6 @@ export default function HeroSliderFixed() {
   
   const handleSearch = () => {
     const params = new URLSearchParams();
-    if (searchFilters.category) params.set('category', searchFilters.category);
     if (searchFilters.brand) params.set('brand', searchFilters.brand);
     if (searchFilters.model) params.set('model', searchFilters.model);
     if (searchFilters.maxPrice) params.set('maxPrice', searchFilters.maxPrice);
@@ -196,18 +233,7 @@ export default function HeroSliderFixed() {
               </div>
               
               <div className="bg-white rounded-2xl shadow-2xl p-5 border border-gray-100">
-                <div className="grid grid-cols-5 gap-4">
-                  <select 
-                    value={searchFilters.category}
-                    onChange={(e) => setSearchFilters(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full px-4 py-3 bg-gray-100 border-0 rounded-xl text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-red-600"
-                  >
-                    <option value="">Catégorie</option>
-                    {uniqueCategories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                  
+                <div className="grid grid-cols-4 gap-4">
                   <select 
                     value={searchFilters.brand}
                     onChange={(e) => handleBrandChange(e.target.value)}
@@ -223,8 +249,12 @@ export default function HeroSliderFixed() {
                     value={searchFilters.model}
                     onChange={(e) => setSearchFilters(prev => ({ ...prev, model: e.target.value }))}
                     className="w-full px-4 py-3 bg-gray-100 border-0 rounded-xl text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-red-600"
+                    disabled={!searchFilters.brand}
                   >
                     <option value="">Modèle</option>
+                    {uniqueModels.map(model => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
                   </select>
                   
                   <select 
@@ -233,11 +263,9 @@ export default function HeroSliderFixed() {
                     className="w-full px-4 py-3 bg-gray-100 border-0 rounded-xl text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-red-600"
                   >
                     <option value="">Prix maxi.</option>
-                    <option value="10000">10 000 €</option>
-                    <option value="15000">15 000 €</option>
-                    <option value="20000">20 000 €</option>
-                    <option value="30000">30 000 €</option>
-                    <option value="50000">50 000 €</option>
+                    {priceOptions.map(price => (
+                      <option key={price} value={price}>{price.toLocaleString('fr-FR')} €</option>
+                    ))}
                   </select>
                   
                   <button
@@ -272,17 +300,6 @@ export default function HeroSliderFixed() {
             <div className="bg-gray-50 rounded-xl shadow-lg p-4 border border-gray-200 max-w-md mx-auto">
               <div className="space-y-3">
                 <select 
-                  value={searchFilters.category}
-                  onChange={(e) => setSearchFilters(prev => ({ ...prev, category: e.target.value }))}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-red-600"
-                >
-                  <option value="">Catégorie</option>
-                  {uniqueCategories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-                
-                <select 
                   value={searchFilters.brand}
                   onChange={(e) => handleBrandChange(e.target.value)}
                   className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-red-600"
@@ -296,9 +313,13 @@ export default function HeroSliderFixed() {
                 <select 
                   value={searchFilters.model}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, model: e.target.value }))}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-red-600"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-red-600 disabled:bg-gray-100 disabled:text-gray-400"
+                  disabled={!searchFilters.brand}
                 >
                   <option value="">Modèle</option>
+                  {uniqueModels.map(model => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
                 </select>
                 
                 <select 
@@ -307,11 +328,9 @@ export default function HeroSliderFixed() {
                   className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-red-600"
                 >
                   <option value="">Prix maxi.</option>
-                  <option value="10000">10 000 €</option>
-                  <option value="15000">15 000 €</option>
-                  <option value="20000">20 000 €</option>
-                  <option value="30000">30 000 €</option>
-                  <option value="50000">50 000 €</option>
+                  {priceOptions.map(price => (
+                    <option key={price} value={price}>{price.toLocaleString('fr-FR')} €</option>
+                  ))}
                 </select>
                 
                 <button
