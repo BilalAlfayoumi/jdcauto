@@ -86,7 +86,14 @@ try {
             $typeboite = $getCdata($vehiculeXML->typeboite);
             $carrosserie = $getCdata($vehiculeXML->carrosserie) ?: 'BERLINE';
             $etat = $getCdata($vehiculeXML->etat) ?: 'Disponible';
+            // Extraire description - nettoyer les balises HTML et espaces
             $description = $getCdata($vehiculeXML->description);
+            if ($description) {
+                // Nettoyer les balises <br /> et espaces multiples
+                $description = preg_replace('/<br\s*\/?>/i', "\n", $description);
+                $description = preg_replace('/\s+/', ' ', $description);
+                $description = trim($description);
+            }
             $couleurexterieur = $getCdata($vehiculeXML->couleurexterieur);
             $nbrplace = $getCdata($vehiculeXML->nbrplace) ? (int)$getCdata($vehiculeXML->nbrplace) : null;
             $nbrporte = $getCdata($vehiculeXML->nbrporte) ? (int)$getCdata($vehiculeXML->nbrporte) : null;
@@ -138,12 +145,10 @@ try {
             }
             
             // Importer photos - Structure XML: <photos><photo>URL</photo></photos>
-            // Supprimer anciennes photos d'abord
-            $pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id = ?")->execute([$vehicleId]);
-            
             $photoOrder = 0;
+            $photosToImport = [];
             
-            // Vérifier si photos existent
+            // Vérifier si photos existent dans XML
             if (isset($vehiculeXML->photos) && isset($vehiculeXML->photos->photo)) {
                 // SimpleXML retourne toujours un tableau même pour un seul élément
                 foreach ($vehiculeXML->photos->photo as $photoElement) {
@@ -163,25 +168,38 @@ try {
                         $photoUrl = trim((string)$photoElement->url);
                     }
                     
-                    // Valider et insérer
+                    // Valider l'URL
                     if (!empty($photoUrl)) {
-                        // Nettoyer l'URL
                         $photoUrl = trim($photoUrl);
                         
                         // Vérifier que c'est une URL valide (http/https)
                         if (strpos($photoUrl, 'http://') === 0 || strpos($photoUrl, 'https://') === 0) {
-                            try {
-                                $pdo->prepare("
-                                    INSERT INTO vehicle_photos (vehicle_id, photo_url, photo_order, created_at)
-                                    VALUES (?, ?, ?, NOW())
-                                ")->execute([$vehicleId, $photoUrl, $photoOrder]);
-                                $photoOrder++;
-                                $photosImported++;
-                            } catch (PDOException $e) {
-                                // Ignorer erreur photo individuelle
-                                error_log("Erreur import photo pour véhicule $vehicleId: " . $e->getMessage());
-                            }
+                            $photosToImport[] = [
+                                'url' => $photoUrl,
+                                'order' => $photoOrder++
+                            ];
                         }
+                    }
+                }
+            }
+            
+            // Supprimer anciennes photos SEULEMENT si on a de nouvelles photos à importer
+            if (count($photosToImport) > 0) {
+                $pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id = ?")->execute([$vehicleId]);
+                
+                // Insérer les nouvelles photos
+                $photoStmt = $pdo->prepare("
+                    INSERT INTO vehicle_photos (vehicle_id, photo_url, photo_order, created_at)
+                    VALUES (?, ?, ?, NOW())
+                ");
+                
+                foreach ($photosToImport as $photo) {
+                    try {
+                        $photoStmt->execute([$vehicleId, $photo['url'], $photo['order']]);
+                        $photosImported++;
+                    } catch (PDOException $e) {
+                        // Ignorer erreur photo individuelle
+                        error_log("Erreur import photo pour véhicule $vehicleId: " . $e->getMessage());
                     }
                 }
             }
