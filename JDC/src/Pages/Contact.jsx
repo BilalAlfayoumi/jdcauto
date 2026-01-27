@@ -43,6 +43,7 @@ export default function Contact() {
   const [submittedType, setSubmittedType] = useState(null);
   const { opacity, translateY } = useParallax();
   const [isLoaded, setIsLoaded] = useState(false);
+  const [mapError, setMapError] = useState(false);
   
   useEffect(() => {
     setIsLoaded(true);
@@ -595,7 +596,7 @@ export default function Contact() {
 
           <AnimatedSection animation="fade-up" delay={200}>
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-              <div className="aspect-video w-full">
+              <div className="aspect-video w-full relative bg-gray-100">
                 <iframe
                   src="https://www.google.com/maps?q=JDC+Auto+93+Av.+de+Magudas+33700+Mérignac&hl=fr&z=15&output=embed"
                   width="100%"
@@ -605,7 +606,31 @@ export default function Contact() {
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   title="Localisation JDC Auto - 93 Av. de Magudas, 33700 Mérignac"
+                  onError={() => setMapError(true)}
                 />
+                {/* Overlay avec liens alternatifs si la carte ne charge pas */}
+                <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10">
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=JDC+Auto+Mérignac+93+Av.+de+Magudas+33700"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-white hover:bg-red-600 text-gray-900 hover:text-white font-semibold rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl text-sm"
+                    title="Ouvrir dans Google Maps"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Google Maps
+                  </a>
+                  <a
+                    href="https://www.openstreetmap.org/?mlat=44.85&mlon=-0.63&zoom=15#map=15/44.85/-0.63"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-white hover:bg-blue-600 text-gray-900 hover:text-white font-semibold rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl text-sm"
+                    title="Ouvrir dans OpenStreetMap"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    OpenStreetMap
+                  </a>
+                </div>
               </div>
               <div className="p-6 bg-gray-50 border-t border-gray-200">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

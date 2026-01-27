@@ -10,7 +10,6 @@ import {
   TrendingUp, 
   Clock, 
   Shield,
-  Search,
   ChevronRight,
   ChevronLeft,
   Award,
@@ -24,7 +23,6 @@ import { toast } from 'sonner';
 
 export default function TradeIn() {
   const [currentStep, setCurrentStep] = useState(0);
-  const [isSearching, setIsSearching] = useState(false);
   const formSectionRef = useRef(null);
   const { opacity, translateY } = useParallax();
   const [isLoaded, setIsLoaded] = useState(false);
@@ -34,33 +32,30 @@ export default function TradeIn() {
   }, []);
   
   const [formData, setFormData] = useState({
-    // Step 1: Immatriculation
-    licensePlate: '',
-    // Step 2: Vehicle details
+    // Step 0: Vehicle details
     brand: '',
     model: '',
     version: '',
     year: new Date().getFullYear(),
     mileage: '',
     fuelType: '',
-    // Step 3: Project
+    // Step 1: Project
     sellDelay: '',
     buyingProject: '',
-    // Step 4: Personal info
+    // Step 2: Personal info
     civility: '',
     first_name: '',
     last_name: '',
     email: '',
     phone: '',
     message: '',
-    // Step 5: Consent
+    // Step 3: Consent
     consent: false
   });
 
   const [submitted, setSubmitted] = useState(false);
 
   const steps = [
-    'Immatriculation',
     'Détails véhicule',
     'Votre projet',
     'Coordonnées',
@@ -78,43 +73,6 @@ export default function TradeIn() {
     }
   });
 
-  const searchByLicensePlate = async () => {
-    if (!formData.licensePlate || formData.licensePlate.length < 4) {
-      toast.error('Veuillez saisir une immatriculation valide');
-      return;
-    }
-
-    setIsSearching(true);
-    
-    try {
-      // Simulate API call - in production, integrate with real API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock data for demo
-      const mockData = {
-        brand: 'Renault',
-        model: 'Clio',
-        version: 'Intens',
-        year: 2019,
-        fuelType: 'Essence',
-        mileage: 45000
-      };
-
-      setFormData(prev => ({
-        ...prev,
-        ...mockData
-      }));
-
-      toast.success('Véhicule trouvé !');
-      setCurrentStep(1);
-    } catch (error) {
-      toast.error('Véhicule non trouvé. Veuillez compléter manuellement.');
-      setCurrentStep(1);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
@@ -126,21 +84,16 @@ export default function TradeIn() {
   const handleNext = () => {
     // Validation per step
     if (currentStep === 0) {
-      if (!formData.licensePlate) {
-        toast.error('Veuillez saisir une immatriculation');
-        return;
-      }
-    } else if (currentStep === 1) {
       if (!formData.brand || !formData.model || !formData.year || !formData.mileage) {
         toast.error('Veuillez compléter tous les champs obligatoires');
         return;
       }
-    } else if (currentStep === 3) {
+    } else if (currentStep === 2) {
       if (!formData.first_name || !formData.last_name || !formData.email || !formData.phone) {
         toast.error('Veuillez compléter tous les champs obligatoires');
         return;
       }
-    } else if (currentStep === 4) {
+    } else if (currentStep === 3) {
       if (!formData.consent) {
         toast.error('Veuillez accepter les conditions');
         return;
@@ -191,33 +144,32 @@ export default function TradeIn() {
               </li>
             </ul>
           </div>
-          <button
-            onClick={() => {
-              setSubmitted(false);
-              setCurrentStep(0);
-              setFormData({
-                licensePlate: '',
-                brand: '',
-                model: '',
-                version: '',
-                year: new Date().getFullYear(),
-                mileage: '',
-                fuelType: '',
-                sellDelay: '',
-                buyingProject: '',
-                civility: '',
-                first_name: '',
-                last_name: '',
-                email: '',
-                phone: '',
-                message: '',
-                consent: false
-              });
-            }}
-            className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md transition-colors"
-          >
-            Faire une nouvelle estimation
-          </button>
+            <button
+              onClick={() => {
+                setSubmitted(false);
+                setCurrentStep(0);
+                setFormData({
+                  brand: '',
+                  model: '',
+                  version: '',
+                  year: new Date().getFullYear(),
+                  mileage: '',
+                  fuelType: '',
+                  sellDelay: '',
+                  buyingProject: '',
+                  civility: '',
+                  first_name: '',
+                  last_name: '',
+                  email: '',
+                  phone: '',
+                  message: '',
+                  consent: false
+                });
+              }}
+              className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md transition-colors"
+            >
+              Faire une nouvelle estimation
+            </button>
         </div>
       </div>
     );
@@ -310,59 +262,8 @@ export default function TradeIn() {
             <ProgressBar steps={steps} currentStep={currentStep} />
 
             <form onSubmit={handleSubmit} className="mt-10">
-              {/* Step 0: License Plate */}
+              {/* Step 0: Vehicle Details */}
               {currentStep === 0 && (
-                <div className="space-y-6 animate-fadeIn">
-                  <div className="text-center mb-8">
-                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-                      Quelle est votre immatriculation ?
-                    </h3>
-                    <p className="text-gray-600">
-                      Nous allons identifier automatiquement votre véhicule
-                    </p>
-                  </div>
-
-                  <div className="max-w-md mx-auto">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        name="licensePlate"
-                        value={formData.licensePlate}
-                        onChange={handleChange}
-                        placeholder="XX-123-XX"
-                        className="w-full px-6 py-4 text-2xl font-bold text-center border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent uppercase transition-all"
-                        maxLength="9"
-                      />
-                      <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={searchByLicensePlate}
-                      disabled={isSearching}
-                      className="w-full mt-4 px-6 py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-bold rounded-lg transition-colors text-lg shadow-lg hover:shadow-xl"
-                    >
-                      {isSearching ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                          Recherche en cours...
-                        </span>
-                      ) : (
-                        'Rechercher mon véhicule'
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCurrentStep(1)}
-                      className="w-full mt-3 text-gray-600 hover:text-red-600 font-medium transition-colors"
-                    >
-                      Ou compléter manuellement
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 1: Vehicle Details */}
-              {currentStep === 1 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div className="text-center mb-8">
                     <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
@@ -466,8 +367,8 @@ export default function TradeIn() {
                 </div>
               )}
 
-              {/* Step 2: Project */}
-              {currentStep === 2 && (
+              {/* Step 1: Project */}
+              {currentStep === 1 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div className="text-center mb-8">
                     <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
@@ -519,8 +420,8 @@ export default function TradeIn() {
                 </div>
               )}
 
-              {/* Step 3: Personal Info */}
-              {currentStep === 3 && (
+              {/* Step 2: Personal Info */}
+              {currentStep === 2 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div className="text-center mb-8">
                     <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
@@ -642,8 +543,8 @@ export default function TradeIn() {
                 </div>
               )}
 
-              {/* Step 4: Consent */}
-              {currentStep === 4 && (
+              {/* Step 3: Consent */}
+              {currentStep === 3 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div className="text-center mb-8">
                     <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
@@ -698,7 +599,7 @@ export default function TradeIn() {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className={`${currentStep === 0 ? 'ml-auto' : 'ml-auto'} px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors inline-flex items-center gap-2 shadow-lg hover:shadow-xl`}
+                    className="ml-auto px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors inline-flex items-center gap-2 shadow-lg hover:shadow-xl"
                   >
                     Suivant
                     <ChevronRight className="w-5 h-5" />
