@@ -78,7 +78,8 @@ class JDCAutoAPIClient {
         gearbox: vehicle.gearbox || (vehicle.typeboite === 'A' ? 'Automatique' : 'Manuelle'),
         status: vehicle.status || vehicle.etat || 'Disponible',
         description: vehicle.description || `${vehicle.marque || vehicle.brand} ${vehicle.modele || vehicle.model}`,
-        image_url: vehicle.image_url || this.getPlaceholderImage(vehicle.marque || vehicle.brand),
+        // Ne pas utiliser placeholder si image_url est vide - laisser vide pour API
+        image_url: vehicle.image_url || '',
         category: vehicle.category || vehicle.carrosserie || 'Berline',
         marque: vehicle.marque || vehicle.brand,
         modele: vehicle.modele || vehicle.model,
