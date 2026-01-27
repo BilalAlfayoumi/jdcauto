@@ -2,8 +2,9 @@
 AddDefaultCharset UTF-8
 RewriteEngine On
 
-# Permettre l'accès aux fichiers SEO et de test
+# Permettre l'accès aux fichiers SEO, vérification Google et de test
 RewriteCond %{REQUEST_URI} ^/(robots\.txt|sitemap\.xml)$ [OR]
+RewriteCond %{REQUEST_URI} ^/google[0-9a-f]+\.html$ [OR]
 RewriteCond %{REQUEST_URI} ^/(test|test-mobile|diagnostic)\.html$ [OR]
 RewriteCond %{REQUEST_URI} ^/api/ [OR]
 RewriteCond %{REQUEST_URI} ^/sync/ [OR]
