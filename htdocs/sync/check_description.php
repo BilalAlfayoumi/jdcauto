@@ -201,9 +201,51 @@ header('Content-Type: text/html; charset=utf-8');
         echo '</table>';
         echo '</div>';
         
-        // Afficher les autres champs du véhicule
+        // Afficher TOUS les champs disponibles dans le XML (pour trouver équipements)
         echo '<div class="section">';
-        echo '<h2>📋 Autres informations du véhicule (XML)</h2>';
+        echo '<h2>📋 Tous les champs disponibles dans le XML</h2>';
+        echo '<p class="info">Recherche de tous les champs pour trouver où sont stockés les équipements</p>';
+        echo '<table>';
+        echo '<tr><th>Champ</th><th>Valeur</th><th>Longueur</th></tr>';
+        
+        // Récupérer tous les enfants du véhicule
+        $allFields = [];
+        foreach ($fiatDucato->children() as $child) {
+            $fieldName = $child->getName();
+            $value = $getCdata($child);
+            $allFields[$fieldName] = $value;
+        }
+        
+        // Trier par nom
+        ksort($allFields);
+        
+        foreach ($allFields as $fieldName => $value) {
+            $length = strlen($value);
+            $highlight = '';
+            // Mettre en évidence les champs qui pourraient contenir des équipements
+            if (stripos($fieldName, 'equip') !== false || 
+                stripos($fieldName, 'option') !== false ||
+                stripos($fieldName, 'option') !== false ||
+                ($length > 200 && stripos($value, 'Audio') !== false) ||
+                ($length > 200 && stripos($value, 'Conduite') !== false)) {
+                $highlight = 'background: #fef3c7;';
+            }
+            echo '<tr style="' . $highlight . '">';
+            echo '<td><strong>' . htmlspecialchars($fieldName) . '</strong></td>';
+            if ($length > 500) {
+                echo '<td><div class="description-box" style="max-height: 200px; font-size: 11px;">' . htmlspecialchars(substr($value, 0, 1000)) . (strlen($value) > 1000 ? '...' : '') . '</div></td>';
+            } else {
+                echo '<td>' . htmlspecialchars($value ?: 'N/A') . '</td>';
+            }
+            echo '<td>' . $length . '</td>';
+            echo '</tr>';
+        }
+        echo '</table>';
+        echo '</div>';
+        
+        // Afficher les champs standards
+        echo '<div class="section">';
+        echo '<h2>📋 Champs standards du véhicule</h2>';
         echo '<table>';
         echo '<tr><th>Champ</th><th>Valeur</th></tr>';
         $fields = ['reference', 'marque', 'modele', 'version', 'prix_vente', 'kilometrage', 'annee', 'energie', 'typeboite', 'carrosserie', 'etat', 'couleurexterieur', 'nbrplace', 'nbrporte', 'puissancedyn', 'puissance_fiscale', 'finition', 'date_mec'];
