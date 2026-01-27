@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://www.jdcauto.fr/sitemap.xml
+
+# Disallow admin and test pages
+Disallow: /api/
+Disallow: /sync/
+Disallow: /install/
+Disallow: /test.html
+Disallow: /test-mobile.html
+Disallow: /diagnostic.html
+Disallow: /diagnostic.php
+
