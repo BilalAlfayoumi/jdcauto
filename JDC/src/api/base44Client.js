@@ -82,23 +82,24 @@ class JDCAutoAPIClient {
        * Filtre les véhicules - Compatible avec: base44.entities.Vehicle.filter()
        */
       async filter(filters = {}, sortBy = '-created_date', limit = null) {
+        console.log('🔍 filter() appelé avec:', { filters, sortBy, limit });
         const params = {
           action: 'vehicles',
           limit: limit || 50,
           sort: this.parseSortBy(sortBy)
         };
         
-        // Appliquer filtres
-        if (filters.status === 'Disponible') {
-          params.status = 'Disponible';
-        }
+        // Appliquer filtres - TOUJOURS filtrer par Disponible par défaut
+        params.status = filters.status || 'Disponible';
         
         if (filters.marque) params.marque = filters.marque;
         if (filters.modele) params.modele = filters.modele;
         if (filters.category) params.category = filters.category;
         
         try {
+          console.log('🌐 Appel API avec params:', params);
           const vehicles = await this.request(params);
+          console.log('📦 Réponse API brute:', vehicles);
           
           // Vérifier que vehicles est un tableau
           if (!Array.isArray(vehicles)) {
@@ -149,7 +150,10 @@ class JDCAutoAPIClient {
        * Liste tous les véhicules - Compatible avec: base44.entities.Vehicle.list()
        */
       async list(sortBy = '-created_date', limit = null) {
-        return await this.entities.Vehicle.filter({}, sortBy, limit);
+        console.log('📋 list() appelé avec sortBy:', sortBy, 'limit:', limit);
+        const result = await this.entities.Vehicle.filter({ status: 'Disponible' }, sortBy, limit);
+        console.log('📋 list() retourne', result?.length || 0, 'véhicules');
+        return result;
       }
     }
   };
