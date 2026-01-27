@@ -33,6 +33,13 @@ export default function HeroSliderFixed() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   
+  // Search filters state - Déclaré en premier
+  const [searchFilters, setSearchFilters] = useState({
+    brand: '',
+    model: '',
+    maxPrice: ''
+  });
+  
   // Fetch real vehicles data from API
   const { data: allVehicles = [] } = useQuery({
     queryKey: ['vehicles', 'hero-search'],
@@ -84,13 +91,6 @@ export default function HeroSliderFixed() {
     // Fallback prices
     priceOptions.push(10000, 15000, 20000, 30000, 50000);
   }
-  
-  // Search filters state
-  const [searchFilters, setSearchFilters] = useState({
-    brand: '',
-    model: '',
-    maxPrice: ''
-  });
   
   const handleSearch = () => {
     const params = new URLSearchParams();
