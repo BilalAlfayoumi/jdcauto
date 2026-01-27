@@ -319,11 +319,11 @@ export default function Administrative() {
                 Nous contacter
               </Link>
               <a
-                href="tel:0556973752"
+                href="tel:+33556973752"
                 className="px-8 py-4 bg-black hover:bg-gray-900 text-white font-semibold rounded-md transition-colors inline-flex items-center gap-2"
               >
                 <Phone className="w-5 h-5" />
-                05 56 97 37 52
+                +33 5 56 97 37 52
               </a>
             </div>
           </div>

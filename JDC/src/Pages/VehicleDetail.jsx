@@ -440,10 +440,11 @@ export default function VehicleDetail() {
               <div className="space-y-4 mb-6">
                 <h3 className="text-lg font-bold text-gray-900">Intéressé par ce véhicule ?</h3>
                 <a
-                  href="tel:0556973752"
+                  href="tel:+33556973752"
                   className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md transition-colors"
                 >
                   <Phone className="w-5 h-5" />
+                  +33 5 56 97 37 52
                   Appeler maintenant
                 </a>
                 <Link

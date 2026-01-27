@@ -246,10 +246,10 @@ export default function Contact() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2 text-lg">Téléphone</h3>
                 <a 
-                  href="tel:0556973752" 
+                  href="tel:+33556973752" 
                   className="text-red-600 hover:text-red-700 transition-colors font-semibold text-lg"
                 >
-                  05 56 97 37 52
+                  +33 5 56 97 37 52
                 </a>
               </div>
             </AnimatedSection>
@@ -350,7 +350,7 @@ export default function Contact() {
                       value={formDataAchat.phone}
                       onChange={handleChangeAchat}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all"
-                      placeholder="05 56 97 37 52"
+                      placeholder="+33 5 56 97 37 52"
                     />
                   </div>
                 </div>
@@ -463,7 +463,7 @@ export default function Contact() {
                       value={formDataCarteGrise.phone}
                       onChange={handleChangeCarteGrise}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
-                      placeholder="05 56 97 37 52"
+                      placeholder="+33 5 56 97 37 52"
                     />
                   </div>
                 </div>
@@ -552,10 +552,10 @@ export default function Contact() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-3 text-lg">Téléphone</h3>
                 <a 
-                  href="tel:0556973752" 
+                  href="tel:+33556973752" 
                   className="text-red-600 hover:text-red-700 transition-colors font-semibold text-lg block"
                 >
-                  05 56 97 37 52
+                  +33 5 56 97 37 52
                 </a>
               </div>
             </AnimatedSection>

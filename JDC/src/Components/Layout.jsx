@@ -34,9 +34,9 @@ export default function Layout({ children }) {
       <div className="bg-gradient-to-r from-gray-900 to-black text-white py-2.5 px-4 border-b border-gray-800">
         <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center text-sm">
           <div className="flex items-center gap-6">
-            <a href="tel:0556973752" className="flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
+            <a href="tel:+33556973752" className="flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
               <Phone className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span className="font-medium">05 56 97 37 52</span>
+              <span className="font-medium">+33 5 56 97 37 52</span>
             </a>
             <a href="mailto:jdcauto33@orange.fr" className="hidden sm:flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
               <Mail className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -178,7 +178,7 @@ export default function Layout({ children }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 flex-shrink-0" />
-                  <a href="tel:0556973752" className="hover:text-red-500 transition-colors">05 56 97 37 52</a>
+                  <a href="tel:+33556973752" className="hover:text-red-500 transition-colors">+33 5 56 97 37 52</a>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 flex-shrink-0" />
