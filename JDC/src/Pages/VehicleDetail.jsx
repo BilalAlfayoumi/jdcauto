@@ -20,6 +20,7 @@ import {
 export default function VehicleDetail() {
   const urlParams = new URLSearchParams(window.location.search);
   const vehicleId = urlParams.get('id');
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = React.useState(0);
 
   const { data: vehicle, isLoading } = useQuery({
     queryKey: ['vehicle', vehicleId],
@@ -92,14 +93,70 @@ export default function VehicleDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
-            {/* Image */}
+            {/* Image Gallery */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-              <ImageWithAnimation
-                src={vehicle.image_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1200&auto=format&fit=crop'}
-                alt={`${vehicle.brand} ${vehicle.model}`}
-                className="w-full h-96"
-                animation="zoom-in"
-              />
+              {/* Main Image */}
+              <div className="relative">
+                <ImageWithAnimation
+                  src={vehicle.photos && vehicle.photos.length > 0 
+                    ? vehicle.photos[selectedPhotoIndex] 
+                    : vehicle.image_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1200&auto=format&fit=crop'}
+                  alt={`${vehicle.brand} ${vehicle.model} - Photo ${selectedPhotoIndex + 1}`}
+                  className="w-full h-96 object-cover"
+                  animation="zoom-in"
+                />
+                {/* Navigation arrows if multiple photos */}
+                {vehicle.photos && vehicle.photos.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setSelectedPhotoIndex(prev => prev > 0 ? prev - 1 : vehicle.photos.length - 1)}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all"
+                      aria-label="Photo précédente"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <button
+                      onClick={() => setSelectedPhotoIndex(prev => prev < vehicle.photos.length - 1 ? prev + 1 : 0)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all rotate-180"
+                      aria-label="Photo suivante"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    {/* Photo counter */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm font-semibold">
+                      {selectedPhotoIndex + 1} / {vehicle.photos.length}
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              {/* Thumbnail Gallery */}
+              {vehicle.photos && vehicle.photos.length > 1 && (
+                <div className="p-4 bg-gray-50 border-t">
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {vehicle.photos.map((photo, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedPhotoIndex(index)}
+                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                          selectedPhotoIndex === index
+                            ? 'border-red-600 ring-2 ring-red-300'
+                            : 'border-gray-300 hover:border-red-400'
+                        }`}
+                      >
+                        <img
+                          src={photo}
+                          alt={`${vehicle.brand} ${vehicle.model} - Miniature ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=200&auto=format&fit=crop';
+                          }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Details */}
