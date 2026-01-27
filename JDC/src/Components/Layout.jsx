@@ -230,9 +230,8 @@ export default function Layout({ children }) {
             <div>
               <h4 className="text-lg font-semibold mb-4">Horaires d'ouverture</h4>
               <div className="space-y-2 text-sm text-gray-400">
-                <p><span className="text-white">Lundi - Vendredi:</span> 9h00 - 19h00</p>
-                <p><span className="text-white">Samedi:</span> 9h00 - 18h00</p>
-                <p><span className="text-white">Dimanche:</span> Fermé</p>
+                <p><span className="text-white">Du lundi au samedi:</span> 08H00 - 12H00 & 14H00-19H30</p>
+                <p><span className="text-white">Le samedi:</span> Sur rendez-vous</p>
               </div>
             </div>
 

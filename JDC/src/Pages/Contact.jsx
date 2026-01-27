@@ -233,9 +233,8 @@ export default function Contact() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2 text-lg">Horaires</h3>
                 <div className="text-gray-600 text-sm space-y-1">
-                  <p><strong>Lun - Ven:</strong> 9h00 - 19h00</p>
-                  <p><strong>Samedi:</strong> 9h00 - 18h00</p>
-                  <p><strong>Dimanche:</strong> Fermé</p>
+                  <p><strong>Du lundi au samedi:</strong> 08H00 - 12H00 & 14H00-19H30</p>
+                  <p><strong>Le samedi:</strong> Sur rendez-vous</p>
                 </div>
               </div>
             </AnimatedSection>
@@ -540,9 +539,8 @@ export default function Contact() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-3 text-lg">Horaires d'ouverture</h3>
                 <div className="text-gray-600 text-sm space-y-1">
-                  <p><strong>Lun - Ven:</strong> 9h00 - 19h00</p>
-                  <p><strong>Samedi:</strong> 9h00 - 18h00</p>
-                  <p><strong>Dimanche:</strong> Fermé</p>
+                  <p><strong>Du lundi au samedi:</strong> 08H00 - 12H00 & 14H00-19H30</p>
+                  <p><strong>Le samedi:</strong> Sur rendez-vous</p>
                 </div>
               </div>
             </AnimatedSection>
