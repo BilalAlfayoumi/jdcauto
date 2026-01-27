@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { Phone, Mail, MapPin, Menu, X, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
+import { Phone, Mail, MapPin, Menu, X } from 'lucide-react';
 
 export default function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -163,48 +163,9 @@ export default function Layout({ children }) {
                   e.target.style.display = 'none';
                 }}
               />
-              <p className="text-gray-400 text-sm leading-relaxed mb-6">
+              <p className="text-gray-400 text-sm leading-relaxed">
                 Mandataire depuis plus de 30 ans en Aquitaine. Garage automobile multimarque à Mérignac depuis 2003. Services : vente, reprise, financement, LOA, mécanique, carrosserie, carte grise. +99% de satisfaction client, près de 16 000 véhicules livrés.
               </p>
-              {/* Social Media */}
-              <div className="flex gap-4">
-                <a 
-                  href="https://facebook.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-gray-800 hover:bg-red-600 rounded-lg flex items-center justify-center transition-all duration-300 group"
-                  aria-label="Facebook"
-                >
-                  <Facebook className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
-                </a>
-                <a 
-                  href="https://instagram.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-gray-800 hover:bg-red-600 rounded-lg flex items-center justify-center transition-all duration-300 group"
-                  aria-label="Instagram"
-                >
-                  <Instagram className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
-                </a>
-                <a 
-                  href="https://linkedin.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-gray-800 hover:bg-red-600 rounded-lg flex items-center justify-center transition-all duration-300 group"
-                  aria-label="LinkedIn"
-                >
-                  <Linkedin className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
-                </a>
-                <a 
-                  href="https://twitter.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-gray-800 hover:bg-red-600 rounded-lg flex items-center justify-center transition-all duration-300 group"
-                  aria-label="Twitter"
-                >
-                  <Twitter className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
-                </a>
-              </div>
             </div>
 
             {/* Contact */}

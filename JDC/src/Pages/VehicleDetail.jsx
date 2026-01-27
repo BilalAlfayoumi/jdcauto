@@ -16,7 +16,11 @@ import {
   Phone,
   Mail,
   X,
-  ChevronRight
+  ChevronRight,
+  Hash,
+  Car,
+  Zap,
+  FileText
 } from 'lucide-react';
 
 export default function VehicleDetail() {
@@ -60,7 +64,8 @@ export default function VehicleDetail() {
         fiscal_power: v.fiscal_power || v.puissance_fiscale || null,
         first_registration: v.first_registration || v.date_mec || null,
         version: v.version || null,
-        finition: v.finition || null
+        finition: v.finition || null,
+        reference: v.reference || null
       };
     },
     enabled: !!vehicleId,
@@ -228,11 +233,11 @@ export default function VehicleDetail() {
                 )}
               </div>
 
-              {/* Specs Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+              {/* Informations principales - Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
                   <Calendar className="w-8 h-8 text-red-600 mb-2" />
-                  <span className="text-sm text-gray-600">Année</span>
+                  <span className="text-sm text-gray-600">Année modèle</span>
                   <span className="text-lg font-bold text-gray-900">{vehicle.year}</span>
                 </div>
                 <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
@@ -242,48 +247,135 @@ export default function VehicleDetail() {
                 </div>
                 <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
                   <Fuel className="w-8 h-8 text-red-600 mb-2" />
-                  <span className="text-sm text-gray-600">Carburant</span>
+                  <span className="text-sm text-gray-600">Énergie</span>
                   <span className="text-lg font-bold text-gray-900">{vehicle.fuel_type}</span>
                 </div>
                 <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
                   <Settings className="w-8 h-8 text-red-600 mb-2" />
-                  <span className="text-sm text-gray-600">Boîte</span>
+                  <span className="text-sm text-gray-600">Boîte de vitesse</span>
                   <span className="text-lg font-bold text-gray-900">{vehicle.gearbox}</span>
                 </div>
               </div>
 
-              {/* Additional Details */}
-              {(vehicle.color || vehicle.doors || vehicle.seats) && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 pb-8 border-b">
+              {/* Informations clés complètes */}
+              <div className="mb-8 pb-8 border-b">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Les informations clés</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Référence */}
+                  {vehicle.reference && (
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Hash className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-sm text-gray-600 block">Référence</span>
+                        <p className="font-semibold text-gray-900">{vehicle.reference}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Version constructeur */}
+                  {vehicle.version && (
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <FileText className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-sm text-gray-600 block">Version constructeur</span>
+                        <p className="font-semibold text-gray-900">{vehicle.version}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Première mise en circulation */}
+                  {vehicle.first_registration && (
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Calendar className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-sm text-gray-600 block">Date de première mise en circulation</span>
+                        <p className="font-semibold text-gray-900">
+                          {vehicle.first_registration.includes('-') 
+                            ? new Date(vehicle.first_registration).toLocaleDateString('fr-FR', { month: '2-digit', year: 'numeric' })
+                            : vehicle.first_registration}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Couleur */}
                   {vehicle.color && (
-                    <div className="flex items-center gap-3">
-                      <Palette className="w-5 h-5 text-gray-400" />
-                      <div>
-                        <span className="text-sm text-gray-600">Couleur</span>
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Palette className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-sm text-gray-600 block">Couleur</span>
                         <p className="font-semibold text-gray-900">{vehicle.color}</p>
                       </div>
                     </div>
                   )}
+                  
+                  {/* Nombre de portes */}
                   {vehicle.doors && (
-                    <div className="flex items-center gap-3">
-                      <DoorOpen className="w-5 h-5 text-gray-400" />
-                      <div>
-                        <span className="text-sm text-gray-600">Portes</span>
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <DoorOpen className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-sm text-gray-600 block">Nombre de portes</span>
                         <p className="font-semibold text-gray-900">{vehicle.doors}</p>
                       </div>
                     </div>
                   )}
+                  
+                  {/* Nombre de places */}
                   {vehicle.seats && (
-                    <div className="flex items-center gap-3">
-                      <Users className="w-5 h-5 text-gray-400" />
-                      <div>
-                        <span className="text-sm text-gray-600">Places</span>
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Users className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-sm text-gray-600 block">Nombre de place(s)</span>
                         <p className="font-semibold text-gray-900">{vehicle.seats}</p>
                       </div>
                     </div>
                   )}
+                  
+                  {/* Puissance fiscale */}
+                  {vehicle.fiscal_power && (
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Zap className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-sm text-gray-600 block">Puissance fiscale</span>
+                        <p className="font-semibold text-gray-900">{vehicle.fiscal_power} Cv</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Puissance DIN */}
+                  {vehicle.power && (
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Zap className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-sm text-gray-600 block">Puissance DIN</span>
+                        <p className="font-semibold text-gray-900">{vehicle.power} Ch</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Finition */}
+                  {vehicle.finition && vehicle.finition !== 'N/A' && (
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Car className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-sm text-gray-600 block">Finition</span>
+                        <p className="font-semibold text-gray-900">{vehicle.finition}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Carrosserie */}
+                  {vehicle.category && (
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Car className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-sm text-gray-600 block">Carrosserie</span>
+                        <p className="font-semibold text-gray-900">{vehicle.category}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* Description */}
               {vehicle.description && (
