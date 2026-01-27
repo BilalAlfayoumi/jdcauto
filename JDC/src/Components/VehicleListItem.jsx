@@ -40,14 +40,16 @@ export default function VehicleListItem({ vehicle }) {
       <div className="p-5 flex-1 flex flex-col">
         <div className="flex-1">
           {/* Title */}
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <div className="mb-2">
             <h3 className="text-xl font-bold text-gray-900 group-hover:text-red-600 transition-colors">
               {vehicle.brand} {vehicle.model}
             </h3>
             {vehicle.quantity > 1 && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-300">
-                {vehicle.quantity} disponibles
-              </span>
+              <div className="mt-1">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-300">
+                  {vehicle.quantity} disponibles
+                </span>
+              </div>
             )}
           </div>
 
