@@ -18,7 +18,9 @@ import {
   X,
   ChevronRight,
   Car,
-  Zap
+  Zap,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 export default function VehicleDetail() {
@@ -27,6 +29,7 @@ export default function VehicleDetail() {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = React.useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = React.useState(false);
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = React.useState(0);
+  const [isKeyInfoOpen, setIsKeyInfoOpen] = React.useState(false);
 
   const { data: vehicle, isLoading } = useQuery({
     queryKey: ['vehicle', vehicleId],
@@ -257,8 +260,20 @@ export default function VehicleDetail() {
 
               {/* Informations clés complètes */}
               <div className="mb-8 pb-8 border-b">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Les informations clés</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <button
+                  onClick={() => setIsKeyInfoOpen(!isKeyInfoOpen)}
+                  className="w-full flex items-center justify-between text-2xl font-bold text-gray-900 mb-6 hover:text-red-600 transition-colors cursor-pointer"
+                >
+                  <span>Les informations clés</span>
+                  {isKeyInfoOpen ? (
+                    <ChevronUp className="w-6 h-6 transition-transform" />
+                  ) : (
+                    <ChevronDown className="w-6 h-6 transition-transform" />
+                  )}
+                </button>
+                <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 transition-all duration-300 overflow-hidden ${
+                  isKeyInfoOpen ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
+                }`}>
                   {/* Première mise en circulation */}
                   {vehicle.first_registration && (
                     <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
