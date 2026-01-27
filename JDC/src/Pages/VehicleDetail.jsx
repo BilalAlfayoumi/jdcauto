@@ -104,9 +104,16 @@ export default function VehicleDetail() {
 
             {/* Details */}
             <div className="bg-white rounded-lg shadow-md p-8">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                {vehicle.brand} {vehicle.model}
-              </h1>
+              <div className="flex items-center gap-3 mb-4 flex-wrap">
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+                  {vehicle.brand} {vehicle.model}
+                </h1>
+                {vehicle.quantity > 1 && (
+                  <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-800 border-2 border-green-300">
+                    {vehicle.quantity} exemplaires disponibles
+                  </span>
+                )}
+              </div>
 
               {/* Specs Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">

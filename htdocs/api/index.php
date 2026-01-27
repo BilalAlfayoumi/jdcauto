@@ -311,6 +311,36 @@ class SimpleVehiclesAPI {
             return $this->error('Véhicule non trouvé', 404);
         }
         
+        // Calculer la quantité disponible pour ce modèle
+        $quantitySql = "SELECT COUNT(*) as quantity FROM vehicles WHERE marque = ? AND modele = ?";
+        $hasEtat = in_array('etat', array_keys($vehicle));
+        if ($hasEtat) {
+            $quantitySql .= " AND etat = ?";
+        }
+        $quantityStmt = $this->pdo->prepare($quantitySql);
+        if ($hasEtat && isset($vehicle['etat'])) {
+            $quantityStmt->execute([$vehicle['marque'], $vehicle['modele'], $vehicle['etat']]);
+        } else {
+            $quantityStmt->execute([$vehicle['marque'], $vehicle['modele']]);
+        }
+        $quantityResult = $quantityStmt->fetch();
+        $vehicle['quantity'] = isset($quantityResult['quantity']) ? (int)$quantityResult['quantity'] : 1;
+        
+        // Calculer la quantité disponible pour ce modèle
+        $quantitySql = "SELECT COUNT(*) as quantity FROM vehicles WHERE marque = ? AND modele = ?";
+        $hasEtat = in_array('etat', array_keys($vehicle));
+        if ($hasEtat && isset($vehicle['etat'])) {
+            $quantitySql .= " AND etat = ?";
+        }
+        $quantityStmt = $this->pdo->prepare($quantitySql);
+        if ($hasEtat && isset($vehicle['etat'])) {
+            $quantityStmt->execute([$vehicle['marque'], $vehicle['modele'], $vehicle['etat']]);
+        } else {
+            $quantityStmt->execute([$vehicle['marque'], $vehicle['modele']]);
+        }
+        $quantityResult = $quantityStmt->fetch();
+        $vehicle['quantity'] = isset($quantityResult['quantity']) ? (int)$quantityResult['quantity'] : 1;
+        
         // Récupérer toutes les photos
         $stmt = $this->pdo->prepare("
             SELECT photo_url 
