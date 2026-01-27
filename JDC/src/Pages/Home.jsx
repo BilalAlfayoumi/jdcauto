@@ -34,11 +34,50 @@ export default function Home() {
   //   queryFn: () => base44.entities.Vehicle.filter({ status: 'Disponible' }, '-created_date', 8),
   // });
   
-  // Mock data temporaire pour éviter crash useQuery
+  // Mock data temporaire - DONNÉES COMPLÈTES pour éviter erreurs toLocaleString
   const vehicles = [
-    { id: '1', brand: 'Renault', model: 'Clio V', price: 14990, image_url: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800' },
-    { id: '2', brand: 'BMW', model: 'Série 3', price: 32900, image_url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800' },
-    { id: '3', brand: 'Mercedes', model: 'Classe A', price: 28900, image_url: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800' }
+    {
+      id: '1',
+      brand: 'Renault', 
+      model: 'Clio V',
+      year: 2021,
+      price: 14990,
+      mileage: 35000,
+      fuel_type: 'Essence',
+      gearbox: 'Manuelle',
+      status: 'Disponible',
+      description: 'Renault Clio V en excellent état',
+      image_url: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800',
+      category: 'Citadine'
+    },
+    {
+      id: '2', 
+      brand: 'BMW',
+      model: 'Série 3',
+      year: 2020,
+      price: 32900,
+      mileage: 45000,
+      fuel_type: 'Diesel',
+      gearbox: 'Automatique', 
+      status: 'Disponible',
+      description: 'BMW Série 3 premium, finition M Sport',
+      image_url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800',
+      category: 'Berline'
+    },
+    {
+      id: '3',
+      brand: 'Mercedes', 
+      model: 'Classe A',
+      year: 2021,
+      price: 28900,
+      mileage: 32000,
+      fuel_type: 'Essence',
+      gearbox: 'Automatique',
+      status: 'Disponible', 
+      description: 'Mercedes Classe A récente, finition AMG Line',
+      image_url: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800',
+      category: 'Compacte'
+    }
   ];
   const isLoading = false;
 
