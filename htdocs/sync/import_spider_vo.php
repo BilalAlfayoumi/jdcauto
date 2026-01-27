@@ -191,10 +191,10 @@ try {
                     $deleteStmt->execute([$vehicleId]);
                     $deletedCount = $deleteStmt->rowCount();
                     
-                    // Insérer les nouvelles photos
+                    // Insérer les nouvelles photos (sans created_at car colonne n'existe pas)
                     $photoStmt = $pdo->prepare("
-                        INSERT INTO vehicle_photos (vehicle_id, photo_url, photo_order, created_at)
-                        VALUES (?, ?, ?, NOW())
+                        INSERT INTO vehicle_photos (vehicle_id, photo_url, photo_order)
+                        VALUES (?, ?, ?)
                     ");
                     
                     $insertedCount = 0;
