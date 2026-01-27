@@ -178,7 +178,7 @@ class SimpleVehiclesAPI {
                 'id', 'reference', 'marque', 'modele', 'version', 
                 'prix_vente', 'kilometrage', 'annee', 'energie', 
                 'typeboite', 'carrosserie', 'etat', 'couleurexterieur', 
-                'description', 'finition', 'date_modif', 'date_creation'
+                'description', 'finition', 'date_modif', 'date_creation', 'updated_at'
             ];
             
             foreach ($wantedFields as $field) {
