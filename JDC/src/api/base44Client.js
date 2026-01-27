@@ -5,8 +5,8 @@
  */
 
 // Configuration API selon environnement
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? '/api/index.php'  // URL relative en production (Gandi)
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api/index.php'  // URL relative en production (Gandi - même domaine)
   : 'http://localhost:8080/api/index.php';  // URL locale pour dev
 
 /**
@@ -21,7 +21,13 @@ class JDCAutoAPIClient {
    * Requête HTTP générique avec gestion d'erreurs
    */
   async request(params = {}) {
-    const url = new URL(this.baseURL, window.location.origin);
+    // Gérer URL absolue ou relative
+    let url;
+    if (this.baseURL.startsWith('http://') || this.baseURL.startsWith('https://')) {
+      url = new URL(this.baseURL);
+    } else {
+      url = new URL(this.baseURL, window.location.origin);
+    }
     
     // Ajouter paramètres
     Object.keys(params).forEach(key => {
@@ -92,21 +98,29 @@ class JDCAutoAPIClient {
           const vehicles = await this.request(params);
           
           // Transformation pour compatibilité totale
+          // L'API retourne déjà certains champs transformés (price, mileage, brand, model)
+          // Mais on s'assure que tous les champs nécessaires sont présents
           return vehicles.map(vehicle => ({
             ...vehicle,
-            // Champs attendus par les composants React
-            id: vehicle.id?.toString() || vehicle.reference,
-            brand: vehicle.marque,
-            model: vehicle.modele,
-            price: parseFloat(vehicle.prix_vente || 0),
-            mileage: parseInt(vehicle.kilometrage || 0),
-            year: parseInt(vehicle.annee || new Date().getFullYear()),
-            fuel_type: vehicle.energie || 'Essence',
-            gearbox: vehicle.typeboite === 'A' ? 'Automatique' : 'Manuelle',
-            status: vehicle.etat || 'Disponible',
-            description: vehicle.description || `${vehicle.marque} ${vehicle.modele}`,
-            image_url: vehicle.image_url || this.getPlaceholderImage(vehicle.marque),
-            category: vehicle.carrosserie || 'Berline'
+            // Champs attendus par les composants React (utiliser valeurs API si disponibles)
+            id: vehicle.id?.toString() || vehicle.reference || '',
+            brand: vehicle.brand || vehicle.marque || '',
+            model: vehicle.model || vehicle.modele || '',
+            price: vehicle.price || parseFloat(vehicle.prix_vente || 0),
+            mileage: vehicle.mileage || parseInt(vehicle.kilometrage || 0),
+            year: vehicle.year || parseInt(vehicle.annee || new Date().getFullYear()),
+            fuel_type: vehicle.fuel_type || vehicle.energie || 'Essence',
+            gearbox: vehicle.gearbox || (vehicle.typeboite === 'A' ? 'Automatique' : 'Manuelle'),
+            status: vehicle.status || vehicle.etat || 'Disponible',
+            description: vehicle.description || `${vehicle.marque || vehicle.brand} ${vehicle.modele || vehicle.model}`,
+            image_url: vehicle.image_url || this.getPlaceholderImage(vehicle.marque || vehicle.brand),
+            category: vehicle.category || vehicle.carrosserie || 'Berline',
+            // Conserver les champs originaux pour référence
+            marque: vehicle.marque || vehicle.brand,
+            modele: vehicle.modele || vehicle.model,
+            prix_vente: vehicle.prix_vente || vehicle.price,
+            kilometrage: vehicle.kilometrage || vehicle.mileage,
+            annee: vehicle.annee || vehicle.year
           }));
           
         } catch (error) {
