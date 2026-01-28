@@ -220,9 +220,9 @@ export default function Layout({ children }) {
           <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
             <p>© 2024 JDC AUTO - Tous droits réservés</p>
             <div className="flex gap-6 mt-4 md:mt-0">
-              <a href="#" className="hover:text-red-500 transition-colors">Mentions légales</a>
-              <a href="#" className="hover:text-red-500 transition-colors">CGV</a>
-              <a href="#" className="hover:text-red-500 transition-colors">Politique de confidentialité</a>
+              <Link to={createPageUrl('MentionsLegales')} className="hover:text-red-500 transition-colors">Mentions légales</Link>
+              <Link to={createPageUrl('CGV')} className="hover:text-red-500 transition-colors">CGV</Link>
+              <Link to={createPageUrl('PolitiqueConfidentialite')} className="hover:text-red-500 transition-colors">Politique de confidentialité</Link>
             </div>
           </div>
         </div>

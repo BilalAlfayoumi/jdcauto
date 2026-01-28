@@ -15,6 +15,9 @@ export function createPageUrl(pageName) {
     'tradein': '/trade-in',
     'contact': '/contact',
     'administrative': '/administrative',
+    'mentionslegales': '/mentions-legales',
+    'cgv': '/cgv',
+    'politiqueconfidentialite': '/politique-confidentialite',
   };
   
   return routeMap[normalizedName] || `/${normalizedName}`;

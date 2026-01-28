@@ -5,6 +5,9 @@ import VehicleDetail from './Pages/VehicleDetail'
 import TradeIn from './Pages/TradeIn'
 import Contact from './Pages/Contact'
 import Administrative from './Pages/Administrative'
+import MentionsLegales from './Pages/MentionsLegales'
+import CGV from './Pages/CGV'
+import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite'
 import Layout from './Components/Layout'
 import ScrollToTop from './Components/ScrollToTop'
 import { Toaster } from './ui/sonner'
@@ -21,6 +24,9 @@ function App() {
           <Route path="/trade-in" element={<TradeIn />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/administrative" element={<Administrative />} />
+          <Route path="/mentions-legales" element={<MentionsLegales />} />
+          <Route path="/cgv" element={<CGV />} />
+          <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
         </Routes>
       </Layout>
       <Toaster />
