@@ -53,9 +53,9 @@ export default function Contact() {
   }, []);
 
   // Configuration EmailJS
-  // ✅ Services configurés : Brevo (service_a099ehl) et Gmail (service_uxxnivr)
+  // ✅ Service Gmail configuré (service_uxxnivr)
   const EMAILJS_CONFIG = {
-    SERVICE_ID: 'service_a099ehl', // Service Brevo (ou 'service_uxxnivr' pour Gmail)
+    SERVICE_ID: 'service_uxxnivr', // Service Gmail
     TEMPLATE_ID_ACHAT: 'template_sq3rlfb', // Template pour achat
     TEMPLATE_ID_CARTE_GRISE: 'template_sq3rlfb', // Template pour carte grise (même template)
     PUBLIC_KEY: 'AQaaMiMFeiYBqPjIr' // ✅ Public Key configurée
