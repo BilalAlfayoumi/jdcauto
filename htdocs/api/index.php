@@ -566,24 +566,234 @@ class SimpleVehiclesAPI {
     /**
      * Envoyer un email de notification
      * 
-     * ⚠️ EMAIL DÉSACTIVÉ - Les messages sont stockés en base de données
-     * Consultez les messages via: /api/view_contacts.php
+     * Supporte plusieurs méthodes :
+     * 1. SendGrid (API) - Gratuit 100/jour ⭐ RECOMMANDÉ
+     * 2. SMTP Gmail - Gratuit 500/jour
+     * 3. SMTP Générique - Pour tout serveur SMTP
      * 
-     * Pour activer l'envoi d'email, utilisez une des solutions dans ALTERNATIVES-EMAIL.md :
-     * - Brevo (ex-Sendinblue) - Gratuit 300/jour ⭐ RECOMMANDÉ
-     * - SendGrid - Gratuit 100/jour
-     * - Mailgun - Gratuit 5000/mois
-     * - SMTP Gmail - Si vous avez un compte Gmail
+     * Configuration dans les constantes en haut du fichier
      */
     private function sendContactEmail($data) {
-        // Email désactivé - Les messages sont stockés en base de données
-        // Consultez-les via: https://www.jdcauto.fr/api/view_contacts.php
+        // Email de destination (modifiez selon vos besoins)
+        $toEmail = 'belallfym@gmail.com'; // ⚠️ REMPLACER par votre email
+        $toName = 'JDC Auto';
         
-        error_log("📧 Email désactivé - Message stocké en base (ID: " . ($data['id'] ?? 'N/A') . ")");
+        // Sujet de l'email
+        $subject = 'Nouvelle demande de contact - ' . ($data['type'] ?? 'Contact');
+        
+        // Corps de l'email
+        $message = "Nouvelle demande de contact reçue\n\n";
+        $message .= "Type: " . ($data['type'] ?? 'N/A') . "\n";
+        $message .= "Nom: " . ($data['first_name'] ?? '') . " " . ($data['last_name'] ?? '') . "\n";
+        $message .= "Email: " . ($data['email'] ?? '') . "\n";
+        $message .= "Téléphone: " . ($data['phone'] ?? '') . "\n";
+        if (!empty($data['subject'])) {
+            $message .= "Sujet: " . $data['subject'] . "\n";
+        }
+        $message .= "\nMessage:\n" . ($data['message'] ?? '');
+        
+        // Essayer SendGrid d'abord
+        if (defined('SENDGRID_API_KEY') && !empty(SENDGRID_API_KEY)) {
+            return $this->sendViaSendGrid($toEmail, $toName, $subject, $message);
+        }
+        
+        // Sinon essayer SMTP Gmail
+        if (defined('SMTP_GMAIL_USER') && !empty(SMTP_GMAIL_USER)) {
+            return $this->sendViaSMTPGmail($toEmail, $toName, $subject, $message);
+        }
+        
+        // Sinon essayer SMTP générique
+        if (defined('SMTP_HOST') && !empty(SMTP_HOST)) {
+            return $this->sendViaSMTP($toEmail, $toName, $subject, $message);
+        }
+        
+        // Si aucune méthode configurée, juste logger
+        error_log("📧 Email non envoyé - Aucune méthode configurée");
+        error_log("📧 Message stocké en base (ID: " . ($data['id'] ?? 'N/A') . ")");
         error_log("📧 Consultez les messages via: /api/view_contacts.php");
+        error_log("📧 Pour activer l'email, voir EMAIL-SOLUTIONS.md");
         
-        // Pour activer l'envoi d'email, voir ALTERNATIVES-EMAIL.md
         return false;
+    }
+    
+    /**
+     * Envoyer via SendGrid API
+     */
+    private function sendViaSendGrid($toEmail, $toName, $subject, $message) {
+        if (!defined('SENDGRID_API_KEY') || empty(SENDGRID_API_KEY)) {
+            return false;
+        }
+        
+        $fromEmail = defined('SENDGRID_FROM_EMAIL') ? SENDGRID_FROM_EMAIL : 'contact@jdcauto.fr';
+        $fromName = defined('SENDGRID_FROM_NAME') ? SENDGRID_FROM_NAME : 'JDC Auto';
+        
+        $data = [
+            'personalizations' => [[
+                'to' => [[
+                    'email' => $toEmail,
+                    'name' => $toName
+                ]]
+            ]],
+            'from' => [
+                'email' => $fromEmail,
+                'name' => $fromName
+            ],
+            'subject' => $subject,
+            'content' => [[
+                'type' => 'text/plain',
+                'value' => $message
+            ]]
+        ];
+        
+        $ch = curl_init('https://api.sendgrid.com/v3/mail/send');
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . SENDGRID_API_KEY,
+            'Content-Type: application/json'
+        ]);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode >= 200 && $httpCode < 300) {
+            error_log("✅ Email envoyé via SendGrid à $toEmail");
+            return true;
+        } else {
+            error_log("❌ Erreur SendGrid (HTTP $httpCode): $response");
+            return false;
+        }
+    }
+    
+    /**
+     * Envoyer via SMTP Gmail
+     */
+    private function sendViaSMTPGmail($toEmail, $toName, $subject, $message) {
+        if (!defined('SMTP_GMAIL_USER') || !defined('SMTP_GMAIL_PASS')) {
+            return false;
+        }
+        
+        return $this->sendViaSMTP(
+            $toEmail,
+            $toName,
+            $subject,
+            $message,
+            'smtp.gmail.com',
+            587,
+            SMTP_GMAIL_USER,
+            SMTP_GMAIL_PASS,
+            'tls'
+        );
+    }
+    
+    /**
+     * Envoyer via SMTP générique
+     */
+    private function sendViaSMTP($toEmail, $toName, $subject, $message, $host = null, $port = null, $username = null, $password = null, $encryption = 'tls') {
+        // Utiliser les constantes si les paramètres ne sont pas fournis
+        if ($host === null) {
+            if (!defined('SMTP_HOST')) return false;
+            $host = SMTP_HOST;
+            $port = defined('SMTP_PORT') ? SMTP_PORT : 587;
+            $username = defined('SMTP_USER') ? SMTP_USER : '';
+            $password = defined('SMTP_PASS') ? SMTP_PASS : '';
+            $encryption = defined('SMTP_ENCRYPTION') ? SMTP_ENCRYPTION : 'tls';
+        }
+        
+        $fromEmail = defined('SMTP_FROM_EMAIL') ? SMTP_FROM_EMAIL : 'contact@jdcauto.fr';
+        $fromName = defined('SMTP_FROM_NAME') ? SMTP_FROM_NAME : 'JDC Auto';
+        
+        try {
+            // Connexion au serveur SMTP
+            $socket = @fsockopen($host, $port, $errno, $errstr, 30);
+            if (!$socket) {
+                error_log("❌ Erreur connexion SMTP: $errstr ($errno)");
+                return false;
+            }
+            
+            // Lire la réponse initiale
+            $response = fgets($socket, 515);
+            if (substr($response, 0, 3) !== '220') {
+                error_log("❌ Erreur SMTP initial: $response");
+                fclose($socket);
+                return false;
+            }
+            
+            // EHLO
+            fputs($socket, "EHLO $host\r\n");
+            $response = fgets($socket, 515);
+            
+            // STARTTLS si nécessaire
+            if ($encryption === 'tls') {
+                fputs($socket, "STARTTLS\r\n");
+                $response = fgets($socket, 515);
+                if (substr($response, 0, 3) === '220') {
+                    stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+                    fputs($socket, "EHLO $host\r\n");
+                    $response = fgets($socket, 515);
+                }
+            }
+            
+            // Authentification
+            if (!empty($username)) {
+                fputs($socket, "AUTH LOGIN\r\n");
+                $response = fgets($socket, 515);
+                
+                fputs($socket, base64_encode($username) . "\r\n");
+                $response = fgets($socket, 515);
+                
+                fputs($socket, base64_encode($password) . "\r\n");
+                $response = fgets($socket, 515);
+                
+                if (substr($response, 0, 3) !== '235') {
+                    error_log("❌ Erreur authentification SMTP: $response");
+                    fclose($socket);
+                    return false;
+                }
+            }
+            
+            // FROM
+            fputs($socket, "MAIL FROM: <$fromEmail>\r\n");
+            $response = fgets($socket, 515);
+            
+            // TO
+            fputs($socket, "RCPT TO: <$toEmail>\r\n");
+            $response = fgets($socket, 515);
+            
+            // DATA
+            fputs($socket, "DATA\r\n");
+            $response = fgets($socket, 515);
+            
+            // Headers et corps
+            $emailData = "From: $fromName <$fromEmail>\r\n";
+            $emailData .= "To: $toName <$toEmail>\r\n";
+            $emailData .= "Subject: $subject\r\n";
+            $emailData .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $emailData .= "\r\n";
+            $emailData .= $message;
+            $emailData .= "\r\n.\r\n";
+            
+            fputs($socket, $emailData);
+            $response = fgets($socket, 515);
+            
+            // QUIT
+            fputs($socket, "QUIT\r\n");
+            fclose($socket);
+            
+            if (substr($response, 0, 3) === '250') {
+                error_log("✅ Email envoyé via SMTP à $toEmail");
+                return true;
+            } else {
+                error_log("❌ Erreur envoi SMTP: $response");
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            error_log("❌ Exception SMTP: " . $e->getMessage());
+            return false;
+        }
     }
     
     private function error($message, $code = 400) {
