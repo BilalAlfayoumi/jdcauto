@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation } from '@tanstack/react-query';
+import emailjs from '@emailjs/browser';
 import ProgressBar from '../Components/ProgressBar';
 import AnimatedSection from '../Components/AnimatedSection';
 import { useParallax } from '../hooks/useParallax';
@@ -30,7 +31,16 @@ export default function TradeIn() {
   
   useEffect(() => {
     setIsLoaded(true);
+    // Initialiser EmailJS
+    emailjs.init('AQaaMiMFeiYBqPjIr');
   }, []);
+
+  // Configuration EmailJS pour reprise
+  const EMAILJS_CONFIG = {
+    SERVICE_ID: 'service_uxxnivr',
+    TEMPLATE_ID: 'template_hxzoerj',
+    PUBLIC_KEY: 'AQaaMiMFeiYBqPjIr'
+  };
   
   const [formData, setFormData] = useState({
     // Step 0: Vehicle details
@@ -64,12 +74,65 @@ export default function TradeIn() {
   ];
 
   const mutation = useMutation({
-    mutationFn: (data) => base44.entities.TradeIn.create(data),
+    mutationFn: async (data) => {
+      // Préparer les informations du véhicule pour l'email
+      const vehicleInfo = `
+DÉTAILS DU VÉHICULE À REPRENDRE :
+- Marque : ${data.brand || 'Non renseigné'}
+- Modèle : ${data.model || 'Non renseigné'}
+- Version/Finition : ${data.version || 'Non renseigné'}
+- Année : ${data.year || 'Non renseigné'}
+- Kilométrage : ${data.mileage ? `${data.mileage} km` : 'Non renseigné'}
+- Carburant : ${data.fuelType || 'Non renseigné'}
+
+PROJET :
+- Délai de vente souhaité : ${data.sellDelay || 'Non renseigné'}
+- Projet d'achat : ${data.buyingProject || 'Non renseigné'}
+
+${data.message ? `\nMESSAGE DU CLIENT :\n${data.message}` : ''}
+      `.trim();
+
+      const templateParams = {
+        from_name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'Client',
+        from_email: data.email || '',
+        phone: data.phone || '',
+        message: vehicleInfo,
+        subject: `Demande de reprise - ${data.brand || ''} ${data.model || ''}`.trim(),
+        type: 'Reprise de véhicule',
+        civility: data.civility || '',
+        vehicle_brand: data.brand || 'Non renseigné',
+        vehicle_model: data.model || 'Non renseigné',
+        vehicle_version: data.version || 'Non renseigné',
+        vehicle_year: data.year?.toString() || 'Non renseigné',
+        vehicle_mileage: data.mileage ? `${data.mileage} km` : 'Non renseigné',
+        vehicle_fuel: data.fuelType || 'Non renseigné',
+        sell_delay: data.sellDelay || 'Non renseigné',
+        buying_project: data.buyingProject || 'Non renseigné'
+      };
+
+      // Envoyer via EmailJS
+      const response = await emailjs.send(
+        EMAILJS_CONFIG.SERVICE_ID,
+        EMAILJS_CONFIG.TEMPLATE_ID,
+        templateParams,
+        EMAILJS_CONFIG.PUBLIC_KEY
+      );
+
+      // Optionnel: Enregistrer aussi en base de données
+      try {
+        await base44.entities.TradeIn.create(data);
+      } catch (dbError) {
+        console.warn('Erreur enregistrement BDD (non bloquant):', dbError);
+      }
+
+      return { success: true, response };
+    },
     onSuccess: () => {
       setSubmitted(true);
-      toast.success('Votre demande a été envoyée avec succès !');
+      toast.success('Votre demande de reprise a été envoyée avec succès ! Nous vous contacterons bientôt.');
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Erreur envoi:', error);
       toast.error('Une erreur est survenue. Veuillez réessayer.');
     }
   });
