@@ -48,9 +48,8 @@ export default function Contact() {
 
   useEffect(() => {
     setIsLoaded(true);
-    // Initialiser EmailJS avec votre Public Key (User ID)
-    // ⚠️ REMPLACER par votre clé publique EmailJS
-    // emailjs.init('VOTRE_PUBLIC_KEY_ICI');
+    // Initialiser EmailJS avec la Public Key
+    emailjs.init('AQaaMiMFeiYBqPjIr');
   }, []);
 
   // Configuration EmailJS
@@ -59,7 +58,7 @@ export default function Contact() {
     SERVICE_ID: 'service_a099ehl', // Service Brevo (ou 'service_uxxnivr' pour Gmail)
     TEMPLATE_ID_ACHAT: 'template_sq3rlfb', // Template pour achat
     TEMPLATE_ID_CARTE_GRISE: 'template_sq3rlfb', // Template pour carte grise (même template)
-    PUBLIC_KEY: 'VOTRE_PUBLIC_KEY_ICI' // ⚠️ À récupérer dans EmailJS → Account → General
+    PUBLIC_KEY: 'AQaaMiMFeiYBqPjIr' // ✅ Public Key configurée
   };
 
   // Fonction pour envoyer via EmailJS
