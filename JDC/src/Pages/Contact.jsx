@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useMutation } from '@tanstack/react-query';
+import emailjs from '@emailjs/browser';
 import { 
   MapPin, 
   Phone, 
@@ -47,28 +48,98 @@ export default function Contact() {
 
   useEffect(() => {
     setIsLoaded(true);
+    // Initialiser EmailJS avec votre Public Key (User ID)
+    // ⚠️ REMPLACER par votre clé publique EmailJS
+    // emailjs.init('VOTRE_PUBLIC_KEY_ICI');
   }, []);
 
+  // Configuration EmailJS
+  // ⚠️ REMPLACER ces valeurs par vos identifiants EmailJS
+  const EMAILJS_CONFIG = {
+    SERVICE_ID: 'service_jdcauto', // Votre Service ID
+    TEMPLATE_ID_ACHAT: 'template_achat', // Template pour achat
+    TEMPLATE_ID_CARTE_GRISE: 'template_carte_grise', // Template pour carte grise
+    PUBLIC_KEY: 'VOTRE_PUBLIC_KEY_ICI' // Votre Public Key (User ID)
+  };
+
+  // Fonction pour envoyer via EmailJS
+  const sendEmailViaEmailJS = async (data, templateId) => {
+    try {
+      // Initialiser EmailJS si pas déjà fait
+      if (!emailjs.init) {
+        emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+      }
+
+      const templateParams = {
+        from_name: `${data.first_name} ${data.last_name}`,
+        from_email: data.email,
+        phone: data.phone,
+        message: data.message,
+        subject: data.subject || 'Demande de contact',
+        type: data.type === 'achat' ? 'Achat de véhicule' : 'Carte grise & Immatriculation',
+        to_email: 'belallfym@gmail.com' // ⚠️ REMPLACER par votre email
+      };
+
+      const response = await emailjs.send(
+        EMAILJS_CONFIG.SERVICE_ID,
+        templateId,
+        templateParams,
+        EMAILJS_CONFIG.PUBLIC_KEY
+      );
+
+      return { success: true, response };
+    } catch (error) {
+      console.error('Erreur EmailJS:', error);
+      throw error;
+    }
+  };
+
   const mutationAchat = useMutation({
-    mutationFn: (data) => base44.entities.ContactRequest.create(data),
+    mutationFn: async (data) => {
+      // Envoyer via EmailJS
+      await sendEmailViaEmailJS(data, EMAILJS_CONFIG.TEMPLATE_ID_ACHAT);
+      
+      // Optionnel: Enregistrer aussi en base de données
+      try {
+        await base44.entities.ContactRequest.create(data);
+      } catch (dbError) {
+        console.warn('Erreur enregistrement BDD (non bloquant):', dbError);
+      }
+      
+      return { success: true };
+    },
     onSuccess: () => {
       setSubmitted(true);
       setSubmittedType('achat');
       toast.success('Message envoyé avec succès ! Notre équipe vous contactera bientôt.');
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Erreur envoi:', error);
       toast.error('Une erreur est survenue. Veuillez réessayer.');
     }
   });
 
   const mutationCarteGrise = useMutation({
-    mutationFn: (data) => base44.entities.ContactRequest.create(data),
+    mutationFn: async (data) => {
+      // Envoyer via EmailJS
+      await sendEmailViaEmailJS(data, EMAILJS_CONFIG.TEMPLATE_ID_CARTE_GRISE);
+      
+      // Optionnel: Enregistrer aussi en base de données
+      try {
+        await base44.entities.ContactRequest.create(data);
+      } catch (dbError) {
+        console.warn('Erreur enregistrement BDD (non bloquant):', dbError);
+      }
+      
+      return { success: true };
+    },
     onSuccess: () => {
       setSubmitted(true);
       setSubmittedType('carte_grise');
       toast.success('Message envoyé avec succès ! Notre équipe vous contactera bientôt.');
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Erreur envoi:', error);
       toast.error('Une erreur est survenue. Veuillez réessayer.');
     }
   });
