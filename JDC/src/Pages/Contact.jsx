@@ -64,10 +64,8 @@ export default function Contact() {
   // Fonction pour envoyer via EmailJS
   const sendEmailViaEmailJS = async (data, templateId) => {
     try {
-      // Initialiser EmailJS si pas déjà fait
-      if (!emailjs.init) {
-        emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
-      }
+      // Initialiser EmailJS
+      emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
 
       const templateParams = {
         from_name: `${data.first_name} ${data.last_name}`,
@@ -79,6 +77,13 @@ export default function Contact() {
         to_email: 'belallfym@gmail.com' // Email de destination (déjà configuré dans le template EmailJS)
       };
 
+      console.log('📧 Envoi EmailJS avec:', {
+        serviceId: EMAILJS_CONFIG.SERVICE_ID,
+        templateId: templateId,
+        publicKey: EMAILJS_CONFIG.PUBLIC_KEY.substring(0, 5) + '...',
+        params: templateParams
+      });
+
       const response = await emailjs.send(
         EMAILJS_CONFIG.SERVICE_ID,
         templateId,
@@ -86,10 +91,23 @@ export default function Contact() {
         EMAILJS_CONFIG.PUBLIC_KEY
       );
 
+      console.log('✅ EmailJS envoyé avec succès:', response);
       return { success: true, response };
     } catch (error) {
-      console.error('Erreur EmailJS:', error);
-      throw error;
+      console.error('❌ Erreur EmailJS détaillée:', {
+        message: error.text || error.message,
+        status: error.status,
+        fullError: error
+      });
+      
+      // Afficher un message d'erreur plus détaillé
+      if (error.status === 412) {
+        throw new Error('Erreur de configuration EmailJS. Vérifiez que le Service ID et Template ID sont corrects.');
+      } else if (error.status === 400) {
+        throw new Error('Paramètres invalides. Vérifiez que toutes les variables du template sont fournies.');
+      } else {
+        throw new Error(`Erreur EmailJS: ${error.text || error.message || 'Erreur inconnue'}`);
+      }
     }
   };
 
@@ -114,7 +132,8 @@ export default function Contact() {
     },
     onError: (error) => {
       console.error('Erreur envoi:', error);
-      toast.error('Une erreur est survenue. Veuillez réessayer.');
+      const errorMessage = error?.message || 'Une erreur est survenue. Veuillez réessayer.';
+      toast.error(errorMessage);
     }
   });
 
@@ -139,7 +158,8 @@ export default function Contact() {
     },
     onError: (error) => {
       console.error('Erreur envoi:', error);
-      toast.error('Une erreur est survenue. Veuillez réessayer.');
+      const errorMessage = error?.message || 'Une erreur est survenue. Veuillez réessayer.';
+      toast.error(errorMessage);
     }
   });
 
