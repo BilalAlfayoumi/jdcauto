@@ -81,11 +81,14 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
         message: vehicleInfo,
         subject: `Demande de contact - ${vehicle.brand} ${vehicle.model}`,
         type: 'Demande de contact véhicule',
-        vehicle_reference: vehicle.reference || vehicle.id,
-        vehicle_brand: vehicle.brand,
-        vehicle_model: vehicle.model,
+        vehicle_reference: vehicle.reference || vehicle.id?.toString() || 'N/A',
+        vehicle_brand: vehicle.brand || 'N/A',
+        vehicle_model: vehicle.model || 'N/A',
         vehicle_price: `${vehicle.price.toLocaleString('fr-FR')} €`,
-        vehicle_image: vehicle.image_url || vehicle.photos?.[0] || ''
+        vehicle_year: vehicle.year?.toString() || 'N/A',
+        vehicle_mileage: `${vehicle.mileage.toLocaleString('fr-FR')} km`,
+        vehicle_fuel: vehicle.fuel_type || 'N/A',
+        vehicle_image: vehicle.image_url || vehicle.photos?.[0] || 'https://via.placeholder.com/150x100?text=Photo+non+disponible'
       };
 
       const response = await emailjs.send(
