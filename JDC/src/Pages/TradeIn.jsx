@@ -92,40 +92,65 @@ PROJET :
 ${data.message ? `\nMESSAGE DU CLIENT :\n${data.message}` : ''}
       `.trim();
 
+      // S'assurer que toutes les variables sont des strings non vides
       const templateParams = {
         from_name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'Client',
-        from_email: data.email || '',
-        phone: data.phone || '',
-        message: vehicleInfo,
-        subject: `Demande de reprise - ${data.brand || ''} ${data.model || ''}`.trim(),
+        from_email: data.email || 'non-renseigne@example.com',
+        phone: data.phone || 'Non renseigné',
+        message: vehicleInfo || 'Aucun message',
+        subject: `Demande de reprise - ${data.brand || ''} ${data.model || ''}`.trim() || 'Demande de reprise',
         type: 'Reprise de véhicule',
         civility: data.civility || '',
         vehicle_brand: data.brand || 'Non renseigné',
         vehicle_model: data.model || 'Non renseigné',
         vehicle_version: data.version || 'Non renseigné',
-        vehicle_year: data.year?.toString() || 'Non renseigné',
+        vehicle_year: data.year ? String(data.year) : 'Non renseigné',
         vehicle_mileage: data.mileage ? `${data.mileage} km` : 'Non renseigné',
         vehicle_fuel: data.fuelType || 'Non renseigné',
         sell_delay: data.sellDelay || 'Non renseigné',
         buying_project: data.buyingProject || 'Non renseigné'
       };
 
-      // Envoyer via EmailJS
-      const response = await emailjs.send(
-        EMAILJS_CONFIG.SERVICE_ID,
-        EMAILJS_CONFIG.TEMPLATE_ID,
-        templateParams,
-        EMAILJS_CONFIG.PUBLIC_KEY
-      );
+      console.log('📧 Envoi EmailJS reprise avec:', {
+        serviceId: EMAILJS_CONFIG.SERVICE_ID,
+        templateId: EMAILJS_CONFIG.TEMPLATE_ID,
+        params: templateParams
+      });
 
-      // Optionnel: Enregistrer aussi en base de données
       try {
-        await base44.entities.TradeIn.create(data);
-      } catch (dbError) {
-        console.warn('Erreur enregistrement BDD (non bloquant):', dbError);
-      }
+        // Envoyer via EmailJS
+        const response = await emailjs.send(
+          EMAILJS_CONFIG.SERVICE_ID,
+          EMAILJS_CONFIG.TEMPLATE_ID,
+          templateParams,
+          EMAILJS_CONFIG.PUBLIC_KEY
+        );
 
-      return { success: true, response };
+        console.log('✅ EmailJS reprise envoyé avec succès:', response);
+
+        // Optionnel: Enregistrer aussi en base de données
+        try {
+          await base44.entities.TradeIn.create(data);
+        } catch (dbError) {
+          console.warn('Erreur enregistrement BDD (non bloquant):', dbError);
+        }
+
+        return { success: true, response };
+      } catch (error) {
+        console.error('❌ Erreur EmailJS détaillée:', {
+          message: error.text || error.message,
+          status: error.status,
+          fullError: error
+        });
+        
+        if (error.status === 400) {
+          throw new Error('Paramètres invalides. Vérifiez que toutes les variables du template sont correctement définies.');
+        } else if (error.status === 412) {
+          throw new Error('Erreur de configuration EmailJS. Vérifiez que le Service ID et Template ID sont corrects.');
+        } else {
+          throw new Error(`Erreur EmailJS: ${error.text || error.message || 'Erreur inconnue'}`);
+        }
+      }
     },
     onSuccess: () => {
       setSubmitted(true);
@@ -133,7 +158,8 @@ ${data.message ? `\nMESSAGE DU CLIENT :\n${data.message}` : ''}
     },
     onError: (error) => {
       console.error('Erreur envoi:', error);
-      toast.error('Une erreur est survenue. Veuillez réessayer.');
+      const errorMessage = error?.message || 'Une erreur est survenue. Veuillez réessayer.';
+      toast.error(errorMessage);
     }
   });
 
