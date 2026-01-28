@@ -38,7 +38,7 @@ export default function TradeIn() {
   // Configuration EmailJS pour reprise
   const EMAILJS_CONFIG = {
     SERVICE_ID: 'service_uxxnivr',
-    TEMPLATE_ID: 'template_hxzoerj',
+    TEMPLATE_ID: 'template_ti3q0oj',
     PUBLIC_KEY: 'AQaaMiMFeiYBqPjIr'
   };
   
