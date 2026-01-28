@@ -87,6 +87,7 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
         message: vehicleInfo,
         subject: `Demande de contact - ${vehicle.brand} ${vehicle.model}`,
         type: 'Demande de contact véhicule',
+        to_email: 'jdcauto33@orange.fr', // Email de destination JDC Auto
         vehicle_reference: vehicle.reference || vehicle.id?.toString() || 'N/A',
         vehicle_brand: vehicle.brand || 'N/A',
         vehicle_model: vehicle.model || 'N/A',

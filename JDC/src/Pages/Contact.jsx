@@ -84,7 +84,7 @@ export default function Contact() {
         message: data.message,
         subject: data.subject || 'Demande de contact',
         type: data.type === 'achat' ? 'Achat de véhicule' : 'Carte grise & Immatriculation',
-        to_email: 'belallfym@gmail.com' // Email de destination (déjà configuré dans le template EmailJS)
+        to_email: 'jdcauto33@orange.fr' // Email de destination JDC Auto
       };
 
       console.log('📧 Envoi EmailJS avec:', {

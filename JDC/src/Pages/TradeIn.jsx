@@ -105,6 +105,7 @@ ${data.message ? `\nMESSAGE DU CLIENT :\n${data.message}` : ''}
         message: vehicleInfo || 'Aucun message',
         subject: `Demande de reprise - ${data.brand || ''} ${data.model || ''}`.trim() || 'Demande de reprise',
         type: 'Reprise de véhicule',
+        to_email: 'jdcauto33@orange.fr', // Email de destination JDC Auto
         civility: data.civility || '',
         vehicle_brand: data.brand || 'Non renseigné',
         vehicle_model: data.model || 'Non renseigné',
