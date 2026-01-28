@@ -54,12 +54,12 @@ export default function Contact() {
   }, []);
 
   // Configuration EmailJS
-  // ⚠️ REMPLACER ces valeurs par vos identifiants EmailJS
+  // ✅ Services configurés : Brevo (service_a099ehl) et Gmail (service_uxxnivr)
   const EMAILJS_CONFIG = {
-    SERVICE_ID: 'service_jdcauto', // Votre Service ID
-    TEMPLATE_ID_ACHAT: 'template_achat', // Template pour achat
-    TEMPLATE_ID_CARTE_GRISE: 'template_carte_grise', // Template pour carte grise
-    PUBLIC_KEY: 'VOTRE_PUBLIC_KEY_ICI' // Votre Public Key (User ID)
+    SERVICE_ID: 'service_a099ehl', // Service Brevo (ou 'service_uxxnivr' pour Gmail)
+    TEMPLATE_ID_ACHAT: 'template_achat', // ⚠️ À créer dans EmailJS
+    TEMPLATE_ID_CARTE_GRISE: 'template_carte_grise', // ⚠️ À créer dans EmailJS
+    PUBLIC_KEY: 'VOTRE_PUBLIC_KEY_ICI' // ⚠️ À récupérer dans Account → General
   };
 
   // Fonction pour envoyer via EmailJS
@@ -77,7 +77,7 @@ export default function Contact() {
         message: data.message,
         subject: data.subject || 'Demande de contact',
         type: data.type === 'achat' ? 'Achat de véhicule' : 'Carte grise & Immatriculation',
-        to_email: 'belallfym@gmail.com' // ⚠️ REMPLACER par votre email
+        to_email: 'belallfym@gmail.com' // Email de destination (déjà configuré dans le template EmailJS)
       };
 
       const response = await emailjs.send(
