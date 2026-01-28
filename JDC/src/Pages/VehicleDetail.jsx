@@ -1,9 +1,11 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import ImageWithAnimation from '../Components/ImageWithAnimation';
+import emailjs from '@emailjs/browser';
+import { toast } from 'sonner';
 import { 
   Calendar, 
   Gauge, 
@@ -20,7 +22,8 @@ import {
   Car,
   Zap,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Send
 } from 'lucide-react';
 
 export default function VehicleDetail() {
@@ -30,6 +33,86 @@ export default function VehicleDetail() {
   const [isLightboxOpen, setIsLightboxOpen] = React.useState(false);
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = React.useState(0);
   const [isKeyInfoOpen, setIsKeyInfoOpen] = React.useState(false);
+  const [isContactFormOpen, setIsContactFormOpen] = React.useState(false);
+  const [contactFormData, setContactFormData] = React.useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    message: ''
+  });
+
+  // Configuration EmailJS
+  const EMAILJS_CONFIG = {
+    SERVICE_ID: 'service_uxxnivr',
+    TEMPLATE_ID: 'template_sq3rlfb',
+    PUBLIC_KEY: 'AQaaMiMFeiYBqPjIr'
+  };
+
+  // Initialiser EmailJS
+  React.useEffect(() => {
+    emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+  }, []);
+
+  // Mutation pour envoyer le formulaire
+  const contactMutation = useMutation({
+    mutationFn: async (data) => {
+      const vehicleInfo = `
+Véhicule concerné :
+- Référence : ${vehicle.reference || vehicle.id}
+- Marque : ${vehicle.brand}
+- Modèle : ${vehicle.model}
+- Prix : ${vehicle.price.toLocaleString('fr-FR')} €
+- Année : ${vehicle.year}
+- Kilométrage : ${vehicle.mileage.toLocaleString('fr-FR')} km
+- Carburant : ${vehicle.fuel_type}
+- Boîte : ${vehicle.gearbox}
+${vehicle.version ? `- Version : ${vehicle.version}` : ''}
+${vehicle.color ? `- Couleur : ${vehicle.color}` : ''}
+${vehicle.quantity > 1 ? `- Quantité disponible : ${vehicle.quantity}` : ''}
+
+${data.message ? `\nMessage du client :\n${data.message}` : ''}
+      `.trim();
+
+      const templateParams = {
+        from_name: `${data.first_name} ${data.last_name}`,
+        from_email: data.email,
+        phone: data.phone,
+        message: vehicleInfo,
+        subject: `Demande de contact - ${vehicle.brand} ${vehicle.model}`,
+        type: 'Demande de contact véhicule',
+        vehicle_reference: vehicle.reference || vehicle.id,
+        vehicle_brand: vehicle.brand,
+        vehicle_model: vehicle.model,
+        vehicle_price: `${vehicle.price.toLocaleString('fr-FR')} €`,
+        vehicle_image: vehicle.image_url || vehicle.photos?.[0] || ''
+      };
+
+      const response = await emailjs.send(
+        EMAILJS_CONFIG.SERVICE_ID,
+        EMAILJS_CONFIG.TEMPLATE_ID,
+        templateParams,
+        EMAILJS_CONFIG.PUBLIC_KEY
+      );
+
+      return { success: true, response };
+    },
+    onSuccess: () => {
+      toast.success('Message envoyé avec succès ! Nous vous contacterons bientôt.');
+      setIsContactFormOpen(false);
+      setContactFormData({
+        first_name: '',
+        last_name: '',
+        email: '',
+        phone: '',
+        message: ''
+      });
+    },
+    onError: (error) => {
+      console.error('Erreur envoi:', error);
+      toast.error('Une erreur est survenue. Veuillez réessayer.');
+    }
+  });
 
   const { data: vehicle, isLoading } = useQuery({
     queryKey: ['vehicle', vehicleId],
@@ -447,13 +530,13 @@ export default function VehicleDetail() {
                   +33 5 56 97 37 52
                   Appeler maintenant
                 </a>
-                <Link
-                  to={createPageUrl('Contact')}
+                <button
+                  onClick={() => setIsContactFormOpen(true)}
                   className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-black hover:bg-gray-800 text-white font-semibold rounded-md transition-colors"
                 >
                   <Mail className="w-5 h-5" />
                   Envoyer un message
-                </Link>
+                </button>
               </div>
 
               {/* Guarantees */}
@@ -486,6 +569,171 @@ export default function VehicleDetail() {
           </div>
         </div>
       </div>
+
+      {/* Contact Form Modal */}
+      {isContactFormOpen && vehicle && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsContactFormOpen(false);
+          }}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-t-xl flex items-center justify-between z-10">
+              <div>
+                <h2 className="text-2xl font-bold mb-1">Contactez-nous</h2>
+                <p className="text-red-100 text-sm">Demande concernant ce véhicule</p>
+              </div>
+              <button
+                onClick={() => setIsContactFormOpen(false)}
+                className="text-white hover:text-gray-200 transition-colors p-2 hover:bg-white/10 rounded-full"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Vehicle Info Preview */}
+            <div className="p-6 bg-gray-50 border-b">
+              <div className="flex gap-4">
+                {vehicle.image_url && (
+                  <img
+                    src={vehicle.image_url}
+                    alt={`${vehicle.brand} ${vehicle.model}`}
+                    className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 flex-shrink-0"
+                  />
+                )}
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">
+                    {vehicle.brand} {vehicle.model}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                    <div><strong>Prix :</strong> {vehicle.price.toLocaleString('fr-FR')} €</div>
+                    <div><strong>Année :</strong> {vehicle.year}</div>
+                    <div><strong>Km :</strong> {vehicle.mileage.toLocaleString('fr-FR')} km</div>
+                    <div><strong>Carburant :</strong> {vehicle.fuel_type}</div>
+                  </div>
+                  {vehicle.reference && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      Réf: {vehicle.reference}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                contactMutation.mutate(contactFormData);
+              }}
+              className="p-6 space-y-4"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Prénom *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={contactFormData.first_name}
+                    onChange={(e) => setContactFormData({ ...contactFormData, first_name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
+                    placeholder="Votre prénom"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nom *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={contactFormData.last_name}
+                    onChange={(e) => setContactFormData({ ...contactFormData, last_name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
+                    placeholder="Votre nom"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={contactFormData.email}
+                    onChange={(e) => setContactFormData({ ...contactFormData, email: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
+                    placeholder="votre@email.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Téléphone *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={contactFormData.phone}
+                    onChange={(e) => setContactFormData({ ...contactFormData, phone: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
+                    placeholder="+33 5 56 97 37 52"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Message (optionnel)
+                </label>
+                <textarea
+                  value={contactFormData.message}
+                  onChange={(e) => setContactFormData({ ...contactFormData, message: e.target.value })}
+                  rows="4"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 resize-none"
+                  placeholder="Votre message, questions, demande de rendez-vous..."
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Les informations du véhicule seront automatiquement incluses dans votre message.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsContactFormOpen(false)}
+                  className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-lg transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={contactMutation.isPending}
+                  className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  {contactMutation.isPending ? (
+                    'Envoi en cours...'
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      Envoyer
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox Modal */}
       {isLightboxOpen && vehicle && (
