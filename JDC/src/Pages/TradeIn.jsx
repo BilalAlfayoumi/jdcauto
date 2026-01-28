@@ -171,26 +171,32 @@ ${data.message ? `\nMESSAGE DU CLIENT :\n${data.message}` : ''}
     });
   };
 
-  const handleNext = () => {
+  const handleNext = (e) => {
+    // Empêcher la soumission du formulaire si c'est un événement de formulaire
+    if (e) {
+      e.preventDefault();
+    }
+    
     // Validation per step
     if (currentStep === 0) {
       if (!formData.brand || !formData.model || !formData.year || !formData.mileage) {
         toast.error('Veuillez compléter tous les champs obligatoires');
         return;
       }
+    } else if (currentStep === 1) {
+      // Pas de validation nécessaire pour l'étape "Votre projet"
     } else if (currentStep === 2) {
       if (!formData.first_name || !formData.last_name || !formData.email || !formData.phone) {
         toast.error('Veuillez compléter tous les champs obligatoires');
         return;
       }
-    } else if (currentStep === 3) {
-      if (!formData.consent) {
-        toast.error('Veuillez accepter les conditions');
-        return;
-      }
     }
+    // Note: La validation du consentement se fait dans handleSubmit, pas ici
     
-    setCurrentStep(prev => prev + 1);
+    // Passer à l'étape suivante seulement si on n'est pas à la dernière étape
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(prev => prev + 1);
+    }
   };
 
   const handlePrevious = () => {
@@ -199,6 +205,21 @@ ${data.message ? `\nMESSAGE DU CLIENT :\n${data.message}` : ''}
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Vérifier qu'on est bien à la dernière étape
+    if (currentStep !== steps.length - 1) {
+      // Si on n'est pas à la dernière étape, passer à l'étape suivante
+      handleNext(e);
+      return;
+    }
+    
+    // Vérifier le consentement avant de soumettre
+    if (!formData.consent) {
+      toast.error('Veuillez accepter les conditions pour continuer');
+      return;
+    }
+    
+    // Soumettre le formulaire
     mutation.mutate(formData);
   };
 
