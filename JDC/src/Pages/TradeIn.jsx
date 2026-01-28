@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation } from '@tanstack/react-query';
 import emailjs from '@emailjs/browser';
+import ReCAPTCHA from 'react-google-recaptcha';
 import ProgressBar from '../Components/ProgressBar';
 import AnimatedSection from '../Components/AnimatedSection';
 import { useParallax } from '../hooks/useParallax';
@@ -26,8 +27,12 @@ import { toast } from 'sonner';
 export default function TradeIn() {
   const [currentStep, setCurrentStep] = useState(0);
   const formSectionRef = useRef(null);
+  const recaptchaRefTradeIn = useRef(null);
   const { opacity, translateY } = useParallax();
   const [isLoaded, setIsLoaded] = useState(false);
+  
+  // Clé reCAPTCHA (à remplacer par votre clé de site)
+  const RECAPTCHA_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'; // Clé de test Google (à remplacer)
   
   useEffect(() => {
     setIsLoaded(true);
@@ -219,8 +224,17 @@ ${data.message ? `\nMESSAGE DU CLIENT :\n${data.message}` : ''}
       return;
     }
     
+    // Vérifier reCAPTCHA
+    const recaptchaValue = recaptchaRefTradeIn.current?.getValue();
+    if (!recaptchaValue) {
+      toast.error('Veuillez compléter la vérification "Je ne suis pas un robot"');
+      return;
+    }
+    
     // Soumettre le formulaire
-    mutation.mutate(formData);
+    mutation.mutate({ ...formData, recaptcha: recaptchaValue });
+    // Réinitialiser reCAPTCHA après envoi
+    recaptchaRefTradeIn.current?.reset();
   };
 
   const scrollToForm = () => {
@@ -690,6 +704,14 @@ ${data.message ? `\nMESSAGE DU CLIENT :\n${data.message}` : ''}
                       Je peux exercer mes droits d'accès, de rectification et de suppression en contactant JDC AUTO.
                     </span>
                   </label>
+
+                  <div className="flex justify-center mt-4">
+                    <ReCAPTCHA
+                      ref={recaptchaRefTradeIn}
+                      sitekey={RECAPTCHA_SITE_KEY}
+                      theme="light"
+                    />
+                  </div>
                 </div>
               )}
 

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import ImageWithAnimation from '../Components/ImageWithAnimation';
 import emailjs from '@emailjs/browser';
+import ReCAPTCHA from 'react-google-recaptcha';
 import { toast } from 'sonner';
 import { 
   Calendar, 
@@ -42,6 +43,10 @@ export default function VehicleDetail() {
     message: '',
     consent: false
   });
+  const recaptchaRefVehicle = useRef(null);
+  
+  // Clé reCAPTCHA (à remplacer par votre clé de site)
+  const RECAPTCHA_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'; // Clé de test Google (à remplacer)
 
   // Configuration EmailJS
   const EMAILJS_CONFIG = {
@@ -637,7 +642,15 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                   toast.error('Veuillez accepter les conditions pour continuer');
                   return;
                 }
-                contactMutation.mutate(contactFormData);
+                // Vérifier reCAPTCHA
+                const recaptchaValue = recaptchaRefVehicle.current?.getValue();
+                if (!recaptchaValue) {
+                  toast.error('Veuillez compléter la vérification "Je ne suis pas un robot"');
+                  return;
+                }
+                contactMutation.mutate({ ...contactFormData, recaptcha: recaptchaValue });
+                // Réinitialiser reCAPTCHA après envoi
+                recaptchaRefVehicle.current?.reset();
               }}
               className="p-6 space-y-4"
             >
@@ -727,6 +740,14 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                   Je peux exercer mes droits d'accès, de rectification et de suppression en contactant JDC AUTO.
                 </span>
               </label>
+
+              <div className="flex justify-center">
+                <ReCAPTCHA
+                  ref={recaptchaRefVehicle}
+                  sitekey={RECAPTCHA_SITE_KEY}
+                  theme="light"
+                />
+              </div>
 
               <div className="flex gap-3 pt-4">
                 <button

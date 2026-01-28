@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useMutation } from '@tanstack/react-query';
 import emailjs from '@emailjs/browser';
+import ReCAPTCHA from 'react-google-recaptcha';
 import { 
   MapPin, 
   Phone, 
@@ -47,6 +48,13 @@ export default function Contact() {
   const { opacity, translateY } = useParallax();
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapError, setMapError] = useState(false);
+  
+  // reCAPTCHA refs
+  const recaptchaRefAchat = useRef(null);
+  const recaptchaRefCarteGrise = useRef(null);
+  
+  // Clé reCAPTCHA (à remplacer par votre clé de site)
+  const RECAPTCHA_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'; // Clé de test Google (à remplacer)
 
   useEffect(() => {
     setIsLoaded(true);
@@ -171,10 +179,19 @@ export default function Contact() {
       toast.error('Veuillez accepter les conditions pour continuer');
       return;
     }
+    // Vérifier reCAPTCHA
+    const recaptchaValue = recaptchaRefAchat.current?.getValue();
+    if (!recaptchaValue) {
+      toast.error('Veuillez compléter la vérification "Je ne suis pas un robot"');
+      return;
+    }
     mutationAchat.mutate({
       ...formDataAchat,
-      subject: 'Demande de contact - Achat de véhicule'
+      subject: 'Demande de contact - Achat de véhicule',
+      recaptcha: recaptchaValue
     });
+    // Réinitialiser reCAPTCHA après envoi
+    recaptchaRefAchat.current?.reset();
   };
 
   const handleSubmitCarteGrise = (e) => {
@@ -183,10 +200,19 @@ export default function Contact() {
       toast.error('Veuillez accepter les conditions pour continuer');
       return;
     }
+    // Vérifier reCAPTCHA
+    const recaptchaValue = recaptchaRefCarteGrise.current?.getValue();
+    if (!recaptchaValue) {
+      toast.error('Veuillez compléter la vérification "Je ne suis pas un robot"');
+      return;
+    }
     mutationCarteGrise.mutate({
       ...formDataCarteGrise,
-      subject: 'Demande de contact - Carte grise & Immatriculation'
+      subject: 'Demande de contact - Carte grise & Immatriculation',
+      recaptcha: recaptchaValue
     });
+    // Réinitialiser reCAPTCHA après envoi
+    recaptchaRefCarteGrise.current?.reset();
   };
 
   const handleChangeAchat = (e) => {
@@ -486,6 +512,14 @@ export default function Contact() {
                   </span>
                 </label>
 
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    ref={recaptchaRefAchat}
+                    sitekey={RECAPTCHA_SITE_KEY}
+                    theme="light"
+                  />
+                </div>
+
                 <button
                   type="submit"
                   disabled={mutationAchat.isPending}
@@ -612,6 +646,14 @@ export default function Contact() {
                     Je peux exercer mes droits d'accès, de rectification et de suppression en contactant JDC AUTO.
                   </span>
                 </label>
+
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    ref={recaptchaRefCarteGrise}
+                    sitekey={RECAPTCHA_SITE_KEY}
+                    theme="light"
+                  />
+                </div>
 
                 <button
                   type="submit"
