@@ -29,6 +29,43 @@ spl_autoload_register(function ($className) {
 // Note: Configuration base de données intégrée ci-dessous (pas besoin d'inclure)
 
 /**
+ * ============================================
+ * CONFIGURATION EMAIL
+ * ============================================
+ * 
+ * Choisissez UNE méthode ci-dessous et décommentez-la :
+ * 
+ * OPTION 1: SendGrid (RECOMMANDÉ - Gratuit 100/jour)
+ * - Créez un compte sur https://sendgrid.com/free/
+ * - Créez une clé API dans Settings → API Keys
+ * - Décommentez les lignes ci-dessous et ajoutez votre clé
+ */
+// define('SENDGRID_API_KEY', 'SG.VOTRE_CLE_API_ICI');
+// define('SENDGRID_FROM_EMAIL', 'contact@jdcauto.fr');
+// define('SENDGRID_FROM_NAME', 'JDC Auto');
+
+/**
+ * OPTION 2: SMTP Gmail (Gratuit 500/jour)
+ * - Activez l'authentification à 2 facteurs sur votre compte Gmail
+ * - Créez un mot de passe d'application: https://myaccount.google.com/apppasswords
+ * - Décommentez les lignes ci-dessous
+ */
+// define('SMTP_GMAIL_USER', 'votre-email@gmail.com');
+// define('SMTP_GMAIL_PASS', 'votre-mot-de-passe-application-16-caracteres');
+
+/**
+ * OPTION 3: SMTP Générique (Pour tout serveur SMTP)
+ * - Décommentez et configurez selon votre serveur
+ */
+// define('SMTP_HOST', 'smtp.votre-serveur.com');
+// define('SMTP_PORT', 587);
+// define('SMTP_USER', 'votre-utilisateur');
+// define('SMTP_PASS', 'votre-mot-de-passe');
+// define('SMTP_ENCRYPTION', 'tls'); // 'tls' ou 'ssl'
+// define('SMTP_FROM_EMAIL', 'contact@jdcauto.fr');
+// define('SMTP_FROM_NAME', 'JDC Auto');
+
+/**
  * Configuration base de données pour Gandi
  * ✅ CONFIGURÉ avec les paramètres Gandi
  */
