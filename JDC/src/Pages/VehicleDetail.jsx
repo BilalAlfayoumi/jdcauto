@@ -39,7 +39,8 @@ export default function VehicleDetail() {
     last_name: '',
     email: '',
     phone: '',
-    message: ''
+    message: '',
+    consent: false
   });
 
   // Configuration EmailJS
@@ -632,6 +633,10 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                if (!contactFormData.consent) {
+                  toast.error('Veuillez accepter les conditions pour continuer');
+                  return;
+                }
                 contactMutation.mutate(contactFormData);
               }}
               className="p-6 space-y-4"
@@ -709,6 +714,19 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                   Les informations du véhicule seront automatiquement incluses dans votre message.
                 </p>
               </div>
+
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={contactFormData.consent}
+                  onChange={(e) => setContactFormData({ ...contactFormData, consent: e.target.checked })}
+                  className="w-5 h-5 mt-1 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                />
+                <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
+                  J'accepte que mes données soient utilisées par JDC AUTO pour me recontacter dans le cadre d'une relation commerciale. 
+                  Je peux exercer mes droits d'accès, de rectification et de suppression en contactant JDC AUTO.
+                </span>
+              </label>
 
               <div className="flex gap-3 pt-4">
                 <button

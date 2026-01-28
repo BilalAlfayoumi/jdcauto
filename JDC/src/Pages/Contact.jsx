@@ -28,7 +28,8 @@ export default function Contact() {
     email: '',
     phone: '',
     message: '',
-    type: 'achat'
+    type: 'achat',
+    consent: false
   });
 
   const [formDataCarteGrise, setFormDataCarteGrise] = useState({
@@ -37,7 +38,8 @@ export default function Contact() {
     email: '',
     phone: '',
     message: '',
-    type: 'carte_grise'
+    type: 'carte_grise',
+    consent: false
   });
 
   const [submitted, setSubmitted] = useState(false);
@@ -165,6 +167,10 @@ export default function Contact() {
 
   const handleSubmitAchat = (e) => {
     e.preventDefault();
+    if (!formDataAchat.consent) {
+      toast.error('Veuillez accepter les conditions pour continuer');
+      return;
+    }
     mutationAchat.mutate({
       ...formDataAchat,
       subject: 'Demande de contact - Achat de véhicule'
@@ -173,6 +179,10 @@ export default function Contact() {
 
   const handleSubmitCarteGrise = (e) => {
     e.preventDefault();
+    if (!formDataCarteGrise.consent) {
+      toast.error('Veuillez accepter les conditions pour continuer');
+      return;
+    }
     mutationCarteGrise.mutate({
       ...formDataCarteGrise,
       subject: 'Demande de contact - Carte grise & Immatriculation'
@@ -180,16 +190,18 @@ export default function Contact() {
   };
 
   const handleChangeAchat = (e) => {
+    const { name, value, type, checked } = e.target;
     setFormDataAchat({
       ...formDataAchat,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
   const handleChangeCarteGrise = (e) => {
+    const { name, value, type, checked } = e.target;
     setFormDataCarteGrise({
       ...formDataCarteGrise,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
@@ -460,6 +472,20 @@ export default function Contact() {
                   />
                 </div>
 
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    name="consent"
+                    checked={formDataAchat.consent}
+                    onChange={handleChangeAchat}
+                    className="w-5 h-5 mt-1 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                  />
+                  <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
+                    J'accepte que mes données soient utilisées par JDC AUTO pour me recontacter dans le cadre d'une relation commerciale. 
+                    Je peux exercer mes droits d'accès, de rectification et de suppression en contactant JDC AUTO.
+                  </span>
+                </label>
+
                 <button
                   type="submit"
                   disabled={mutationAchat.isPending}
@@ -572,6 +598,20 @@ export default function Contact() {
                     placeholder="Décrivez votre demande (carte grise, changement de propriétaire, etc.)..."
                   />
                 </div>
+
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    name="consent"
+                    checked={formDataCarteGrise.consent}
+                    onChange={handleChangeCarteGrise}
+                    className="w-5 h-5 mt-1 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
+                    J'accepte que mes données soient utilisées par JDC AUTO pour me recontacter dans le cadre d'une relation commerciale. 
+                    Je peux exercer mes droits d'accès, de rectification et de suppression en contactant JDC AUTO.
+                  </span>
+                </label>
 
                 <button
                   type="submit"
