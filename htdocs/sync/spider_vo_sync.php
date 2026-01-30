@@ -170,6 +170,59 @@ foreach ($vehicles as $vehiculeXML) {
         $finition = $getCdata($vehiculeXML->finition);
         $date_mec = $getCdata($vehiculeXML->date_mec);
         
+        // Extraire les options/équipements
+        $options = [];
+        
+        // Essayer différentes structures possibles pour les options
+        // Structure 1: <options><option>...</option></options>
+        if (isset($vehiculeXML->options) && isset($vehiculeXML->options->option)) {
+            foreach ($vehiculeXML->options->option as $optionElement) {
+                $optionName = $getCdata($optionElement);
+                if (!empty($optionName)) {
+                    $options[] = $optionName;
+                }
+            }
+        }
+        
+        // Structure 2: <equipements><equipement>...</equipement></equipements>
+        if (isset($vehiculeXML->equipements) && isset($vehiculeXML->equipements->equipement)) {
+            foreach ($vehiculeXML->equipements->equipement as $equipementElement) {
+                $equipementName = $getCdata($equipementElement);
+                if (!empty($equipementName)) {
+                    $options[] = $equipementName;
+                }
+            }
+        }
+        
+        // Structure 3: <option> (champ direct, peut être une liste séparée)
+        if (isset($vehiculeXML->option)) {
+            $optionField = $getCdata($vehiculeXML->option);
+            if (!empty($optionField)) {
+                // Si c'est une liste séparée par des virgules, points-virgules, ou retours à la ligne
+                $optionList = preg_split('/[,;\n\r]+/', $optionField);
+                foreach ($optionList as $opt) {
+                    $opt = trim($opt);
+                    if (!empty($opt)) {
+                        $options[] = $opt;
+                    }
+                }
+            }
+        }
+        
+        // Structure 4: <equipement> (champ direct)
+        if (isset($vehiculeXML->equipement)) {
+            $equipementField = $getCdata($vehiculeXML->equipement);
+            if (!empty($equipementField)) {
+                $equipementList = preg_split('/[,;\n\r]+/', $equipementField);
+                foreach ($equipementList as $eq) {
+                    $eq = trim($eq);
+                    if (!empty($eq)) {
+                        $options[] = $eq;
+                    }
+                }
+            }
+        }
+        
         // Vérifier si existe
         $existing = $pdo->prepare("SELECT id FROM vehicles WHERE reference = ?")->execute([$reference]);
         $existing = $pdo->prepare("SELECT id FROM vehicles WHERE reference = ?");
@@ -245,6 +298,45 @@ foreach ($vehicles as $vehiculeXML) {
                 } catch (PDOException $e) {
                     // Ignorer erreur photo individuelle
                 }
+            }
+        }
+        
+        // Importer options/équipements dans la table vehicle_options (si elle existe)
+        if (!empty($options)) {
+            try {
+                // Vérifier si la table vehicle_options existe
+                $checkTable = $pdo->query("SHOW TABLES LIKE 'vehicle_options'");
+                if ($checkTable->rowCount() > 0) {
+                    // Supprimer anciennes options
+                    $pdo->prepare("DELETE FROM vehicle_options WHERE vehicle_id = ?")->execute([$vehicleId]);
+                    
+                    // Insérer nouvelles options
+                    $optionStmt = $pdo->prepare("
+                        INSERT INTO vehicle_options (vehicle_id, option_nom, montant)
+                        VALUES (?, ?, 0.00)
+                    ");
+                    
+                    foreach ($options as $option) {
+                        try {
+                            $optionStmt->execute([$vehicleId, $option]);
+                        } catch (PDOException $e) {
+                            // Ignorer erreur option individuelle
+                        }
+                    }
+                } else {
+                    // Si la table n'existe pas, ajouter les options à la description
+                    if (!empty($options)) {
+                        $optionsText = "\n\nOPTIONS ET ÉQUIPEMENTS :\n" . implode("\n", array_map(function($opt) {
+                            return "- " . $opt;
+                        }, $options));
+                        $newDescription = ($description ?: '') . $optionsText;
+                        
+                        $pdo->prepare("UPDATE vehicles SET description = ? WHERE id = ?")->execute([$newDescription, $vehicleId]);
+                    }
+                }
+            } catch (PDOException $e) {
+                // Si erreur, ignorer (table peut ne pas exister)
+                logMessage("Note: Options non importées (table vehicle_options peut ne pas exister): " . $e->getMessage(), 'info');
             }
         }
         

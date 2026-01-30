@@ -363,6 +363,26 @@ class SimpleVehiclesAPI {
         $vehicle['version'] = $vehicle['version'] ?? null;
         $vehicle['finition'] = $vehicle['finition'] ?? null;
         
+        // Récupérer les options (si la table existe)
+        try {
+            $checkTable = $this->pdo->query("SHOW TABLES LIKE 'vehicle_options'");
+            if ($checkTable->rowCount() > 0) {
+                $optionsStmt = $this->pdo->prepare("
+                    SELECT option_nom 
+                    FROM vehicle_options 
+                    WHERE vehicle_id = ?
+                    ORDER BY id
+                ");
+                $optionsStmt->execute([$id]);
+                $options = $optionsStmt->fetchAll(PDO::FETCH_COLUMN);
+                $vehicle['options'] = $options;
+            } else {
+                $vehicle['options'] = [];
+            }
+        } catch (PDOException $e) {
+            $vehicle['options'] = [];
+        }
+        
         return $this->success($vehicle);
     }
     
