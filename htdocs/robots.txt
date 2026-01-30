@@ -13,3 +13,4 @@ Disallow: /test-mobile.html
 Disallow: /diagnostic.html
 Disallow: /diagnostic.php
 
+

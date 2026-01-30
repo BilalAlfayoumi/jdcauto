@@ -34,6 +34,7 @@ export default function VehicleDetail() {
   const [isLightboxOpen, setIsLightboxOpen] = React.useState(false);
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = React.useState(0);
   const [isKeyInfoOpen, setIsKeyInfoOpen] = React.useState(false);
+  const [isEquipmentsOpen, setIsEquipmentsOpen] = React.useState(false);
   const [isContactFormOpen, setIsContactFormOpen] = React.useState(false);
   const [contactFormData, setContactFormData] = React.useState({
     first_name: '',
@@ -159,7 +160,9 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
         first_registration: v.first_registration || v.date_mec || null,
         version: v.version || null,
         finition: v.finition || null,
-        reference: v.reference || null
+        reference: v.reference || null,
+        title: v.title || v.titre || null, // Titre complet
+        options: v.options || [] // Équipements/options
       };
     },
     enabled: !!vehicleId,
@@ -318,7 +321,7 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
             <div className="bg-white rounded-lg shadow-md p-8">
               <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                  {vehicle.brand} {vehicle.model}
+                  {vehicle.title || `${vehicle.brand} ${vehicle.model}`}
                 </h1>
                 {vehicle.quantity > 1 && (
                   <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-800 border-2 border-green-300">
@@ -460,6 +463,37 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                   )}
                 </div>
               </div>
+
+              {/* Équipements et Options - Section collapsible */}
+              {vehicle.options && vehicle.options.length > 0 && (
+                <div className="mb-8">
+                  <button
+                    onClick={() => setIsEquipmentsOpen(!isEquipmentsOpen)}
+                    className="w-full flex items-center justify-between text-2xl font-bold text-gray-900 mb-6 hover:text-red-600 transition-colors cursor-pointer"
+                  >
+                    <span>Équipements et Options</span>
+                    {isEquipmentsOpen ? (
+                      <ChevronUp className="w-6 h-6 transition-transform" />
+                    ) : (
+                      <ChevronDown className="w-6 h-6 transition-transform" />
+                    )}
+                  </button>
+                  <div className={`transition-all duration-300 overflow-hidden ${
+                    isEquipmentsOpen ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
+                  }`}>
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <ul className="space-y-2">
+                        {vehicle.options.map((option, index) => (
+                          <li key={index} className="flex items-start gap-2 text-gray-700">
+                            <span className="text-red-600 mt-1">•</span>
+                            <span>{option}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Description */}
               {vehicle.description && (

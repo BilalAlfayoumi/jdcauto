@@ -133,6 +133,7 @@ foreach ($vehicles as $vehiculeXML) {
         $marque = $getCdata($vehiculeXML->marque) ?: '';
         $modele = $getCdata($vehiculeXML->modele) ?: '';
         $version = $getCdata($vehiculeXML->version);
+        $titre = $getCdata($vehiculeXML->titre); // Titre complet du véhicule
         $prix_vente = (float)str_replace(',', '.', str_replace(' ', '', $getCdata($vehiculeXML->prix_vente) ?: '0'));
         $kilometrage = (int)str_replace(' ', '', $getCdata($vehiculeXML->kilometrage) ?: '0');
         $annee = (int)($getCdata($vehiculeXML->annee) ?: date('Y'));
@@ -173,7 +174,38 @@ foreach ($vehicles as $vehiculeXML) {
         // Extraire les options/équipements
         $options = [];
         
-        // Essayer différentes structures possibles pour les options
+        // Chercher le champ "equipements" ou "equipements OPTION" (peut avoir différents noms)
+        // Parcourir tous les champs pour trouver celui qui contient "equipements" ou "OPTION"
+        foreach ($vehiculeXML->children() as $child) {
+            $fieldName = $child->getName();
+            $fieldValue = $getCdata($child);
+            
+            // Chercher les champs contenant "equipement" ou "option" (insensible à la casse)
+            if (stripos($fieldName, 'equipement') !== false || 
+                stripos($fieldName, 'option') !== false ||
+                stripos($fieldValue, 'OPTION') !== false) {
+                
+                if (!empty($fieldValue)) {
+                    // Si c'est une liste séparée par des retours à la ligne, virgules, ou points-virgules
+                    $optionList = preg_split('/[\n\r]+/', $fieldValue);
+                    foreach ($optionList as $opt) {
+                        // Nettoyer chaque ligne
+                        $opt = trim($opt);
+                        // Ignorer les lignes vides ou qui sont juste des séparateurs
+                        if (!empty($opt) && 
+                            $opt !== '-' && 
+                            $opt !== ':' && 
+                            strlen($opt) > 2 &&
+                            stripos($opt, 'OPTIONS ET ÉQUIPEMENTS') === false &&
+                            stripos($opt, 'ÉQUIPEMENTS') === false) {
+                            $options[] = $opt;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Essayer aussi les structures XML classiques
         // Structure 1: <options><option>...</option></options>
         if (isset($vehiculeXML->options) && isset($vehiculeXML->options->option)) {
             foreach ($vehiculeXML->options->option as $optionElement) {
@@ -198,7 +230,6 @@ foreach ($vehicles as $vehiculeXML) {
         if (isset($vehiculeXML->option)) {
             $optionField = $getCdata($vehiculeXML->option);
             if (!empty($optionField)) {
-                // Si c'est une liste séparée par des virgules, points-virgules, ou retours à la ligne
                 $optionList = preg_split('/[,;\n\r]+/', $optionField);
                 foreach ($optionList as $opt) {
                     $opt = trim($opt);
@@ -223,44 +254,84 @@ foreach ($vehicles as $vehiculeXML) {
             }
         }
         
+        // Dédupliquer les options
+        $options = array_unique($options);
+        $options = array_values($options); // Réindexer
+        
         // Vérifier si existe
         $existing = $pdo->prepare("SELECT id FROM vehicles WHERE reference = ?")->execute([$reference]);
         $existing = $pdo->prepare("SELECT id FROM vehicles WHERE reference = ?");
         $existing->execute([$reference]);
         $existing = $existing->fetch();
         
+        // Vérifier si la colonne titre existe
+        $columnsStmt = $pdo->query("SHOW COLUMNS FROM vehicles LIKE 'titre'");
+        $hasTitre = $columnsStmt->rowCount() > 0;
+        
         if ($existing) {
             // Mise à jour
-            $sql = "
-                UPDATE vehicles SET
-                    marque = ?, modele = ?, version = ?, prix_vente = ?, kilometrage = ?,
-                    annee = ?, energie = ?, typeboite = ?, carrosserie = ?, etat = ?,
-                    description = ?, couleurexterieur = ?, nbrplace = ?, nbrporte = ?,
-                    puissancedyn = ?, puissance_fiscale = ?, finition = ?, date_mec = ?, updated_at = NOW()
-                WHERE reference = ?
-            ";
-            $pdo->prepare($sql)->execute([
-                $marque, $modele, $version, $prix_vente, $kilometrage,
-                $annee, $energie, $typeboite, $carrosserie, $etat,
-                $description, $couleurexterieur, $nbrplace, $nbrporte,
-                $puissancedyn, $puissance_fiscale, $finition, $date_mec, $reference
-            ]);
+            if ($hasTitre) {
+                $sql = "
+                    UPDATE vehicles SET
+                        marque = ?, modele = ?, version = ?, titre = ?, prix_vente = ?, kilometrage = ?,
+                        annee = ?, energie = ?, typeboite = ?, carrosserie = ?, etat = ?,
+                        description = ?, couleurexterieur = ?, nbrplace = ?, nbrporte = ?,
+                        puissancedyn = ?, puissance_fiscale = ?, finition = ?, date_mec = ?, updated_at = NOW()
+                    WHERE reference = ?
+                ";
+                $pdo->prepare($sql)->execute([
+                    $marque, $modele, $version, $titre, $prix_vente, $kilometrage,
+                    $annee, $energie, $typeboite, $carrosserie, $etat,
+                    $description, $couleurexterieur, $nbrplace, $nbrporte,
+                    $puissancedyn, $puissance_fiscale, $finition, $date_mec, $reference
+                ]);
+            } else {
+                $sql = "
+                    UPDATE vehicles SET
+                        marque = ?, modele = ?, version = ?, prix_vente = ?, kilometrage = ?,
+                        annee = ?, energie = ?, typeboite = ?, carrosserie = ?, etat = ?,
+                        description = ?, couleurexterieur = ?, nbrplace = ?, nbrporte = ?,
+                        puissancedyn = ?, puissance_fiscale = ?, finition = ?, date_mec = ?, updated_at = NOW()
+                    WHERE reference = ?
+                ";
+                $pdo->prepare($sql)->execute([
+                    $marque, $modele, $version, $prix_vente, $kilometrage,
+                    $annee, $energie, $typeboite, $carrosserie, $etat,
+                    $description, $couleurexterieur, $nbrplace, $nbrporte,
+                    $puissancedyn, $puissance_fiscale, $finition, $date_mec, $reference
+                ]);
+            }
             $vehicleId = $existing['id'];
             $updated++;
         } else {
             // Insertion
-            $sql = "
-                INSERT INTO vehicles 
-                (reference, marque, modele, version, prix_vente, kilometrage, annee, energie, 
-                 typeboite, carrosserie, etat, description, couleurexterieur, nbrplace, 
-                 nbrporte, puissancedyn, puissance_fiscale, finition, date_mec, created_at, updated_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-            ";
-            $pdo->prepare($sql)->execute([
-                $reference, $marque, $modele, $version, $prix_vente, $kilometrage,
-                $annee, $energie, $typeboite, $carrosserie, $etat, $description,
-                $couleurexterieur, $nbrplace, $nbrporte, $puissancedyn, $puissance_fiscale, $finition, $date_mec
-            ]);
+            if ($hasTitre) {
+                $sql = "
+                    INSERT INTO vehicles 
+                    (reference, marque, modele, version, titre, prix_vente, kilometrage, annee, energie, 
+                     typeboite, carrosserie, etat, description, couleurexterieur, nbrplace, 
+                     nbrporte, puissancedyn, puissance_fiscale, finition, date_mec, created_at, updated_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                ";
+                $pdo->prepare($sql)->execute([
+                    $reference, $marque, $modele, $version, $titre, $prix_vente, $kilometrage,
+                    $annee, $energie, $typeboite, $carrosserie, $etat, $description,
+                    $couleurexterieur, $nbrplace, $nbrporte, $puissancedyn, $puissance_fiscale, $finition, $date_mec
+                ]);
+            } else {
+                $sql = "
+                    INSERT INTO vehicles 
+                    (reference, marque, modele, version, prix_vente, kilometrage, annee, energie, 
+                     typeboite, carrosserie, etat, description, couleurexterieur, nbrplace, 
+                     nbrporte, puissancedyn, puissance_fiscale, finition, date_mec, created_at, updated_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                ";
+                $pdo->prepare($sql)->execute([
+                    $reference, $marque, $modele, $version, $prix_vente, $kilometrage,
+                    $annee, $energie, $typeboite, $carrosserie, $etat, $description,
+                    $couleurexterieur, $nbrplace, $nbrporte, $puissancedyn, $puissance_fiscale, $finition, $date_mec
+                ]);
+            }
             $vehicleId = $pdo->lastInsertId();
             $imported++;
         }

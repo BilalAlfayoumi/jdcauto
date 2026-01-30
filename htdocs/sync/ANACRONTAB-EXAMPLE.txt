@@ -13,3 +13,4 @@
 # Alternative : Toutes les 12 heures
 # 12@hourly 0 spider_vo_sync php -f /srv/data/web/vhosts/www.jdcauto.fr/htdocs/sync/spider_vo_sync.php
 
+

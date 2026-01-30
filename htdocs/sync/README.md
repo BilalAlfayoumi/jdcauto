@@ -110,3 +110,4 @@ Les logs sont visibles dans :
 - Les véhicules non présents dans le XML ne sont **PAS** supprimés automatiquement
 - Pour supprimer les véhicules obsolètes, utiliser un script séparé
 
+

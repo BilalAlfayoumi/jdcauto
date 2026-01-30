@@ -124,3 +124,4 @@ GROUP BY v.id;
 
 -- Index full-text pour recherche
 ALTER TABLE vehicles ADD FULLTEXT(marque, modele, version, description);
+

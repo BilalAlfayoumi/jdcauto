@@ -254,3 +254,4 @@ Deny from all
 ---
 
 *Dernière mise à jour: 27 janvier 2026*
+

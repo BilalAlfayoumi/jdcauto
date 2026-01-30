@@ -50,3 +50,4 @@ Si la méthode SMTP manuelle ne fonctionne pas, on peut utiliser PHPMailer (bibl
 - Utilisez des variables d'environnement
 - Ou créez un fichier de config non versionné
 
+

@@ -171,3 +171,4 @@ Pour la production, configurez Anacron avec l'intervalle minimum :
 - [ ] Configuration Anacron pour production
 - [ ] Suppression des fichiers de test
 
+

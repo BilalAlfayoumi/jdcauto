@@ -168,3 +168,4 @@ export const vehiclesAPI = new VehiclesClient();
 
 // Remplacement de base44 pour compatibilité
 export const base44 = vehiclesAPI;
+

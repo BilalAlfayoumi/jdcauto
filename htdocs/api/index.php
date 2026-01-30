@@ -362,6 +362,7 @@ class SimpleVehiclesAPI {
         $vehicle['first_registration'] = $vehicle['date_mec'] ?? null;
         $vehicle['version'] = $vehicle['version'] ?? null;
         $vehicle['finition'] = $vehicle['finition'] ?? null;
+        $vehicle['title'] = $vehicle['titre'] ?? null; // Titre complet du véhicule
         
         // Récupérer les options (si la table existe)
         try {
