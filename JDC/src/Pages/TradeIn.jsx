@@ -90,6 +90,7 @@ DÉTAILS DU VÉHICULE À REPRENDRE :
 - Année : ${data.year || 'Non renseigné'}
 - Kilométrage : ${data.mileage ? `${data.mileage} km` : 'Non renseigné'}
 - Carburant : ${data.fuelType || 'Non renseigné'}
+- Numéro de plaque d'immatriculation : ${data.licensePlate || 'Non renseigné'}
 
 PROJET :
 - Délai de vente souhaité : ${data.sellDelay || 'Non renseigné'}
@@ -114,6 +115,7 @@ ${data.message ? `\nMESSAGE DU CLIENT :\n${data.message}` : ''}
         vehicle_year: data.year ? String(data.year) : 'Non renseigné',
         vehicle_mileage: data.mileage ? `${data.mileage} km` : 'Non renseigné',
         vehicle_fuel: data.fuelType || 'Non renseigné',
+        vehicle_license_plate: data.licensePlate || 'Non renseigné',
         sell_delay: data.sellDelay || 'Non renseigné',
         buying_project: data.buyingProject || 'Non renseigné'
       };
