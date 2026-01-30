@@ -565,25 +565,29 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                     <div className={`transition-all duration-300 overflow-hidden ${
                       isEquipmentsOpen ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
                     }`}>
-                      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
+                      <div className="bg-white rounded-lg border border-gray-200 p-6 md:p-8 space-y-8">
                         {categories.map((category) => (
-                          <div key={category} className="border-b border-gray-100 last:border-b-0 pb-6 last:pb-0">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                              <span className="w-1 h-6 bg-red-600 rounded-full"></span>
+                          <div key={category} className="border-b border-gray-200 last:border-b-0 pb-8 last:pb-0">
+                            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                              <span className="w-1.5 h-8 bg-red-600 rounded-full"></span>
                               {category}
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              {categorized[category].map((equipment, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                                >
-                                  <span className="text-red-600 mt-1 flex-shrink-0">✓</span>
-                                  <span className="text-gray-700 leading-relaxed text-sm">
-                                    {equipment}
-                                  </span>
-                                </div>
-                              ))}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                              {categorized[category].map((equipment, index) => {
+                                // Si l'équipement est très long (> 80 caractères), il prend toute la largeur
+                                const isLong = equipment.length > 80;
+                                return (
+                                  <div
+                                    key={index}
+                                    className={`flex items-start gap-4 p-5 bg-gray-50 rounded-lg hover:bg-gray-100 hover:shadow-md transition-all border border-gray-200 ${isLong ? 'lg:col-span-2' : ''}`}
+                                  >
+                                    <span className="text-red-600 mt-1 flex-shrink-0 text-xl font-bold">✓</span>
+                                    <span className="text-gray-800 leading-relaxed text-lg font-normal flex-1 break-words">
+                                      {equipment}
+                                    </span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         ))}
