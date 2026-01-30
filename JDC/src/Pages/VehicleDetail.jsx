@@ -35,6 +35,86 @@ export default function VehicleDetail() {
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = React.useState(0);
   const [isKeyInfoOpen, setIsKeyInfoOpen] = React.useState(false);
   const [isEquipmentsOpen, setIsEquipmentsOpen] = React.useState(false);
+
+  // Fonction pour catégoriser et organiser les équipements
+  const categorizeEquipments = (options) => {
+    if (!options || options.length === 0) return {};
+
+    // Définir les catégories et leurs mots-clés
+    const categories = {
+      'Audio - Télécommunications': ['audio', 'radio', 'bluetooth', 'connect', 'navigation', 'gps', 'téléphone', 'telephone', 'haut-parleur', 'haut parleur', 'son', 'musique', 'usb', 'aux', 'cd', 'mp3'],
+      'Conduite': ['régulateur', 'limiteur', 'vitesse', 'cruise', 'assistance', 'direction', 'parking', 'stationnement', 'aide', 'caméra', 'recul', 'radar', 'détection', 'detection', 'obstacle', 'freinage', 'frein'],
+      'Extérieur': ['jante', 'roue', 'pneu', 'phare', 'feu', 'toit', 'surélevé', 'porte', 'latéral', 'vitre', 'électrique', 'rétroviseur', 'rétro', 'peinture', 'couleur', 'extérieur'],
+      'Intérieur': ['siège', 'cuir', 'tissu', 'climatisation', 'climat', 'chauffage', 'volant', 'multifonction', 'rég', 'accoudoir', 'central', 'fermeture', 'centralisée', 'vitre', 'électrique', 'intérieur', 'tableau', 'bord'],
+      'Sécurité': ['airbag', 'abs', 'esp', 'traction', 'contrôle', 'control', 'stabilité', 'stabilite', 'ceinture', 'sécurité', 'securite', 'alarme', 'verrouillage', 'antivol'],
+      'Pack - Options': ['pack', 'option', 'série', 'finish', 'finition', 'édition', 'edition', 'spécial', 'special'],
+      'Autres': [] // Catégorie par défaut
+    };
+
+    // Fonction pour nettoyer et formater le texte
+    const cleanText = (text) => {
+      if (!text) return '';
+      // Remplacer les tirets collés par des tirets avec espaces
+      text = text.replace(/-([A-Za-z])/g, ' - $1');
+      text = text.replace(/([A-Za-z])-/g, '$1 - ');
+      // Ajouter des espaces avant les majuscules consécutives
+      text = text.replace(/([a-z])([A-Z])/g, '$1 $2');
+      // Nettoyer les espaces multiples
+      text = text.replace(/\s+/g, ' ');
+      // Capitaliser la première lettre
+      text = text.trim();
+      if (text.length > 0) {
+        text = text.charAt(0).toUpperCase() + text.slice(1);
+      }
+      return text;
+    };
+
+    // Fonction pour déterminer la catégorie d'un équipement
+    const getCategory = (option) => {
+      const optionLower = option.toLowerCase();
+      
+      for (const [category, keywords] of Object.entries(categories)) {
+        if (category === 'Autres') continue;
+        for (const keyword of keywords) {
+          if (optionLower.includes(keyword)) {
+            return category;
+          }
+        }
+      }
+      return 'Autres';
+    };
+
+    // Organiser les équipements par catégorie
+    const organized = {};
+    
+    options.forEach(option => {
+      const cleaned = cleanText(option);
+      if (!cleaned) return;
+      
+      const category = getCategory(cleaned);
+      if (!organized[category]) {
+        organized[category] = [];
+      }
+      organized[category].push(cleaned);
+    });
+
+    // Trier les catégories (Autres en dernier)
+    const sortedCategories = Object.keys(organized).sort((a, b) => {
+      if (a === 'Autres') return 1;
+      if (b === 'Autres') return -1;
+      return a.localeCompare(b);
+    });
+
+    // Retourner un objet avec les catégories triées
+    const result = {};
+    sortedCategories.forEach(cat => {
+      if (organized[cat] && organized[cat].length > 0) {
+        result[cat] = organized[cat];
+      }
+    });
+
+    return result;
+  };
   const [isContactFormOpen, setIsContactFormOpen] = React.useState(false);
   const [contactFormData, setContactFormData] = React.useState({
     first_name: '',
@@ -465,35 +545,53 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
               </div>
 
               {/* Équipements et Options - Section collapsible */}
-              {vehicle.options && vehicle.options.length > 0 && (
-                <div className="mb-8">
-                  <button
-                    onClick={() => setIsEquipmentsOpen(!isEquipmentsOpen)}
-                    className="w-full flex items-center justify-between text-2xl font-bold text-gray-900 mb-6 hover:text-red-600 transition-colors cursor-pointer"
-                  >
-                    <span>Équipements et Options</span>
-                    {isEquipmentsOpen ? (
-                      <ChevronUp className="w-6 h-6 transition-transform" />
-                    ) : (
-                      <ChevronDown className="w-6 h-6 transition-transform" />
-                    )}
-                  </button>
-                  <div className={`transition-all duration-300 overflow-hidden ${
-                    isEquipmentsOpen ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
-                  }`}>
-                    <div className="bg-gray-50 rounded-lg p-6">
-                      <ul className="space-y-2">
-                        {vehicle.options.map((option, index) => (
-                          <li key={index} className="flex items-start gap-2 text-gray-700">
-                            <span className="text-red-600 mt-1">•</span>
-                            <span>{option}</span>
-                          </li>
+              {vehicle.options && vehicle.options.length > 0 && (() => {
+                const categorized = categorizeEquipments(vehicle.options);
+                const categories = Object.keys(categorized);
+                
+                return (
+                  <div className="mb-8">
+                    <button
+                      onClick={() => setIsEquipmentsOpen(!isEquipmentsOpen)}
+                      className="w-full flex items-center justify-between text-2xl font-bold text-gray-900 mb-6 hover:text-red-600 transition-colors cursor-pointer"
+                    >
+                      <span>Équipements et Options</span>
+                      {isEquipmentsOpen ? (
+                        <ChevronUp className="w-6 h-6 transition-transform" />
+                      ) : (
+                        <ChevronDown className="w-6 h-6 transition-transform" />
+                      )}
+                    </button>
+                    <div className={`transition-all duration-300 overflow-hidden ${
+                      isEquipmentsOpen ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
+                    }`}>
+                      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
+                        {categories.map((category) => (
+                          <div key={category} className="border-b border-gray-100 last:border-b-0 pb-6 last:pb-0">
+                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                              <span className="w-1 h-6 bg-red-600 rounded-full"></span>
+                              {category}
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {categorized[category].map((equipment, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                                >
+                                  <span className="text-red-600 mt-1 flex-shrink-0">✓</span>
+                                  <span className="text-gray-700 leading-relaxed text-sm">
+                                    {equipment}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Description */}
               {vehicle.description && (
