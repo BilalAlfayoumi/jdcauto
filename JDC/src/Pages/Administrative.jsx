@@ -134,7 +134,7 @@ export default function Administrative() {
                 </div>
                 <div className="flex flex-col md:flex-row gap-4">
                   <a 
-                    href="tel:+33556973752"
+                    href="tel:+33650256734"
                     className="flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
                   >
                     <Phone className="w-5 h-5" />
@@ -153,27 +153,6 @@ export default function Administrative() {
           </div>
         </AnimatedSection>
 
-        {/* Images informatives */}
-        <AnimatedSection animation="fade-up">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <img 
-                src="/carte_grise.jpg" 
-                alt="Documents nécessaires pour la carte grise"
-                className="w-full h-auto object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => openLightbox('/carte_grise.jpg', 'Documents nécessaires pour la carte grise')}
-              />
-            </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <img 
-                src="/page_cart_grise.jpg" 
-                alt="Tarifs et informations carte grise"
-                className="w-full h-auto object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => openLightbox('/page_cart_grise.jpg', 'Tarifs et informations carte grise')}
-              />
-            </div>
-          </div>
-        </AnimatedSection>
 
         {/* Tarifs */}
         <AnimatedSection animation="fade-up">

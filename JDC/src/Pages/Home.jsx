@@ -311,7 +311,7 @@ export default function Home() {
                 Nous contacter
               </Link>
               <a
-                href="tel:+33556973752"
+                href="tel:+33650256734"
                 className="px-8 py-4 bg-black/20 backdrop-blur-sm hover:bg-black/30 text-white font-semibold rounded-lg transition-all duration-300 border-2 border-white/30 hover:border-white/50"
               >
                 Appeler maintenant

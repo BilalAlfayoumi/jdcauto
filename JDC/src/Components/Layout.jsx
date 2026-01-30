@@ -34,9 +34,9 @@ export default function Layout({ children }) {
       <div className="bg-gradient-to-r from-gray-900 to-black text-white py-2.5 px-4 border-b border-gray-800">
         <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center text-sm">
           <div className="flex items-center gap-6">
-            <a href="tel:+33556973752" className="flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
+            <a href="tel:+33650256734" className="flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
               <Phone className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span className="font-medium">+33 5 56 97 37 52</span>
+              <span className="font-medium">06 50 25 67 34</span>
             </a>
             <a href="mailto:jdcauto33@orange.fr" className="hidden sm:flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
               <Mail className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -45,7 +45,7 @@ export default function Layout({ children }) {
           </div>
           <div className="hidden md:flex items-center gap-2 text-xs text-gray-300">
             <MapPin className="w-4 h-4 text-red-500" />
-            <span>Lun-Ven: 9h-19h | Sam: 9h-18h</span>
+            <span>Du lundi au samedi: 08H00 - 12H00 & 14H00-19H30 | Le samedi: Sur rendez-vous</span>
           </div>
         </div>
       </div>
@@ -174,11 +174,11 @@ export default function Layout({ children }) {
               <div className="space-y-3 text-sm text-gray-400">
                 <div className="flex items-start gap-2">
                   <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
-                  <span>123 Avenue de la République<br />33000 Bordeaux</span>
+                  <span>93 Av. de Magudas<br />33700 Mérignac</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 flex-shrink-0" />
-                  <a href="tel:+33556973752" className="hover:text-red-500 transition-colors">+33 5 56 97 37 52</a>
+                  <a href="tel:+33650256734" className="hover:text-red-500 transition-colors">06 50 25 67 34</a>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 flex-shrink-0" />
@@ -218,7 +218,7 @@ export default function Layout({ children }) {
 
           {/* Bottom Footer */}
           <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
-            <p>© 2024 JDC AUTO - Tous droits réservés</p>
+            <p>© 2026 JDC AUTO - Tous droits réservés</p>
             <div className="flex gap-6 mt-4 md:mt-0">
               <Link to={createPageUrl('MentionsLegales')} className="hover:text-red-500 transition-colors">Mentions légales</Link>
               <Link to={createPageUrl('CGV')} className="hover:text-red-500 transition-colors">CGV</Link>

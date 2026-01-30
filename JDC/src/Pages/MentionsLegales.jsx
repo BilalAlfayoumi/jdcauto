@@ -38,7 +38,7 @@ export default function MentionsLegales() {
                     <Phone className="w-5 h-5 text-red-600 mt-1 flex-shrink-0" />
                     <div>
                       <p className="font-semibold text-gray-900">Téléphone :</p>
-                      <p className="text-gray-700">+33 5 56 97 37 52</p>
+                      <p className="text-gray-700">06 50 25 67 34</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
