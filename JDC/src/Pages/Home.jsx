@@ -133,14 +133,14 @@ export default function Home() {
                 animation="fade-up" 
                 delay={index * 100}
               >
-                <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 text-center group border border-gray-100 hover:border-red-200">
-                  <div className={`inline-flex items-center justify-center w-16 h-16 ${item.color} rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 text-center group border border-gray-100 hover:border-red-200 h-full flex flex-col">
+                  <div className={`inline-flex items-center justify-center w-16 h-16 ${item.color} rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300 flex-shrink-0 mx-auto`}>
                     <item.icon className="w-8 h-8" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-red-600 transition-colors">
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-red-600 transition-colors flex-shrink-0">
                     {item.title}
                   </h3>
-                  <p className="text-gray-600 leading-relaxed">{item.desc}</p>
+                  <p className="text-gray-600 leading-relaxed flex-grow">{item.desc}</p>
                 </div>
               </AnimatedSection>
             ))}
