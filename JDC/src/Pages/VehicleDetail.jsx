@@ -572,14 +572,21 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                               <span className="w-1.5 h-8 bg-red-600 rounded-full"></span>
                               {category}
                             </h3>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div className={`grid gap-4 ${
+                              category === 'Audio - Télécommunications' 
+                                ? 'grid-cols-1' 
+                                : 'grid-cols-1 lg:grid-cols-2'
+                            }`}>
                               {categorized[category].map((equipment, index) => {
                                 // Si l'équipement est très long (> 80 caractères), il prend toute la largeur
                                 const isLong = equipment.length > 80;
+                                const isAudioCategory = category === 'Audio - Télécommunications';
                                 return (
                                   <div
                                     key={index}
-                                    className={`flex items-start gap-4 p-5 bg-gray-50 rounded-lg hover:bg-gray-100 hover:shadow-md transition-all border border-gray-200 ${isLong ? 'lg:col-span-2' : ''}`}
+                                    className={`flex items-start gap-4 p-5 bg-gray-50 rounded-lg hover:bg-gray-100 hover:shadow-md transition-all border border-gray-200 ${
+                                      (isLong && !isAudioCategory) ? 'lg:col-span-2' : ''
+                                    }`}
                                   >
                                     <span className="text-red-600 mt-1 flex-shrink-0 text-xl font-bold">✓</span>
                                     <span className="text-gray-800 leading-relaxed text-lg font-normal flex-1 break-words">
