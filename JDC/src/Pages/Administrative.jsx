@@ -134,7 +134,7 @@ export default function Administrative() {
                 <div className="flex flex-col md:flex-row gap-4">
                   <a 
                     href="tel:+33981369814"
-                    className="flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                    className="flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors whitespace-nowrap"
                   >
                     <Phone className="w-5 h-5" />
                     +33 9 81 36 98 14
@@ -471,7 +471,7 @@ export default function Administrative() {
               </Link>
               <a
                 href="tel:+33981369814"
-                className="px-8 py-4 bg-black hover:bg-gray-900 text-white font-semibold rounded-md transition-colors inline-flex items-center gap-2"
+                className="px-8 py-4 bg-black hover:bg-gray-900 text-white font-semibold rounded-md transition-colors inline-flex items-center gap-2 whitespace-nowrap"
               >
                 <Phone className="w-5 h-5" />
                 +33 9 81 36 98 14
