@@ -267,10 +267,10 @@ export default function Administrative() {
                       </div>
                       <div className="relative mb-3">
                         <img 
-                          src="/cerfa-13750.jpg" 
+                          src="/cerfa-13750.png" 
                           alt="CERFA 13750 - Certificat d'immatriculation"
-                          className="w-full h-48 object-cover rounded border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => openLightbox('/cerfa-13750.jpg', 'CERFA 13750 - Certificat d\'immatriculation')}
+                          className="w-full h-48 object-contain rounded border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity bg-gray-50"
+                          onClick={() => openLightbox('/cerfa-13750.png', 'CERFA 13750 - Certificat d\'immatriculation')}
                           onError={(e) => {
                             e.target.style.display = 'none';
                             e.target.nextSibling.style.display = 'flex';
@@ -282,14 +282,14 @@ export default function Administrative() {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => openLightbox('/cerfa-13750.jpg', 'CERFA 13750 - Certificat d\'immatriculation')}
+                          onClick={() => openLightbox('/cerfa-13750.png', 'CERFA 13750 - Certificat d\'immatriculation')}
                           className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                         >
                           <ZoomIn className="w-4 h-4" />
                           Agrandir
                         </button>
                         <button
-                          onClick={() => downloadImage('/cerfa-13750.pdf', 'CERFA-13750-certificat-immatriculation.pdf')}
+                          onClick={() => downloadImage('/cerfa-13750.png', 'CERFA-13750-certificat-immatriculation.png')}
                           className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
                         >
                           <Download className="w-4 h-4" />
@@ -305,10 +305,10 @@ export default function Administrative() {
                       </div>
                       <div className="relative mb-3">
                         <img 
-                          src="/cerfa-13757.jpg" 
+                          src="/cerfa-13757.png" 
                           alt="CERFA 13757 - Mandat à un professionnel"
-                          className="w-full h-48 object-cover rounded border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => openLightbox('/cerfa-13757.jpg', 'CERFA 13757 - Mandat à un professionnel')}
+                          className="w-full h-48 object-contain rounded border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity bg-gray-50"
+                          onClick={() => openLightbox('/cerfa-13757.png', 'CERFA 13757 - Mandat à un professionnel')}
                           onError={(e) => {
                             e.target.style.display = 'none';
                             e.target.nextSibling.style.display = 'flex';
@@ -320,14 +320,14 @@ export default function Administrative() {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => openLightbox('/cerfa-13757.jpg', 'CERFA 13757 - Mandat à un professionnel')}
+                          onClick={() => openLightbox('/cerfa-13757.png', 'CERFA 13757 - Mandat à un professionnel')}
                           className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                         >
                           <ZoomIn className="w-4 h-4" />
                           Agrandir
                         </button>
                         <button
-                          onClick={() => downloadImage('/cerfa-13757.pdf', 'CERFA-13757-mandat-professionnel.pdf')}
+                          onClick={() => downloadImage('/cerfa-13757.png', 'CERFA-13757-mandat-professionnel.png')}
                           className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
                         >
                           <Download className="w-4 h-4" />
