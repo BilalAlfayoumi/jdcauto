@@ -72,7 +72,7 @@ export default function Contact() {
   };
 
   // Fonction pour envoyer via EmailJS
-  const sendEmailViaEmailJS = async (data, templateId) => {
+  const sendEmailViaEmailJS = async (data, templateId, toEmail = 'jdcauto33@orange.fr') => {
     try {
       // Initialiser EmailJS
       emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
@@ -84,7 +84,7 @@ export default function Contact() {
         message: data.message,
         subject: data.subject || 'Demande de contact',
         type: data.type === 'achat' ? 'Achat de véhicule' : 'Carte grise & Immatriculation',
-        to_email: 'jdcauto33@orange.fr' // Email de destination JDC Auto
+        to_email: toEmail // Email de destination
       };
 
       console.log('📧 Envoi EmailJS avec:', {
@@ -149,8 +149,8 @@ export default function Contact() {
 
   const mutationCarteGrise = useMutation({
     mutationFn: async (data) => {
-      // Envoyer via EmailJS
-      await sendEmailViaEmailJS(data, EMAILJS_CONFIG.TEMPLATE_ID_CARTE_GRISE);
+      // Envoyer via EmailJS vers l'email dédié carte grise
+      await sendEmailViaEmailJS(data, EMAILJS_CONFIG.TEMPLATE_ID_CARTE_GRISE, 'jdcauto.cartegrise@orange.fr');
       
       // Optionnel: Enregistrer aussi en base de données
       try {

@@ -128,24 +128,23 @@ export default function Administrative() {
                   <Clock className="w-6 h-6" />
                   <div>
                     <p className="font-semibold text-lg">Horaires d'ouverture</p>
-                    <p className="text-red-100">Du lundi au samedi 08H00 - 12H00 & 14H00-19H30</p>
-                    <p className="text-red-100 text-sm">Le samedi sur rendez-vous</p>
+                    <p className="text-red-100">Du lundi au vendredi de 9h à 12H et de 14h à 19h</p>
                   </div>
                 </div>
                 <div className="flex flex-col md:flex-row gap-4">
                   <a 
-                    href="tel:+33650256734"
+                    href="tel:+33981369814"
                     className="flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
                   >
                     <Phone className="w-5 h-5" />
-                    +33 5 56 97 37 52
+                    +33 9 81 36 98 14
                   </a>
                   <a 
-                    href="mailto:jdcauto33@orange.fr"
+                    href="mailto:jdcauto.cartegrise@orange.fr"
                     className="flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
                   >
                     <Mail className="w-5 h-5" />
-                    jdcauto33@orange.fr
+                    jdcauto.cartegrise@orange.fr
                   </a>
                 </div>
               </div>
@@ -471,11 +470,11 @@ export default function Administrative() {
                 Nous contacter
               </Link>
               <a
-                href="tel:+33556973752"
+                href="tel:+33981369814"
                 className="px-8 py-4 bg-black hover:bg-gray-900 text-white font-semibold rounded-md transition-colors inline-flex items-center gap-2"
               >
                 <Phone className="w-5 h-5" />
-                +33 5 56 97 37 52
+                +33 9 81 36 98 14
               </a>
             </div>
           </div>
