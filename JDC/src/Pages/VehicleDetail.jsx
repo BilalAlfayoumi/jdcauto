@@ -603,36 +603,39 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                               <span className="w-1.5 h-8 bg-red-600 rounded-full"></span>
                               {category}
                             </h3>
-                            <div className={`grid gap-3 ${
-                              category === 'Audio - Télécommunications' 
-                                ? 'grid-cols-1' 
-                                : 'grid-cols-1 lg:grid-cols-2'
-                            }`}>
-                              {categorized[category].map((equipment, index) => {
-                                // Si l'équipement est très long (> 80 caractères), il prend toute la largeur
-                                const isLong = equipment.length > 80;
-                                const isAudioCategory = category === 'Audio - Télécommunications';
-                                const isLast = index === categorized[category].length - 1;
-                                
-                                return (
-                                  <React.Fragment key={index}>
-                                    <div
-                                      className={`flex items-start gap-4 p-4 bg-white rounded-lg hover:bg-gray-50 hover:shadow-sm transition-all border-l-4 border-red-600 ${
-                                        (isLong && !isAudioCategory) ? 'lg:col-span-2' : ''
-                                      }`}
-                                    >
-                                      <span className="text-red-600 mt-1 flex-shrink-0 text-lg font-bold">✓</span>
-                                      <span className="text-gray-800 leading-relaxed text-base font-medium flex-1 break-words">
-                                        {equipment}
-                                      </span>
-                                    </div>
-                                    {!isLast && isAudioCategory && (
-                                      <div className="h-px bg-gray-200 my-1"></div>
-                                    )}
-                                  </React.Fragment>
-                                );
-                              })}
-                            </div>
+                            {category === 'Audio - Télécommunications' ? (
+                              // Style pour Audio - Télécommunications (une colonne avec séparateurs)
+                              <div className="grid grid-cols-1 gap-3">
+                                {categorized[category].map((equipment, index) => {
+                                  const isLast = index === categorized[category].length - 1;
+                                  return (
+                                    <React.Fragment key={index}>
+                                      <div className="flex items-start gap-4 p-4 bg-white rounded-lg hover:bg-gray-50 hover:shadow-sm transition-all border-l-4 border-red-600">
+                                        <span className="text-red-600 mt-1 flex-shrink-0 text-lg font-bold">✓</span>
+                                        <span className="text-gray-800 leading-relaxed text-base font-medium flex-1 break-words">
+                                          {equipment}
+                                        </span>
+                                      </div>
+                                      {!isLast && (
+                                        <div className="h-px bg-gray-200 my-1"></div>
+                                      )}
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              // Style compact pour les autres sections (2 colonnes avec puces simples)
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                                {categorized[category].map((equipment, index) => (
+                                  <div key={index} className="flex items-start gap-2">
+                                    <span className="text-red-600 mt-1.5 flex-shrink-0 text-sm">•</span>
+                                    <span className="text-gray-700 leading-relaxed text-sm flex-1">
+                                      {equipment}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
