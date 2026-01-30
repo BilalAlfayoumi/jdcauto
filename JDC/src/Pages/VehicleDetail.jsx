@@ -59,6 +59,11 @@ export default function VehicleDetail() {
       text = text.replace(/([A-Za-z])-/g, '$1 - ');
       // Ajouter des espaces avant les majuscules consécutives
       text = text.replace(/([a-z])([A-Z])/g, '$1 $2');
+      // Séparer les équipements collés (détecter les débuts d'équipements)
+      // Pattern: chiffre suivi de majuscule ou majuscule après minuscule
+      text = text.replace(/([a-z])([A-Z][a-z])/g, '$1 | $2');
+      // Séparer aussi les cas où un chiffre commence un nouvel équipement après une lettre
+      text = text.replace(/([a-z])\s*(\d+[A-Z])/g, '$1 | $2');
       // Nettoyer les espaces multiples
       text = text.replace(/\s+/g, ' ');
       // Capitaliser la première lettre
@@ -67,6 +72,24 @@ export default function VehicleDetail() {
         text = text.charAt(0).toUpperCase() + text.slice(1);
       }
       return text;
+    };
+    
+    // Fonction pour diviser un texte long en plusieurs équipements
+    const splitEquipments = (text) => {
+      if (!text) return [];
+      // Séparer par le séparateur | qu'on a ajouté
+      let parts = text.split('|').map(p => p.trim()).filter(p => p.length > 0);
+      
+      // Si pas de séparateur trouvé, essayer de détecter les séparations naturelles
+      if (parts.length === 1) {
+        // Détecter les patterns: chiffre + majuscule, ou majuscule après minuscule
+        const matches = text.match(/(\d+\s+[A-Z][^A-Z]*|[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g);
+        if (matches && matches.length > 1) {
+          parts = matches.map(m => m.trim());
+        }
+      }
+      
+      return parts.length > 0 ? parts : [text];
     };
 
     // Fonction pour déterminer la catégorie d'un équipement
@@ -91,11 +114,19 @@ export default function VehicleDetail() {
       const cleaned = cleanText(option);
       if (!cleaned) return;
       
-      const category = getCategory(cleaned);
-      if (!organized[category]) {
-        organized[category] = [];
-      }
-      organized[category].push(cleaned);
+      // Pour les textes très longs, les diviser en plusieurs équipements
+      const equipments = cleaned.length > 100 ? splitEquipments(cleaned) : [cleaned];
+      
+      equipments.forEach(eq => {
+        const trimmed = eq.trim();
+        if (!trimmed || trimmed.length < 3) return;
+        
+        const category = getCategory(trimmed);
+        if (!organized[category]) {
+          organized[category] = [];
+        }
+        organized[category].push(trimmed);
+      });
     });
 
     // Trier les catégories (Autres en dernier)
@@ -319,14 +350,14 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                 setLightboxPhotoIndex(selectedPhotoIndex);
                 setIsLightboxOpen(true);
               }}>
-                <ImageWithAnimation
+              <ImageWithAnimation
                   src={vehicle.photos && vehicle.photos.length > 0 
                     ? vehicle.photos[selectedPhotoIndex] 
                     : vehicle.image_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1200&auto=format&fit=crop'}
                   alt={`${vehicle.brand} ${vehicle.model} - Photo ${selectedPhotoIndex + 1}`}
                   className="w-full h-96 object-cover group-hover:opacity-90 transition-opacity"
-                  animation="zoom-in"
-                />
+                animation="zoom-in"
+              />
                 {/* Overlay hint on hover */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                   <div className="bg-white/90 text-gray-900 px-4 py-2 rounded-lg font-semibold text-sm">
@@ -402,7 +433,7 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
               <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
                   {vehicle.title || `${vehicle.brand} ${vehicle.model}`}
-                </h1>
+              </h1>
                 {vehicle.quantity > 1 && (
                   <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-800 border-2 border-green-300">
                     {vehicle.quantity} exemplaires disponibles
@@ -572,7 +603,7 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                               <span className="w-1.5 h-8 bg-red-600 rounded-full"></span>
                               {category}
                             </h3>
-                            <div className={`grid gap-4 ${
+                            <div className={`grid gap-3 ${
                               category === 'Audio - Télécommunications' 
                                 ? 'grid-cols-1' 
                                 : 'grid-cols-1 lg:grid-cols-2'
@@ -581,18 +612,24 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                                 // Si l'équipement est très long (> 80 caractères), il prend toute la largeur
                                 const isLong = equipment.length > 80;
                                 const isAudioCategory = category === 'Audio - Télécommunications';
+                                const isLast = index === categorized[category].length - 1;
+                                
                                 return (
-                                  <div
-                                    key={index}
-                                    className={`flex items-start gap-4 p-5 bg-gray-50 rounded-lg hover:bg-gray-100 hover:shadow-md transition-all border border-gray-200 ${
-                                      (isLong && !isAudioCategory) ? 'lg:col-span-2' : ''
-                                    }`}
-                                  >
-                                    <span className="text-red-600 mt-1 flex-shrink-0 text-xl font-bold">✓</span>
-                                    <span className="text-gray-800 leading-relaxed text-lg font-normal flex-1 break-words">
-                                      {equipment}
-                                    </span>
-                                  </div>
+                                  <React.Fragment key={index}>
+                                    <div
+                                      className={`flex items-start gap-4 p-4 bg-white rounded-lg hover:bg-gray-50 hover:shadow-sm transition-all border-l-4 border-red-600 ${
+                                        (isLong && !isAudioCategory) ? 'lg:col-span-2' : ''
+                                      }`}
+                                    >
+                                      <span className="text-red-600 mt-1 flex-shrink-0 text-lg font-bold">✓</span>
+                                      <span className="text-gray-800 leading-relaxed text-base font-medium flex-1 break-words">
+                                        {equipment}
+                                      </span>
+                                    </div>
+                                    {!isLast && isAudioCategory && (
+                                      <div className="h-px bg-gray-200 my-1"></div>
+                                    )}
+                                  </React.Fragment>
                                 );
                               })}
                             </div>
