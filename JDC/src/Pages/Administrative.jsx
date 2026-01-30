@@ -407,6 +407,47 @@ export default function Administrative() {
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                   <span className="text-gray-700">Contrôle technique en cours de validité</span>
                 </div>
+                
+                {/* Formulaire CERFA 13753 */}
+                <div className="mt-6 pt-6 border-t border-gray-300">
+                  <p className="font-semibold text-gray-900 mb-4">Formulaire CERFA à télécharger :</p>
+                  <div className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-red-600 transition-colors">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-gray-900">CERFA 13753</h4>
+                      <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">Déclaration de perte ou de vol</span>
+                    </div>
+                    <div className="relative mb-3">
+                      <img 
+                        src="/cerfa-13753.jpg" 
+                        alt="CERFA 13753 - Déclaration de perte ou de vol"
+                        className="w-full h-48 object-contain rounded border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity bg-gray-50"
+                        onClick={() => openLightbox('/cerfa-13753.jpg', 'CERFA 13753 - Déclaration de perte ou de vol')}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="hidden w-full h-48 bg-gray-100 rounded border border-gray-200 items-center justify-center">
+                        <FileText className="w-12 h-12 text-gray-400" />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => openLightbox('/cerfa-13753.jpg', 'CERFA 13753 - Déclaration de perte ou de vol')}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                      >
+                        <ZoomIn className="w-4 h-4" />
+                        Agrandir
+                      </button>
+                      <button
+                        onClick={() => downloadImage('/cerfa-13753.jpg', 'CERFA-13753-declaration-perte-vol.jpg')}
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
