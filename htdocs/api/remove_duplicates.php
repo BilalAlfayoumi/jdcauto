@@ -24,7 +24,7 @@ try {
             COALESCE(couleurexterieur, '') as couleur,
             COUNT(*) as count,
             GROUP_CONCAT(id ORDER BY id) as ids,
-            GROUP_CONCAT(reference ORDER BY id) as references
+            GROUP_CONCAT(`reference` ORDER BY id) as refs
         FROM vehicles
         GROUP BY marque, modele, prix_vente, kilometrage, annee, 
                  COALESCE(version, ''), COALESCE(couleurexterieur, '')
@@ -41,7 +41,7 @@ try {
     
     foreach ($duplicates as $dup) {
         $ids = explode(',', $dup['ids']);
-        $references = explode(',', $dup['references']);
+        $references = explode(',', $dup['refs']);
         
         // Garder le premier ID (le plus ancien), supprimer les autres
         $keepId = $ids[0];
