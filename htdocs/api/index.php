@@ -190,8 +190,9 @@ class SimpleVehiclesAPI {
             return $this->error('Base de données non configurée. Veuillez exécuter install/setup.php', 503);
         }
         
-        $limit = min((int)($_GET['limit'] ?? 12), 50);
-        $status = $_GET['status'] ?? null; // null = tous les véhicules
+        $limit = min((int)($_GET['limit'] ?? 12), 100);
+        // Ne pas filtrer par statut - retourner tous les véhicules
+        $status = isset($_GET['status']) && $_GET['status'] !== '' ? $_GET['status'] : null;
         
         // Vérifier si la table existe
         try {
