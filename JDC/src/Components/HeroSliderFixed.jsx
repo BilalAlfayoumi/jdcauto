@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 
 const heroSlides = [
   {
-    image: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=1920&h=1080&auto=format&fit=crop',
+    image: '/lambo.jpg',
     title: 'JDC Auto – Achat et vente de véhicules d\'occasion en toute confiance',
     subtitle: 'Garantie • Sécurité • Accompagnement personnalisé',
     ctaPrimary: { text: 'Voir nos véhicules', link: 'Vehicles' },
@@ -21,7 +21,7 @@ const heroSlides = [
     ctaSecondary: { text: 'Nous contacter', link: 'Contact' }
   },
   {
-    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1920&h=1080&auto=format&fit=crop&q=80',
+    image: '/audi_rs6.png',
     title: 'Reprise de véhicule et démarches administratives',
     subtitle: 'Estimation gratuite • Carte grise • Accompagnement complet',
     ctaPrimary: { text: 'Estimer mon véhicule', link: 'TradeIn' },
