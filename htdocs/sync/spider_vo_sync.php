@@ -121,6 +121,7 @@ $imported = 0;
 $updated = 0;
 $errors = 0;
 $photosImported = 0;
+$duplicatesSkipped = 0;
 
 logMessage("Début de l'import...", 'info');
 
@@ -267,50 +268,98 @@ foreach ($vehicles as $vehiculeXML) {
         $options = array_unique($options);
         $options = array_values($options); // Réindexer
         
-        // Vérifier si existe
-        $existing = $pdo->prepare("SELECT id FROM vehicles WHERE reference = ?")->execute([$reference]);
-        $existing = $pdo->prepare("SELECT id FROM vehicles WHERE reference = ?");
-        $existing->execute([$reference]);
-        $existing = $existing->fetch();
+        // Vérifier si existe par référence
+        $existingStmt = $pdo->prepare("SELECT id FROM vehicles WHERE reference = ?");
+        $existingStmt->execute([$reference]);
+        $existing = $existingStmt->fetch();
+        
+        // Si pas trouvé par référence, vérifier les doublons par critères multiples
+        if (!$existing) {
+            // Critères pour détecter un doublon :
+            // - Marque + Modèle + Prix + Kilométrage + Année doivent être identiques
+            // - Version doit être identique (si disponible)
+            // - Couleur extérieure doit être identique (si disponible)
+            $duplicateSql = "
+                SELECT id FROM vehicles 
+                WHERE marque = ? 
+                  AND modele = ? 
+                  AND prix_vente = ? 
+                  AND kilometrage = ? 
+                  AND annee = ?
+            ";
+            $duplicateParams = [$marque, $modele, $prix_vente, $kilometrage, $annee];
+            
+            // Ajouter version si disponible
+            if (!empty($version)) {
+                $duplicateSql .= " AND version = ?";
+                $duplicateParams[] = $version;
+            } else {
+                $duplicateSql .= " AND (version IS NULL OR version = '')";
+            }
+            
+            // Ajouter couleur extérieure si disponible
+            if (!empty($couleurexterieur)) {
+                $duplicateSql .= " AND couleurexterieur = ?";
+                $duplicateParams[] = $couleurexterieur;
+            } else {
+                $duplicateSql .= " AND (couleurexterieur IS NULL OR couleurexterieur = '')";
+            }
+            
+            $duplicateSql .= " LIMIT 1";
+            
+            $duplicateStmt = $pdo->prepare($duplicateSql);
+            $duplicateStmt->execute($duplicateParams);
+            $duplicate = $duplicateStmt->fetch();
+            
+            if ($duplicate) {
+                // Doublon trouvé - utiliser l'ID existant et mettre à jour avec la nouvelle référence
+                logMessage("⚠️ Doublon détecté pour $marque $modele (prix: $prix_vente €, km: $kilometrage, année: $annee) - Référence: $reference - Fusion avec véhicule existant", 'info');
+                $existing = $duplicate;
+                $duplicatesSkipped++;
+                // Mettre à jour la référence pour garder la plus récente
+                $updateRefStmt = $pdo->prepare("UPDATE vehicles SET reference = ? WHERE id = ?");
+                $updateRefStmt->execute([$reference, $existing['id']]);
+            }
+        }
         
         // Vérifier si la colonne titre existe
         $columnsStmt = $pdo->query("SHOW COLUMNS FROM vehicles LIKE 'titre'");
         $hasTitre = $columnsStmt->rowCount() > 0;
         
         if ($existing) {
-            // Mise à jour
+            // Mise à jour (utiliser ID pour gérer les doublons détectés)
+            $vehicleId = $existing['id'];
             if ($hasTitre) {
                 $sql = "
                     UPDATE vehicles SET
-                        marque = ?, modele = ?, version = ?, titre = ?, prix_vente = ?, kilometrage = ?,
+                        reference = ?, marque = ?, modele = ?, version = ?, titre = ?, prix_vente = ?, kilometrage = ?,
                         annee = ?, energie = ?, typeboite = ?, carrosserie = ?, etat = ?,
                         description = ?, couleurexterieur = ?, nbrplace = ?, nbrporte = ?,
                         puissancedyn = ?, puissance_fiscale = ?, finition = ?, date_mec = ?, updated_at = NOW()
-                    WHERE reference = ?
+                    WHERE id = ?
                 ";
                 $pdo->prepare($sql)->execute([
-                    $marque, $modele, $version, $titre, $prix_vente, $kilometrage,
+                    $reference, $marque, $modele, $version, $titre, $prix_vente, $kilometrage,
                     $annee, $energie, $typeboite, $carrosserie, $etat,
                     $description, $couleurexterieur, $nbrplace, $nbrporte,
-                    $puissancedyn, $puissance_fiscale, $finition, $date_mec, $reference
+                    $puissancedyn, $puissance_fiscale, $finition, $date_mec, $vehicleId
                 ]);
             } else {
                 $sql = "
                     UPDATE vehicles SET
-                        marque = ?, modele = ?, version = ?, prix_vente = ?, kilometrage = ?,
+                        reference = ?, marque = ?, modele = ?, version = ?, prix_vente = ?, kilometrage = ?,
                         annee = ?, energie = ?, typeboite = ?, carrosserie = ?, etat = ?,
                         description = ?, couleurexterieur = ?, nbrplace = ?, nbrporte = ?,
                         puissancedyn = ?, puissance_fiscale = ?, finition = ?, date_mec = ?, updated_at = NOW()
-                    WHERE reference = ?
+                    WHERE id = ?
                 ";
                 $pdo->prepare($sql)->execute([
-                    $marque, $modele, $version, $prix_vente, $kilometrage,
+                    $reference, $marque, $modele, $version, $prix_vente, $kilometrage,
                     $annee, $energie, $typeboite, $carrosserie, $etat,
                     $description, $couleurexterieur, $nbrplace, $nbrporte,
-                    $puissancedyn, $puissance_fiscale, $finition, $date_mec, $reference
+                    $puissancedyn, $puissance_fiscale, $finition, $date_mec, $vehicleId
                 ]);
             }
-            $vehicleId = $existing['id'];
             $updated++;
         } else {
             // Insertion
@@ -430,6 +479,9 @@ foreach ($vehicles as $vehiculeXML) {
 logMessage("Import terminé", 'success');
 logMessage("Ajoutés: $imported véhicules", 'info');
 logMessage("Mis à jour: $updated véhicules", 'info');
+if ($duplicatesSkipped > 0) {
+    logMessage("Doublons évités: $duplicatesSkipped véhicules (fusionnés avec véhicules existants)", 'info');
+}
 logMessage("Photos importées: $photosImported", 'info');
 if ($errors > 0) {
     logMessage("Erreurs: $errors", 'error');
