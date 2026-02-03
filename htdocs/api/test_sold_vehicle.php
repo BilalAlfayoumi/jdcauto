@@ -4,15 +4,16 @@
  * Pour tester l'affichage des véhicules vendus
  */
 
+header('Content-Type: application/json');
+
 require_once __DIR__ . '/../config/mysql_gandi.php';
 
 try {
-    $pdo = new PDO(
-        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
-        DB_USER,
-        DB_PASS,
-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-    );
+    $pdo = GandiMySQL::connect();
+    
+    if (!$pdo) {
+        throw new Exception('Impossible de se connecter à la base de données');
+    }
     
     // Récupérer le premier véhicule disponible
     $stmt = $pdo->query("SELECT id, marque, modele, etat FROM vehicles WHERE etat = 'Disponible' LIMIT 1");
