@@ -55,6 +55,10 @@ export default function VehicleDetail() {
     // Fonction pour nettoyer et formater le texte
     const cleanText = (text) => {
       if (!text) return '';
+      // Supprimer les caractères étranges et symboles non désirés
+      text = text.replace(/[?¿¡]/g, ''); // Supprimer les points d'interrogation et autres symboles
+      text = text.replace(/\|/g, ' '); // Remplacer les pipes par des espaces
+      text = text.replace(/[^\w\s\-àâäéèêëïîôöùûüÿçÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ]/g, ' '); // Garder seulement lettres, chiffres, espaces, tirets et caractères français
       // Remplacer les tirets collés par des tirets avec espaces
       text = text.replace(/-([A-Za-z])/g, ' - $1');
       text = text.replace(/([A-Za-z])-/g, '$1 - ');
@@ -62,9 +66,9 @@ export default function VehicleDetail() {
       text = text.replace(/([a-z])([A-Z])/g, '$1 $2');
       // Séparer les équipements collés (détecter les débuts d'équipements)
       // Pattern: chiffre suivi de majuscule ou majuscule après minuscule
-      text = text.replace(/([a-z])([A-Z][a-z])/g, '$1 | $2');
+      text = text.replace(/([a-z])([A-Z][a-z])/g, '$1 $2');
       // Séparer aussi les cas où un chiffre commence un nouvel équipement après une lettre
-      text = text.replace(/([a-z])\s*(\d+[A-Z])/g, '$1 | $2');
+      text = text.replace(/([a-z])\s*(\d+[A-Z])/g, '$1 $2');
       // Nettoyer les espaces multiples
       text = text.replace(/\s+/g, ' ');
       // Capitaliser la première lettre
@@ -78,8 +82,11 @@ export default function VehicleDetail() {
     // Fonction pour diviser un texte long en plusieurs équipements
     const splitEquipments = (text) => {
       if (!text) return [];
-      // Séparer par le séparateur | qu'on a ajouté
-      let parts = text.split('|').map(p => p.trim()).filter(p => p.length > 0);
+      // Nettoyer d'abord le texte
+      text = text.replace(/[?¿¡]/g, '').replace(/\|/g, ' ').trim();
+      
+      // Séparer par des patterns naturels (virgules, points, ou changements de casse)
+      let parts = text.split(/[,;]\s*/).map(p => p.trim()).filter(p => p.length > 0);
       
       // Si pas de séparateur trouvé, essayer de détecter les séparations naturelles
       if (parts.length === 1) {
@@ -606,23 +613,20 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                               <span className="break-words">{category}</span>
                             </h3>
                             {category === 'Audio - Télécommunications' ? (
-                              <div className="grid grid-cols-1 gap-3">
-                                {categorized[category].map((equipment, index) => {
-                                  const isLast = index === categorized[category].length - 1;
-                                  return (
-                                    <React.Fragment key={index}>
-                                      <div className="flex items-start gap-4 p-4 bg-white rounded-lg hover:bg-gray-50 hover:shadow-sm transition-all border-l-4 border-red-600">
-                                        <span className="text-red-600 mt-1 flex-shrink-0 text-lg font-bold">✓</span>
-                                        <span className="text-gray-800 leading-relaxed text-base font-medium flex-1 break-words">
-                                          {equipment}
-                                        </span>
-                                      </div>
-                                      {!isLast && (
-                                        <div className="h-px bg-gray-200 my-1"></div>
-                                      )}
-                                    </React.Fragment>
-                                  );
-                                })}
+                              <div className="grid grid-cols-1 gap-4">
+                                {categorized[category].map((equipment, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-start gap-4 p-5 bg-gradient-to-r from-gray-50 to-white hover:from-red-50 hover:to-red-50/30 rounded-xl hover:shadow-md transition-all border border-gray-200 hover:border-red-300"
+                                  >
+                                    <div className="flex-shrink-0 w-7 h-7 rounded-full bg-red-600 flex items-center justify-center mt-0.5">
+                                      <span className="text-white text-sm font-bold">✓</span>
+                                    </div>
+                                    <span className="text-gray-800 leading-relaxed text-base font-medium flex-1 break-words pt-1">
+                                      {equipment}
+                                    </span>
+                                  </div>
+                                ))}
                               </div>
                             ) : (
                               <div className="grid grid-cols-2 gap-x-8 gap-y-3">
@@ -665,19 +669,39 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                               openCategory === category ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
                             }`}>
                               <div className="p-4 pt-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {categorized[category].map((equipment, index) => (
-                                    <div
-                                      key={index}
-                                      className="inline-flex items-center gap-2 bg-gray-50 hover:bg-red-50 border border-gray-200 hover:border-red-300 rounded-lg px-3 py-2 transition-all group"
-                                    >
-                                      <span className="text-red-600 text-xs font-bold group-hover:scale-110 transition-transform">✓</span>
-                                      <span className="text-sm text-gray-800 font-medium leading-tight">
-                                        {equipment}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
+                                {category === 'Audio - Télécommunications' ? (
+                                  // Style spécial pour Audio - Télécommunications : cartes individuelles avec plus d'espace
+                                  <div className="space-y-3">
+                                    {categorized[category].map((equipment, index) => (
+                                      <div
+                                        key={index}
+                                        className="flex items-start gap-3 p-4 bg-gradient-to-r from-gray-50 to-white hover:from-red-50 hover:to-red-50/30 border border-gray-200 hover:border-red-300 rounded-xl transition-all shadow-sm hover:shadow-md"
+                                      >
+                                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-600 flex items-center justify-center mt-0.5">
+                                          <span className="text-white text-xs font-bold">✓</span>
+                                        </div>
+                                        <span className="text-sm sm:text-base text-gray-800 font-medium leading-relaxed flex-1 pt-0.5">
+                                          {equipment}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  // Style badges pour les autres catégories
+                                  <div className="flex flex-wrap gap-2">
+                                    {categorized[category].map((equipment, index) => (
+                                      <div
+                                        key={index}
+                                        className="inline-flex items-center gap-2 bg-gray-50 hover:bg-red-50 border border-gray-200 hover:border-red-300 rounded-lg px-3 py-2 transition-all group"
+                                      >
+                                        <span className="text-red-600 text-xs font-bold group-hover:scale-110 transition-transform">✓</span>
+                                        <span className="text-sm text-gray-800 font-medium leading-tight">
+                                          {equipment}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
