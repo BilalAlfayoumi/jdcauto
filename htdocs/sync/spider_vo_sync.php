@@ -140,7 +140,16 @@ foreach ($vehicles as $vehiculeXML) {
         $energie = $getCdata($vehiculeXML->energie) ?: 'ESSENCE';
         $typeboite = $getCdata($vehiculeXML->typeboite);
         $carrosserie = $getCdata($vehiculeXML->carrosserie) ?: 'BERLINE';
-        $etat = $getCdata($vehiculeXML->etat) ?: 'Disponible';
+        // Récupérer l'état depuis Spider-VO (peut être "Disponible", "Vendu", "Réservé", etc.)
+        // Si pas d'état dans le XML, on garde l'état existant en base, sinon "Disponible" par défaut
+        $etat = $getCdata($vehiculeXML->etat);
+        if (empty($etat)) {
+            // Si pas d'état dans le XML, vérifier s'il existe déjà en base
+            $checkStmt = $pdo->prepare("SELECT etat FROM vehicles WHERE reference = ?");
+            $checkStmt->execute([$reference]);
+            $existing = $checkStmt->fetch();
+            $etat = $existing ? $existing['etat'] : 'Disponible';
+        }
         
         // Description complète - préserver la structure
         $description = $getCdata($vehiculeXML->description);
