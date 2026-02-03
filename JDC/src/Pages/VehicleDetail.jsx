@@ -35,6 +35,7 @@ export default function VehicleDetail() {
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = React.useState(0);
   const [isKeyInfoOpen, setIsKeyInfoOpen] = React.useState(false);
   const [isEquipmentsOpen, setIsEquipmentsOpen] = React.useState(false);
+  const [isDescriptionOpen, setIsDescriptionOpen] = React.useState(false);
   const [openCategory, setOpenCategory] = React.useState(null);
 
   // Fonction pour catégoriser et organiser les équipements
@@ -715,8 +716,21 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
               {/* Description */}
               {vehicle.description && (
                 <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Description</h2>
-                  <div className="text-gray-700 leading-relaxed">
+                  <button
+                    onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
+                    className="w-full flex items-center justify-between text-2xl font-bold text-gray-900 mb-6 hover:text-red-600 transition-colors cursor-pointer"
+                  >
+                    <span>Description</span>
+                    {isDescriptionOpen ? (
+                      <ChevronUp className="w-6 h-6 transition-transform" />
+                    ) : (
+                      <ChevronDown className="w-6 h-6 transition-transform" />
+                    )}
+                  </button>
+                  <div className={`transition-all duration-300 overflow-hidden ${
+                    isDescriptionOpen ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
+                  }`}>
+                    <div className="text-gray-700 leading-relaxed">
                     {vehicle.description.split('\n').map((line, idx) => {
                       const trimmedLine = line.trim();
                       if (!trimmedLine) return <br key={idx} />;
@@ -754,6 +768,7 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                       // Texte normal (paragraphe)
                       return <p key={idx} className="mb-2">{trimmedLine}</p>;
                     })}
+                    </div>
                   </div>
                 </div>
               )}
