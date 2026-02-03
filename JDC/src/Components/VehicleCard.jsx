@@ -41,9 +41,21 @@ export default function VehicleCard({ vehicle, index = 0 }) {
       <div className="p-5 flex-1 flex flex-col">
         {/* Title */}
         <div className="mb-2">
-          <h3 className="text-xl font-bold text-gray-900 group-hover:text-red-600 transition-colors">
-            {vehicle.brand} {vehicle.model}
-          </h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-xl font-bold text-gray-900 group-hover:text-red-600 transition-colors">
+              {vehicle.brand} {vehicle.model}
+            </h3>
+            {vehicle.status === 'Vendu' && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-500 text-white">
+                VENDU
+              </span>
+            )}
+            {vehicle.status === 'Réservé' && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-500 text-white">
+                RÉSERVÉ
+              </span>
+            )}
+          </div>
           {vehicle.quantity > 1 && (
             <div className="mt-1">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-300">

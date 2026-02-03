@@ -39,8 +39,10 @@ class JDCAutoAPIClient {
       sort: this.parseSortBy(sortBy)
     };
     
-    // Appliquer filtres - TOUJOURS filtrer par Disponible par défaut
-    params.status = filters.status || 'Disponible';
+    // Appliquer filtres - ne filtrer par statut que si spécifié
+    if (filters.status !== undefined && filters.status !== null) {
+      params.status = filters.status;
+    }
     
     if (filters.marque) params.marque = filters.marque;
     if (filters.modele) params.modele = filters.modele;
@@ -112,7 +114,8 @@ class JDCAutoAPIClient {
   async _listVehicles(sortBy = '-created_date', limit = null) {
     console.log('📋 list() appelé avec sortBy:', sortBy, 'limit:', limit);
     try {
-      const result = await this.entities.Vehicle.filter({ status: 'Disponible' }, sortBy, limit);
+      // Ne pas filtrer par statut - retourner tous les véhicules
+      const result = await this.entities.Vehicle.filter({}, sortBy, limit);
       console.log('📋 list() retourne', result?.length || 0, 'véhicules');
       return result;
     } catch (error) {

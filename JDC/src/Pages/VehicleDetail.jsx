@@ -584,35 +584,35 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                   <div className="mb-8">
                     <button
                       onClick={() => setIsEquipmentsOpen(!isEquipmentsOpen)}
-                      className="w-full flex items-center justify-between text-2xl font-bold text-gray-900 mb-6 hover:text-red-600 transition-colors cursor-pointer"
+                      className="w-full flex items-center justify-between text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 hover:text-red-600 transition-colors cursor-pointer px-2 sm:px-0"
                     >
                       <span>Équipements et Options</span>
                       {isEquipmentsOpen ? (
-                        <ChevronUp className="w-6 h-6 transition-transform" />
+                        <ChevronUp className="w-5 h-5 sm:w-6 sm:h-6 transition-transform flex-shrink-0" />
                       ) : (
-                        <ChevronDown className="w-6 h-6 transition-transform" />
+                        <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 transition-transform flex-shrink-0" />
                       )}
                     </button>
                     <div className={`transition-all duration-300 overflow-hidden ${
                       isEquipmentsOpen ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
                     }`}>
-                      <div className="bg-white rounded-lg border border-gray-200 p-6 md:p-8 space-y-8">
+                      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8">
                         {categories.map((category) => (
-                          <div key={category} className="border-b border-gray-200 last:border-b-0 pb-8 last:pb-0">
-                            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                              <span className="w-1.5 h-8 bg-red-600 rounded-full"></span>
-                              {category}
+                          <div key={category} className="border-b border-gray-200 last:border-b-0 pb-6 sm:pb-8 last:pb-0">
+                            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 px-1">
+                              <span className="w-1 sm:w-1.5 h-6 sm:h-8 bg-red-600 rounded-full flex-shrink-0"></span>
+                              <span className="break-words">{category}</span>
                             </h3>
                             {category === 'Audio - Télécommunications' ? (
                               // Style pour Audio - Télécommunications (une colonne avec séparateurs)
-                              <div className="grid grid-cols-1 gap-3">
+                              <div className="grid grid-cols-1 gap-2 sm:gap-3">
                                 {categorized[category].map((equipment, index) => {
                                   const isLast = index === categorized[category].length - 1;
                                   return (
                                     <React.Fragment key={index}>
-                                      <div className="flex items-start gap-4 p-4 bg-white rounded-lg hover:bg-gray-50 hover:shadow-sm transition-all border-l-4 border-red-600">
-                                        <span className="text-red-600 mt-1 flex-shrink-0 text-lg font-bold">✓</span>
-                                        <span className="text-gray-800 leading-relaxed text-base font-medium flex-1 break-words">
+                                      <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 bg-white rounded-lg hover:bg-gray-50 hover:shadow-sm transition-all border-l-4 border-red-600">
+                                        <span className="text-red-600 mt-0.5 sm:mt-1 flex-shrink-0 text-base sm:text-lg font-bold">✓</span>
+                                        <span className="text-gray-800 leading-relaxed text-sm sm:text-base font-medium flex-1 break-words">
                                           {equipment}
                                         </span>
                                       </div>
@@ -624,12 +624,12 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                                 })}
                               </div>
                             ) : (
-                              // Style compact pour les autres sections (2 colonnes avec puces simples)
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                              // Style compact pour les autres sections (responsive: 1 colonne mobile, 2 colonnes desktop)
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 sm:gap-x-6 md:gap-x-8 gap-y-2 sm:gap-y-3">
                                 {categorized[category].map((equipment, index) => (
-                                  <div key={index} className="flex items-start gap-2">
-                                    <span className="text-red-600 mt-1.5 flex-shrink-0 text-sm">•</span>
-                                    <span className="text-gray-700 leading-relaxed text-sm flex-1">
+                                  <div key={index} className="flex items-start gap-2 sm:gap-3 px-1">
+                                    <span className="text-red-600 mt-1 sm:mt-1.5 flex-shrink-0 text-sm sm:text-base">•</span>
+                                    <span className="text-gray-700 leading-relaxed text-sm sm:text-base flex-1 break-words">
                                       {equipment}
                                     </span>
                                   </div>

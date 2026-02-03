@@ -191,7 +191,7 @@ class SimpleVehiclesAPI {
         }
         
         $limit = min((int)($_GET['limit'] ?? 12), 50);
-        $status = $_GET['status'] ?? 'Disponible';
+        $status = $_GET['status'] ?? null; // null = tous les véhicules
         
         // Vérifier si la table existe
         try {
@@ -237,8 +237,10 @@ class SimpleVehiclesAPI {
             $vehiclesSql = "SELECT " . implode(', ', $selectFields) . " 
                            FROM vehicles";
             
-            if ($hasEtat) {
+            $params = [];
+            if ($hasEtat && $status !== null && $status !== '') {
                 $vehiclesSql .= " WHERE etat = ?";
+                $params[] = $status;
             }
             
             // Utiliser updated_at si disponible, sinon date_modif, sinon id
@@ -251,13 +253,10 @@ class SimpleVehiclesAPI {
             }
             
             $vehiclesSql .= " LIMIT ?";
+            $params[] = $limit;
             
             $vehiclesStmt = $this->pdo->prepare($vehiclesSql);
-            if ($hasEtat) {
-                $vehiclesStmt->execute([$status, $limit]);
-            } else {
-                $vehiclesStmt->execute([$limit]);
-            }
+            $vehiclesStmt->execute($params);
             $vehicles = $vehiclesStmt->fetchAll();
             
             // Chaque véhicule est unique, donc quantity = 1

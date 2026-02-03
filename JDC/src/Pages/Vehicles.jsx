@@ -102,9 +102,9 @@ export default function Vehicles() {
 
   // Categories - Supprimé car il n'y a que des voitures
 
-  // Filter vehicles
+  // Filter vehicles (afficher tous les véhicules, y compris les vendus)
   const filteredVehicles = allVehicles.filter(vehicle => {
-    if (vehicle.status !== 'Disponible') return false;
+    // Ne plus filtrer par statut - afficher tous les véhicules
     if (filters.brand && vehicle.brand !== filters.brand) return false;
     if (filters.model && vehicle.model !== filters.model) return false;
     if (vehicle.price < filters.minPrice) return false;
