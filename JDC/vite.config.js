@@ -5,7 +5,12 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   base: '/',
-  plugins: [react()],
+  plugins: [
+    react({
+      // Désactiver certaines optimisations qui peuvent causer des blocages
+      jsxRuntime: 'automatic',
+    })
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -15,5 +20,25 @@ export default defineConfig({
     port: 5173,
     host: true,
     open: true,
+  },
+  build: {
+    // Optimisations pour éviter les blocages
+    minify: 'esbuild',
+    target: 'es2015',
+    // Désactiver le chunking pour simplifier
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+        // Simplifier la sortie
+        entryFileNames: 'assets/[name].js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]',
+      },
+    },
+  },
+  // Optimiser pour iCloud Drive
+  optimizeDeps: {
+    force: false,
   },
 })
