@@ -7,7 +7,6 @@ export default defineConfig({
   base: '/',
   plugins: [
     react({
-      // Désactiver certaines optimisations qui peuvent causer des blocages
       jsxRuntime: 'automatic',
     })
   ],
@@ -20,25 +19,38 @@ export default defineConfig({
     port: 5173,
     host: true,
     open: true,
+    watch: {
+      ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/src/backend/**'],
+    },
   },
   build: {
-    // Optimisations pour éviter les blocages
+    // Configuration optimisée pour éviter les blocages
     minify: 'esbuild',
     target: 'es2015',
-    // Désactiver le chunking pour simplifier
     chunkSizeWarningLimit: 1000,
+    // Désactiver le sourcemap en production pour accélérer
+    sourcemap: false,
+    // Réduire la taille des chunks
+    cssCodeSplit: true,
     rollupOptions: {
       output: {
-        manualChunks: undefined,
-        // Simplifier la sortie
-        entryFileNames: 'assets/[name].js',
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name].[ext]',
+        // Simplifier la sortie pour éviter les blocages
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+        // Limiter le nombre de chunks
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+        },
       },
     },
+    // Limiter les workers pour éviter les blocages avec iCloud
+    reportCompressedSize: false,
   },
   // Optimiser pour iCloud Drive
   optimizeDeps: {
     force: false,
+    include: ['react', 'react-dom', 'react-router-dom'],
   },
 })
