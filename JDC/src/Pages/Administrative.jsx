@@ -128,7 +128,11 @@ export default function Administrative() {
                   <Clock className="w-6 h-6" />
                   <div>
                     <p className="font-semibold text-lg">Horaires d'ouverture</p>
-                    <p className="text-red-100">Du lundi au vendredi de 9h à 12H et de 14h à 19h</p>
+                    <p className="text-red-100">
+                      Lundi : 14h - 19h30<br />
+                      Mardi au jeudi : 9H - 12h et 14h - 17h30<br />
+                      Vendredi : 9H - 13h
+                    </p>
                   </div>
                 </div>
                 <div className="flex flex-col md:flex-row gap-4">
