@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import VehicleCard from '../Components/VehicleCard';
 import VehicleListItem from '../Components/VehicleListItem';
@@ -51,10 +50,16 @@ export default function Vehicles() {
   const [currentPage, setCurrentPage] = useState(1);
   const vehiclesPerPage = 12;
 
-  // Fetch all vehicles
+  // Fetch all vehicles from PHP API
   const { data: allVehicles = [], isLoading } = useQuery({
     queryKey: ['vehicles'],
-    queryFn: () => base44.entities.Vehicle.list('-created_date', 100), // Augmenter limite à 100
+    queryFn: async () => {
+      const response = await fetch('/api/index.php?action=vehicles&limit=100');
+      if (!response.ok) throw new Error('Erreur API');
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Erreur API');
+      return data.data || [];
+    },
     staleTime: 0, // Toujours rafraîchir
     cacheTime: 0, // Pas de cache
   });
