@@ -257,8 +257,8 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Image à gauche */}
-            <AnimatedSection animation="fade-right" className="order-2 lg:order-1">
-              <div className="relative rounded-xl overflow-hidden shadow-2xl">
+            <AnimatedSection animation="pop" delay={100} className="order-2 lg:order-1">
+              <div className="relative rounded-xl overflow-hidden shadow-2xl transform transition-all duration-500 hover:scale-105">
                 <img
                   src="/jdcauto-1.jpg"
                   alt="JDC Auto"
