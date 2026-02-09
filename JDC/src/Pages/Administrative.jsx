@@ -215,7 +215,20 @@ export default function Administrative() {
                     {item.subtitle && (
                       <p className="text-sm text-gray-600 mb-3">{item.subtitle}</p>
                     )}
-                    <div className="text-3xl font-bold text-red-600 mb-1">{item.price}</div>
+                    <div className="text-3xl font-bold text-red-600 mb-1">
+                      {item.price.includes('€') ? (
+                        (() => {
+                          const [euros, centimes] = item.price.split('€');
+                          return (
+                            <>
+                              {euros}€<span className="text-xl">{centimes}</span>
+                            </>
+                          );
+                        })()
+                      ) : (
+                        item.price
+                      )}
+                    </div>
                     <p className="text-sm text-gray-600">{item.note}</p>
                   </div>
                 ))}
