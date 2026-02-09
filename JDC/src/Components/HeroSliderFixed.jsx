@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 const heroSlides = [
   {
     image: '/lambo.jpg',
-    title: 'JDC Auto – Achat et vente de véhicules d\'occasion en toute confiance',
+    title: 'JDC Auto – Achat et vente de véhicules d\'occasion et neuf en toute confiance',
     subtitle: 'Garantie • Sécurité • Accompagnement personnalisé',
     ctaPrimary: { text: 'Voir nos véhicules', link: 'Vehicles' },
     ctaSecondary: { text: 'Faire estimer ma voiture', link: 'TradeIn' }

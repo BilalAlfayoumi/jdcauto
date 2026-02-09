@@ -102,9 +102,9 @@ export default function Vehicles() {
 
   // Categories - Supprimé car il n'y a que des voitures
 
-  // Filter vehicles (afficher tous les véhicules, y compris les vendus)
+  // Filter vehicles
   const filteredVehicles = allVehicles.filter(vehicle => {
-    // Ne plus filtrer par statut - afficher tous les véhicules
+    if (vehicle.status !== 'Disponible') return false;
     if (filters.brand && vehicle.brand !== filters.brand) return false;
     if (filters.model && vehicle.model !== filters.model) return false;
     if (vehicle.price < filters.minPrice) return false;
@@ -254,7 +254,7 @@ export default function Vehicles() {
                   </label>
                   <select
                     value={filters.brand}
-                    onChange={(e) => setFilters({ ...filters, brand: e.target.value, model: '' })}
+                    onChange={(e) => setFilters({ ...filters, brand: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-600"
                   >
                     <option value="">Toutes les marques</option>
@@ -262,27 +262,6 @@ export default function Vehicles() {
                       <option key={brand} value={brand}>{brand}</option>
                     ))}
                   </select>
-                </div>
-
-                {/* Modèle */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Modèle
-                  </label>
-                  <select
-                    value={filters.model}
-                    onChange={(e) => setFilters({ ...filters, model: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    disabled={!filters.brand}
-                  >
-                    <option value="">Tous les modèles</option>
-                    {uniqueModels.map(model => (
-                      <option key={model} value={model}>{model}</option>
-                    ))}
-                  </select>
-                  {!filters.brand && (
-                    <p className="text-xs text-gray-500 mt-1">Sélectionnez d'abord une marque</p>
-                  )}
                 </div>
 
                 {/* Prix */}

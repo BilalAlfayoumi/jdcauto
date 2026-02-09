@@ -160,57 +160,62 @@ export default function Administrative() {
               Nos tarifs transparents
             </h2>
             <div className="max-w-4xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
                   {
                     title: 'Changement de titulaire',
-                    price: '30€',
-                    note: 'TTC *',
-                    popular: false
+                    subtitle: 'Cas standard',
+                    price: '36€24',
+                    note: 'TTC',
+                    popular: true
                   },
                   {
-                    title: '1ère immatriculation en France',
-                    price: '40€',
+                    title: 'Changement de titulaire',
+                    subtitle: 'Cas particulier (véhicule étranger, héritage, fiche immobilisation, erreur enregistrement cession...)',
+                    price: '46€24',
                     note: 'TTC',
                     popular: false
                   },
                   {
+                    title: 'Duplicata',
+                    subtitle: 'Suite à une perte/vol/détérioré',
+                    price: '46€24',
+                    note: 'TTC (+ 20€ si besoin de la FIV pour le CT)',
+                    popular: false
+                  },
+                  {
                     title: 'Changement de domicile',
-                    price: '15€',
-                    note: 'TTC *',
+                    subtitle: '',
+                    price: '22€',
+                    note: 'TTC',
                     popular: false
                   },
                   {
-                    title: 'Duplicata carte grise',
-                    price: '30€',
-                    note: 'TTC *',
+                    title: 'Enregistrement de la cession',
+                    subtitle: '',
+                    price: '22€',
+                    note: 'TTC',
                     popular: false
-                  },
-                  {
-                    title: '2 plaques d\'immatriculation posées',
-                    price: '32€',
-                    note: 'TTC (Département 33)',
-                    popular: true
                   }
                 ].map((item, index) => (
                   <div 
                     key={index} 
-                    className={`border-2 ${item.popular ? 'border-red-600 bg-red-50' : 'border-gray-200 hover:border-red-600'} rounded-lg p-6 text-center transition-colors`}
+                    className={`border-2 ${item.popular ? 'border-red-600 bg-red-50' : 'border-gray-200 hover:border-red-600'} rounded-lg p-6 transition-colors`}
                   >
                     {item.popular && (
-                      <div className="inline-block bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-2">
+                      <div className="inline-block bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-3">
                         POPULAIRE
                       </div>
                     )}
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h3>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">{item.title}</h3>
+                    {item.subtitle && (
+                      <p className="text-sm text-gray-600 mb-3">{item.subtitle}</p>
+                    )}
                     <div className="text-3xl font-bold text-red-600 mb-1">{item.price}</div>
                     <p className="text-sm text-gray-600">{item.note}</p>
                   </div>
                 ))}
               </div>
-              <p className="text-center text-gray-600 text-sm mt-6">
-                * +10€ si dossier à transférer sur le site de l'ANTS
-              </p>
               <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
                 <p className="text-sm text-blue-800">
                   <strong>Professionnel habilité & agréé MINISTÈRE DE L'INTÉRIEUR</strong>

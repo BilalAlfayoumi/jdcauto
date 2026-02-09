@@ -190,9 +190,8 @@ class SimpleVehiclesAPI {
             return $this->error('Base de données non configurée. Veuillez exécuter install/setup.php', 503);
         }
         
-        $limit = min((int)($_GET['limit'] ?? 12), 100);
-        // Ne pas filtrer par statut - retourner tous les véhicules
-        $status = isset($_GET['status']) && $_GET['status'] !== '' ? $_GET['status'] : null;
+        $limit = min((int)($_GET['limit'] ?? 12), 50);
+        $status = $_GET['status'] ?? 'Disponible';
         
         // Vérifier si la table existe
         try {
@@ -238,10 +237,8 @@ class SimpleVehiclesAPI {
             $vehiclesSql = "SELECT " . implode(', ', $selectFields) . " 
                            FROM vehicles";
             
-            $params = [];
-            if ($hasEtat && $status !== null && $status !== '') {
+            if ($hasEtat) {
                 $vehiclesSql .= " WHERE etat = ?";
-                $params[] = $status;
             }
             
             // Utiliser updated_at si disponible, sinon date_modif, sinon id
@@ -254,10 +251,13 @@ class SimpleVehiclesAPI {
             }
             
             $vehiclesSql .= " LIMIT ?";
-            $params[] = $limit;
             
             $vehiclesStmt = $this->pdo->prepare($vehiclesSql);
-            $vehiclesStmt->execute($params);
+            if ($hasEtat) {
+                $vehiclesStmt->execute([$status, $limit]);
+            } else {
+                $vehiclesStmt->execute([$limit]);
+            }
             $vehicles = $vehiclesStmt->fetchAll();
             
             // Chaque véhicule est unique, donc quantity = 1

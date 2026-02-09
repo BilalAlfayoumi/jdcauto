@@ -55,7 +55,6 @@ export default function TradeIn() {
     year: new Date().getFullYear(),
     mileage: '',
     fuelType: '',
-    licensePlate: '', // Numéro de plaque d'immatriculation
     // Step 1: Project
     sellDelay: '',
     buyingProject: '',
@@ -90,7 +89,6 @@ DÉTAILS DU VÉHICULE À REPRENDRE :
 - Année : ${data.year || 'Non renseigné'}
 - Kilométrage : ${data.mileage ? `${data.mileage} km` : 'Non renseigné'}
 - Carburant : ${data.fuelType || 'Non renseigné'}
-- Numéro de plaque d'immatriculation : ${data.licensePlate || 'Non renseigné'}
 
 PROJET :
 - Délai de vente souhaité : ${data.sellDelay || 'Non renseigné'}
@@ -115,7 +113,6 @@ ${data.message ? `\nMESSAGE DU CLIENT :\n${data.message}` : ''}
         vehicle_year: data.year ? String(data.year) : 'Non renseigné',
         vehicle_mileage: data.mileage ? `${data.mileage} km` : 'Non renseigné',
         vehicle_fuel: data.fuelType || 'Non renseigné',
-        vehicle_license_plate: data.licensePlate || 'Non renseigné',
         sell_delay: data.sellDelay || 'Non renseigné',
         buying_project: data.buyingProject || 'Non renseigné'
       };
@@ -491,20 +488,6 @@ ${data.message ? `\nMESSAGE DU CLIENT :\n${data.message}` : ''}
                         <option value="Électrique">Électrique</option>
                         <option value="GPL">GPL</option>
                       </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Numéro de plaque d'immatriculation
-                      </label>
-                      <input
-                        type="text"
-                        name="licensePlate"
-                        value={formData.licensePlate}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all"
-                        placeholder="Ex: AB-123-CD"
-                        maxLength="9"
-                      />
                     </div>
                   </div>
                 </div>

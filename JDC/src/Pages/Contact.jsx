@@ -291,7 +291,7 @@ export default function Contact() {
         <div 
           className="absolute inset-0 w-full h-[120%] bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-out"
           style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=80)',
+            backgroundImage: 'url(/lambo_jaune.png)',
             opacity: isLoaded ? opacity : 0,
             transform: isLoaded ? `translateY(${translateY}px) scale(1)` : 'translateY(0px) scale(1.1)',
             transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
