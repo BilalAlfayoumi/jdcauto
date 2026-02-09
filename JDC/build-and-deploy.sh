@@ -19,9 +19,9 @@ echo "📦 Build en cours..."
 export NODE_OPTIONS="--max-old-space-size=4096"
 export VITE_MAX_WORKERS=1
 
-# Build avec timeout de 5 minutes
-timeout 300 npm run build || {
-    echo "⚠️  Build a pris trop de temps, mais on continue..."
+# Build (sans timeout sur macOS)
+npm run build || {
+    echo "⚠️  Erreur lors du build..."
     # Vérifier si dist existe quand même
     if [ ! -d "dist" ]; then
         echo "❌ Le dossier dist n'existe pas. Build échoué."
