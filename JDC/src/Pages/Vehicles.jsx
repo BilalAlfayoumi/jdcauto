@@ -259,7 +259,7 @@ export default function Vehicles() {
                   </label>
                   <select
                     value={filters.brand}
-                    onChange={(e) => setFilters({ ...filters, brand: e.target.value })}
+                    onChange={(e) => setFilters({ ...filters, brand: e.target.value, model: '' })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-600"
                   >
                     <option value="">Toutes les marques</option>
@@ -268,6 +268,29 @@ export default function Vehicles() {
                     ))}
                   </select>
                 </div>
+
+                {/* Modèle */}
+                {filters.brand && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Modèle
+                    </label>
+                    {uniqueModels.length > 0 ? (
+                      <select
+                        value={filters.model}
+                        onChange={(e) => setFilters({ ...filters, model: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-600"
+                      >
+                        <option value="">Tous les modèles</option>
+                        {uniqueModels.map(model => (
+                          <option key={model} value={model}>{model}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">Sélectionnez d'abord une marque</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Prix */}
                 <div>

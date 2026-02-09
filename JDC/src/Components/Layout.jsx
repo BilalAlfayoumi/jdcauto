@@ -45,7 +45,7 @@ export default function Layout({ children }) {
           </div>
           <div className="hidden md:flex items-center gap-2 text-xs text-gray-300">
             <MapPin className="w-4 h-4 text-red-500" />
-            <span>Du lundi au vendredi: 08H00 - 12H00 & 14H00-19H30</span>
+            <span>Du lundi au vendredi: 08H00 - 12H00 & 14H00-19H30 | Le samedi: Sur rendez-vous</span>
           </div>
         </div>
       </div>
