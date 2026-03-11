@@ -15,11 +15,35 @@ if (!$isCLI) {
     echo "<h1>🔄 Synchronisation Spider-VO</h1>\n";
 }
 
+function shouldUseEnvironmentDbConfig() {
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    $forced = getenv('USE_ENV_DB_CONFIG');
+
+    if ($forced !== false) {
+        return in_array(strtolower((string)$forced), ['1', 'true', 'yes', 'on'], true);
+    }
+
+    if (php_sapi_name() === 'cli') {
+        return true;
+    }
+
+    return strpos($host, 'localhost') !== false
+        || strpos($host, '127.0.0.1') !== false
+        || strpos($host, 'php') !== false;
+}
+
 // Configuration
-$host = getenv('DB_HOST') ?: 'localhost';
-$dbname = getenv('DB_NAME') ?: 'jdcauto';
-$username = getenv('DB_USER') ?: 'root';
-$password = getenv('DB_PASSWORD') ?: '';
+if (shouldUseEnvironmentDbConfig()) {
+    $host = getenv('DB_HOST') ?: 'localhost';
+    $dbname = getenv('DB_NAME') ?: 'jdcauto';
+    $username = getenv('DB_USER') ?: 'root';
+    $password = getenv('DB_PASSWORD') ?: '';
+} else {
+    $host = 'localhost';
+    $dbname = 'jdcauto';
+    $username = 'root';
+    $password = '';
+}
 
 // ⚠️ IMPORTANT : URL du flux XML Spider-VO
 // URL fournie par Spider-VO dans votre compte
