@@ -88,7 +88,29 @@ spl_autoload_register(function ($className) {
 class GandiDatabaseConfig {
     private static $connection = null;
 
+    private static function shouldUseEnvironmentConfig() {
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        $forced = getenv('USE_ENV_DB_CONFIG');
+
+        if ($forced !== false) {
+            return in_array(strtolower((string)$forced), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return strpos($host, 'localhost') !== false
+            || strpos($host, '127.0.0.1') !== false
+            || strpos($host, 'php') !== false;
+    }
+
     private static function getConfig() {
+        if (!self::shouldUseEnvironmentConfig()) {
+            return [
+                'host' => 'localhost',
+                'dbname' => 'jdcauto',
+                'username' => 'root',
+                'password' => ''
+            ];
+        }
+
         return [
             'host' => getenv('DB_HOST') ?: 'localhost',
             'dbname' => getenv('DB_NAME') ?: 'jdcauto',
