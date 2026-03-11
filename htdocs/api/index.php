@@ -181,6 +181,7 @@ class SimpleVehiclesAPI {
     private const SESSION_ROTATE_INTERVAL_SECONDS = 900;
     private const VEHICLE_IMAGE_PROXY_HOST_SUFFIXES = [
         'edge.scw.cloud',
+        's3.fr-par.scw.cloud',
     ];
     
     public function __construct() {
