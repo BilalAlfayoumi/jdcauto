@@ -336,7 +336,7 @@ export default function AdminCarteGrise() {
       )}
     >
       <div className="space-y-8">
-        <section className="rounded-[32px] bg-gradient-to-br from-white via-slate-50 to-red-50 p-6 shadow-xl border border-slate-200">
+        <section className="rounded-[32px] bg-gradient-to-br from-white via-slate-50 to-red-50 p-4 sm:p-6 shadow-xl border border-slate-200">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
@@ -348,7 +348,7 @@ export default function AdminCarteGrise() {
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 min-w-full sm:min-w-[360px]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 min-w-full sm:min-w-[360px]">
               <div className="rounded-3xl border border-slate-200 bg-white px-4 py-4">
                 <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Tarifs</p>
                 <p className="mt-2 text-2xl font-bold text-slate-950">{stats.pricing}</p>
@@ -378,11 +378,11 @@ export default function AdminCarteGrise() {
         </section>
 
         <div className="bg-gray-50 rounded-[32px] overflow-hidden shadow-lg border border-slate-200">
-          <div className="max-w-7xl mx-auto px-4 py-12">
-            <section className="bg-white rounded-lg shadow-md p-8 mb-12">
+          <div className="max-w-7xl mx-auto px-4 py-8 sm:py-12">
+            <section className="bg-white rounded-lg shadow-md p-4 sm:p-8 mb-8 sm:mb-12">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
                 <div>
-                  <h2 className="text-3xl font-bold text-gray-900">Nos tarifs transparents</h2>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Nos tarifs transparents</h2>
                   <p className="mt-2 text-gray-600">Clique sur une carte pour la modifier directement.</p>
                 </div>
                 <ActionButton onClick={addPricingItem}>
@@ -396,11 +396,11 @@ export default function AdminCarteGrise() {
                   <div
                     id={`pricing-block-${index}`}
                     key={item.id}
-                    className={`border-2 rounded-lg p-6 transition-all ${
+                    className={`border-2 rounded-lg p-4 sm:p-6 transition-all ${
                       item.popular ? 'border-red-600 bg-red-50' : 'border-gray-200 hover:border-red-600'
                     } ${selectedPricingIndex === index ? 'ring-4 ring-red-100' : ''}`}
                   >
-                    <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                       <div>
                         {item.popular && (
                           <div className="inline-block bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-3">
@@ -413,7 +413,7 @@ export default function AdminCarteGrise() {
                         )}
                       </div>
 
-                      <div className="flex flex-wrap justify-end gap-2">
+                      <div className="flex flex-wrap gap-2 sm:justify-end">
                         <ActionButton onClick={() => setSelectedPricingIndex(selectedPricingIndex === index ? null : index)}>
                           {selectedPricingIndex === index ? 'Fermer' : 'Modifier'}
                         </ActionButton>
@@ -506,10 +506,10 @@ export default function AdminCarteGrise() {
               </div>
             </section>
 
-            <section className="bg-white rounded-lg shadow-md p-8 mb-12">
+            <section className="bg-white rounded-lg shadow-md p-4 sm:p-8 mb-12">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
                 <div>
-                  <h2 className="text-3xl font-bold text-gray-900">Documents nécessaires pour l'élaboration d'une carte grise</h2>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Documents nécessaires pour l'élaboration d'une carte grise</h2>
                   <p className="mt-2 text-gray-600">Même principe : clique sur une section pour la modifier en dessous.</p>
                 </div>
                 <ActionButton onClick={addSection}>
@@ -525,7 +525,7 @@ export default function AdminCarteGrise() {
                     className={`rounded-xl ${selectedSectionIndex === sectionIndex ? 'ring-4 ring-red-100' : ''}`}
                   >
                     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-4">
-                      <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-3">
                         <FileText className="w-7 h-7 text-red-600" />
                         {section.title || `Section ${sectionIndex + 1}`}
                       </h3>
@@ -546,7 +546,7 @@ export default function AdminCarteGrise() {
                       </div>
                     </div>
 
-                    <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                    <div className="bg-gray-50 rounded-lg p-4 sm:p-6 space-y-4">
                       {selectedSectionIndex === sectionIndex ? (
                         <div className="space-y-5 rounded-3xl border-2 border-dashed border-red-200 bg-white/80 p-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

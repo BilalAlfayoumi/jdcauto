@@ -286,16 +286,17 @@ export default function Contact() {
   return (
     <div className="bg-white min-h-screen">
       {/* Hero Section avec image dynamique et effets de scroll */}
-      <div className="relative h-[90vh] min-h-[600px] overflow-hidden">
+      <div className="relative h-[72vh] min-h-[420px] sm:min-h-[520px] md:h-[82vh] md:min-h-[600px] overflow-hidden">
         {/* Image de fond avec effets de parallaxe et fade-out */}
         <div 
-          className="absolute inset-0 w-full h-[120%] bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-out"
+          className="absolute inset-0 w-full h-[112%] sm:h-[120%] bg-cover bg-no-repeat transition-all duration-1000 ease-out bg-[center_top]"
           style={{
             backgroundImage: 'url(/lambo_jaune.png)',
             opacity: isLoaded ? opacity : 0,
             transform: isLoaded ? `translateY(${translateY}px) scale(1)` : 'translateY(0px) scale(1.1)',
             transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
-            willChange: 'opacity, transform'
+            willChange: 'opacity, transform',
+            backgroundPosition: '68% center',
           }}
         >
           {/* Overlay gradient pour améliorer la lisibilité */}
@@ -318,11 +319,11 @@ export default function Contact() {
                 transition: 'opacity 0.8s ease-out 0.2s, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s'
             }}
           >
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight">
               Contactez notre agence
             </h1>
               <p 
-                className="text-xl md:text-2xl lg:text-3xl text-gray-200 mb-10 font-light transition-all duration-1000 ease-out"
+                className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-gray-200 mb-8 sm:mb-10 font-light transition-all duration-1000 ease-out"
                 style={{
                   opacity: isLoaded ? 1 : 0,
                   transform: isLoaded ? 'translateY(0)' : 'translateY(20px)',
@@ -337,8 +338,8 @@ export default function Contact() {
       </div>
 
       {/* Bloc d'informations clés avec icônes */}
-      <AnimatedSection animation="fade-up" className="max-w-7xl mx-auto px-4 -mt-20 relative z-20">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 border border-gray-100">
+      <AnimatedSection animation="fade-up" className="max-w-7xl mx-auto px-4 -mt-12 sm:-mt-16 md:-mt-20 relative z-20">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 md:p-12 border border-gray-100">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             <AnimatedSection animation="fade-up" delay={100}>
               <div className="text-center md:text-left">

@@ -7,8 +7,8 @@ import { adminLogin, adminLogout, getAdminSession } from '../api/adminClient';
 
 function LoginScreen({ username, password, setUsername, setPassword, loginMutation }) {
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white text-slate-900 rounded-3xl shadow-2xl p-8">
+    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-md bg-white text-slate-900 rounded-3xl shadow-2xl p-5 sm:p-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center">
             <ShieldCheck className="w-6 h-6" />
@@ -162,12 +162,12 @@ export default function AdminShell({ activeTab, headerActions = null, children }
   return (
     <div className="min-h-screen bg-slate-100">
       <header className="bg-slate-950 text-white">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-6">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
             <img
               src="/LOGO.jpg"
               alt="JDC Auto"
-              className="h-14 w-auto object-contain"
+              className="h-12 sm:h-14 w-auto object-contain"
               onError={(event) => {
                 event.currentTarget.style.display = 'none';
               }}
@@ -175,7 +175,7 @@ export default function AdminShell({ activeTab, headerActions = null, children }
             <nav className="flex flex-wrap gap-2">
               <NavLink
                 to="/admin/vehicles"
-                className={`px-4 py-2 rounded-2xl font-semibold transition-colors ${
+                className={`px-3 sm:px-4 py-2 rounded-2xl font-semibold transition-colors text-sm sm:text-base ${
                   activeTab === 'vehicles' ? 'bg-white text-slate-950' : 'bg-white/10 hover:bg-white/20 text-white'
                 }`}
               >
@@ -183,7 +183,7 @@ export default function AdminShell({ activeTab, headerActions = null, children }
               </NavLink>
               <NavLink
                 to="/admin/carte-grise"
-                className={`px-4 py-2 rounded-2xl font-semibold transition-colors ${
+                className={`px-3 sm:px-4 py-2 rounded-2xl font-semibold transition-colors text-sm sm:text-base ${
                   activeTab === 'carte-grise' ? 'bg-white text-slate-950' : 'bg-white/10 hover:bg-white/20 text-white'
                 }`}
               >
@@ -192,16 +192,16 @@ export default function AdminShell({ activeTab, headerActions = null, children }
             </nav>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
             {headerActions}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 text-sm">
+            <div className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white/10 text-sm">
               <UserRound className="w-4 h-4" />
               {sessionQuery.data.username || 'admin'}
             </div>
             <button
               type="button"
               onClick={() => logoutMutation.mutate()}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Déconnexion
@@ -210,7 +210,7 @@ export default function AdminShell({ activeTab, headerActions = null, children }
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
         {children}
       </div>
     </div>

@@ -104,15 +104,15 @@ export default function AdminVehicles() {
       )}
     >
       <div className="space-y-8">
-        <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+        <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center">
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shrink-0">
                 <Car className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">Statut des véhicules</h1>
-                <p className="text-slate-500">Filtres avancés, pagination et lien direct vers la fiche publique.</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Statut des véhicules</h1>
+                <p className="text-sm sm:text-base text-slate-500">Filtres avancés, pagination et lien direct vers la fiche publique.</p>
               </div>
             </div>
 
@@ -216,13 +216,13 @@ export default function AdminVehicles() {
             <>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {vehicles.map((vehicle) => (
-                  <div key={vehicle.id} className="rounded-3xl border border-slate-200 p-4 md:p-5 bg-slate-50">
+                  <div key={vehicle.id} className="rounded-3xl border border-slate-200 p-4 md:p-5 bg-slate-50 overflow-hidden">
                     <div className="flex flex-col gap-4 h-full">
-                      <div className="flex gap-4 items-start">
+                      <div className="flex flex-col sm:flex-row gap-4 items-start">
                         <img
                           src={vehicle.image_url || DEFAULT_VEHICLE_IMAGE}
                           alt={`${vehicle.brand} ${vehicle.model}`}
-                          className="w-28 h-20 rounded-2xl object-cover border border-slate-200"
+                          className="w-full sm:w-28 h-44 sm:h-20 rounded-2xl object-cover border border-slate-200 shrink-0"
                           onError={(event) => {
                             event.currentTarget.src = DEFAULT_VEHICLE_IMAGE;
                           }}
@@ -230,7 +230,7 @@ export default function AdminVehicles() {
 
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-lg font-bold text-slate-900">
+                            <h3 className="text-base sm:text-lg font-bold text-slate-900 break-words">
                               {vehicle.brand} {vehicle.model}
                             </h3>
                             <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusBadgeClasses(vehicle.status)}`}>
@@ -242,7 +242,7 @@ export default function AdminVehicles() {
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-slate-500 mt-1">
+                          <p className="text-sm text-slate-500 mt-1 break-words">
                             Réf. {vehicle.reference} • {vehicle.year} • {vehicle.mileage.toLocaleString('fr-FR')} km • {vehicle.price.toLocaleString('fr-FR')} €
                           </p>
                           {vehicle.version && (
@@ -275,7 +275,7 @@ export default function AdminVehicles() {
                               [vehicle.id]: event.target.value,
                             }));
                           }}
-                          className="rounded-2xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-600"
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-600"
                         >
                           <option value="AUTO">Automatique (Spider)</option>
                           <option value="Disponible">Disponible</option>
@@ -297,7 +297,7 @@ export default function AdminVehicles() {
                             });
                           }}
                           disabled={updateStatusMutation.isPending}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 text-white px-4 py-3 font-semibold hover:bg-black transition-colors disabled:opacity-60"
+                          className="w-full md:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 text-white px-4 py-3 font-semibold hover:bg-black transition-colors disabled:opacity-60"
                         >
                           <Save className="w-4 h-4" />
                           Enregistrer
@@ -319,12 +319,12 @@ export default function AdminVehicles() {
                   <p className="text-sm text-slate-500">
                     Page {pagination.page} / {pagination.total_pages}
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex w-full md:w-auto items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setPage((current) => Math.max(1, current - 1))}
                       disabled={pagination.page <= 1}
-                      className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 disabled:opacity-50"
+                      className="flex-1 md:flex-none px-4 py-2 rounded-xl border border-slate-300 text-slate-700 disabled:opacity-50"
                     >
                       Précédent
                     </button>
@@ -332,7 +332,7 @@ export default function AdminVehicles() {
                       type="button"
                       onClick={() => setPage((current) => Math.min(pagination.total_pages, current + 1))}
                       disabled={pagination.page >= pagination.total_pages}
-                      className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 disabled:opacity-50"
+                      className="flex-1 md:flex-none px-4 py-2 rounded-xl border border-slate-300 text-slate-700 disabled:opacity-50"
                     >
                       Suivant
                     </button>
