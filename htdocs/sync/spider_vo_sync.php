@@ -242,6 +242,56 @@ function mergeDuplicateVehicles(PDO $pdo) {
     ];
 }
 
+function removeStaleAvailableVehicles(PDO $pdo, array $processedReferences) {
+    $processedReferences = array_values(array_unique(array_filter(array_map('trim', $processedReferences))));
+    if (empty($processedReferences)) {
+        return 0;
+    }
+
+    $hasVehicleOptions = $pdo->query("SHOW TABLES LIKE 'vehicle_options'")->rowCount() > 0;
+    $placeholders = implode(',', array_fill(0, count($processedReferences), '?'));
+
+    $sql = "
+        SELECT id
+        FROM vehicles
+        WHERE reference NOT IN ($placeholders)
+          AND (manual_status_override IS NULL OR manual_status_override = '')
+          AND (etat = 'Disponible' OR synced_status = 'Disponible' OR synced_status IS NULL)
+    ";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($processedReferences);
+    $staleIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+
+    if (empty($staleIds)) {
+        return 0;
+    }
+
+    $deletePlaceholders = implode(',', array_fill(0, count($staleIds), '?'));
+
+    $pdo->beginTransaction();
+    try {
+        $deletePhotosStmt = $pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id IN ($deletePlaceholders)");
+        $deletePhotosStmt->execute($staleIds);
+
+        if ($hasVehicleOptions) {
+            $deleteOptionsStmt = $pdo->prepare("DELETE FROM vehicle_options WHERE vehicle_id IN ($deletePlaceholders)");
+            $deleteOptionsStmt->execute($staleIds);
+        }
+
+        $deleteVehiclesStmt = $pdo->prepare("DELETE FROM vehicles WHERE id IN ($deletePlaceholders)");
+        $deleteVehiclesStmt->execute($staleIds);
+
+        $pdo->commit();
+        return count($staleIds);
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $exception;
+    }
+}
+
 try {
     $pdo = new PDO(
         "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
@@ -331,6 +381,7 @@ $updated = 0;
 $errors = 0;
 $photosImported = 0;
 $duplicatesSkipped = 0;
+$processedReferences = [];
 
 logMessage("Début de l'import...", 'info');
 
@@ -338,6 +389,7 @@ foreach ($vehicles as $vehiculeXML) {
     try {
         $reference = $getCdata($vehiculeXML->reference);
         if (empty($reference)) continue;
+        $processedReferences[] = $reference;
         
         // Extraire données
         $marque = $getCdata($vehiculeXML->marque) ?: '';
@@ -690,6 +742,11 @@ $duplicateCleanup = mergeDuplicateVehicles($pdo);
 if ($duplicateCleanup['groups_merged'] > 0) {
     logMessage("Nettoyage doublons en base: {$duplicateCleanup['groups_merged']} groupes fusionnés", 'info');
     logMessage("Doublons supprimés: {$duplicateCleanup['vehicles_removed']} véhicules", 'info');
+}
+
+$staleVehiclesRemoved = removeStaleAvailableVehicles($pdo, $processedReferences);
+if ($staleVehiclesRemoved > 0) {
+    logMessage("Véhicules obsolètes supprimés: $staleVehiclesRemoved", 'info');
 }
 
 // Résumé
