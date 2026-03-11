@@ -18,10 +18,11 @@ Utilisez le script `deploy.sh` pour automatiser tout le processus :
 
 Ce script va :
 1. ✅ Construire le projet (npm run build)
-2. ✅ Committer les changements
-3. ✅ Pousser vers GitHub (origin)
-4. ✅ Pousser vers Gandi
-5. ✅ Déployer sur le serveur
+2. ✅ Copier `JDC/dist` vers `htdocs/`
+3. ✅ Committer les changements
+4. ✅ Pousser vers GitHub (origin)
+5. ✅ Pousser vers Gandi
+6. ✅ Déployer sur le serveur
 
 ## Méthode 2 : Déploiement manuel
 
@@ -30,6 +31,7 @@ Ce script va :
 ```bash
 cd JDC
 npm run build
+cp -R dist/. ../htdocs/
 cd ..
 ```
 
@@ -67,6 +69,7 @@ Après le déploiement, votre site devrait être disponible sur :
 ## Notes importantes
 
 - Le dossier `dist` doit être commité pour que Gandi puisse déployer le site
+- Le site publié par Gandi sert le dossier `htdocs`, donc il faut toujours recopier `JDC/dist/*` dans `htdocs/` avant le push
 - Assurez-vous d'être sur la branche `main` avant de déployer
 - Le script de déploiement vérifie automatiquement la branche actuelle
 - Avant de déployer l'admin, configurez son identifiant et idéalement un hash de mot de passe via `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH`, ou via un fichier serveur non versionné `htdocs/config/admin_auth.local.php`

@@ -25,6 +25,10 @@ fi
 echo "📦 Construction du projet..."
 npm run build
 
+# Synchroniser le build React vers htdocs, qui est le dossier servi en production
+echo "🔁 Synchronisation du build vers htdocs..."
+cp -R dist/. ../htdocs/
+
 # Retourner à la racine pour les commits Git
 cd ..
 
