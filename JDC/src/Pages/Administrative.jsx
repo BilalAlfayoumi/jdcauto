@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { useParallax } from '../hooks/useParallax';
 import AnimatedSection from '../Components/AnimatedSection';
+import { getCarteGriseContent } from '../api/adminClient';
+import { defaultCarteGriseContent } from '../data/carteGriseContent';
 import { 
   FileText, 
   CheckCircle,
@@ -17,6 +20,13 @@ import {
   ExternalLink
 } from 'lucide-react';
 
+const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+
+function isImageFile(path = '') {
+  const lower = path.toLowerCase();
+  return imageExtensions.some((extension) => lower.endsWith(extension));
+}
+
 export default function Administrative() {
   const { opacity, translateY } = useParallax();
   const [isLoaded, setIsLoaded] = useState(false);
@@ -27,6 +37,17 @@ export default function Administrative() {
   useEffect(() => {
     setIsLoaded(true);
   }, []);
+
+  const { data: contentData } = useQuery({
+    queryKey: ['carte-grise-content'],
+    queryFn: getCarteGriseContent,
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
+  const carteGriseContent = contentData || defaultCarteGriseContent;
+  const pricingItems = carteGriseContent.pricingItems || defaultCarteGriseContent.pricingItems;
+  const documentSections = carteGriseContent.documentSections || defaultCarteGriseContent.documentSections;
 
   // Fonction pour ouvrir le lightbox
   const openLightbox = (imagePath, title) => {
@@ -165,43 +186,7 @@ export default function Administrative() {
             </h2>
             <div className="max-w-4xl mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[
-                  {
-                    title: 'Changement de titulaire',
-                    subtitle: 'Cas standard',
-                    price: '36€24',
-                    note: 'TTC',
-                    popular: true
-                  },
-                  {
-                    title: 'Changement de titulaire',
-                    subtitle: 'Cas particulier (véhicule étranger, héritage, fiche immobilisation, erreur enregistrement cession...)',
-                    price: '46€24',
-                    note: 'TTC',
-                    popular: false
-                  },
-                  {
-                    title: 'Duplicata',
-                    subtitle: 'Suite à une perte/vol/détérioré',
-                    price: '46€24',
-                    note: 'TTC (+ 20€ si besoin de la FIV pour le CT)',
-                    popular: false
-                  },
-                  {
-                    title: 'Changement de domicile',
-                    subtitle: '',
-                    price: '22€',
-                    note: 'TTC',
-                    popular: false
-                  },
-                  {
-                    title: 'Enregistrement de la cession',
-                    subtitle: '',
-                    price: '22€',
-                    note: 'TTC',
-                    popular: false
-                  }
-                ].map((item, index) => (
+                {pricingItems.map((item, index) => (
                   <div 
                     key={index} 
                     className={`border-2 ${item.popular ? 'border-red-600 bg-red-50' : 'border-gray-200 hover:border-red-600'} rounded-lg p-6 transition-colors`}
@@ -249,228 +234,106 @@ export default function Administrative() {
               Documents nécessaires pour l'élaboration d'une carte grise
             </h2>
             
-            {/* Pour toutes demandes */}
-            <div className="mb-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                <FileText className="w-7 h-7 text-red-600" />
-                Pour toutes demandes
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-6 space-y-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Permis de conduire et pièce d'identité en cours de validité</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">
-                    Justificatif de domicile de moins de 6 mois (facture téléphone, EDF, GAZ, eau, dernier avis d'imposition, 
-                    quittance de loyer non manuscrite, attestation d'assurance logement)
-                  </span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Certificat d'immatriculation</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Assurance du véhicule</span>
-                </div>
-                
-                {/* Formulaires CERFA */}
-                <div className="mt-6 pt-6 border-t border-gray-300">
-                  <p className="font-semibold text-gray-900 mb-4">Formulaires CERFA à télécharger :</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* CERFA 13750 - Certificat d'immatriculation */}
-                    <div className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-red-600 transition-colors">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-gray-900">CERFA 13750</h4>
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Certificat d'immatriculation</span>
-                      </div>
-                      <div className="relative mb-3">
-                        <img 
-                          src="/cerfa-13750.png" 
-                          alt="CERFA 13750 - Certificat d'immatriculation"
-                          className="w-full h-48 object-contain rounded border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity bg-gray-50"
-                          onClick={() => openLightbox('/cerfa-13750.png', 'CERFA 13750 - Certificat d\'immatriculation')}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                        <div className="hidden w-full h-48 bg-gray-100 rounded border border-gray-200 items-center justify-center">
-                          <FileText className="w-12 h-12 text-gray-400" />
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openLightbox('/cerfa-13750.png', 'CERFA 13750 - Certificat d\'immatriculation')}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                        >
-                          <ZoomIn className="w-4 h-4" />
-                          Agrandir
-                        </button>
-                        <button
-                          onClick={() => downloadImage('/cerfa-13750.png', 'CERFA-13750-certificat-immatriculation.png')}
-                          className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                      </div>
+            {documentSections.map((section, sectionIndex) => (
+              <div key={section.id || sectionIndex} className={sectionIndex < documentSections.length - 1 ? 'mb-8' : ''}>
+                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                  <FileText className="w-7 h-7 text-red-600" />
+                  {section.title}
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                  {(section.items || []).map((item, itemIndex) => (
+                    <div key={`${section.id || sectionIndex}-item-${itemIndex}`} className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-gray-700">{item}</span>
                     </div>
+                  ))}
 
-                    {/* CERFA 13757 - Mandat à un professionnel */}
-                    <div className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-red-600 transition-colors">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-gray-900">CERFA 13757</h4>
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Mandat à un professionnel</span>
-                      </div>
-                      <div className="relative mb-3">
-                        <img 
-                          src="/cerfa-13757.png" 
-                          alt="CERFA 13757 - Mandat à un professionnel"
-                          className="w-full h-48 object-contain rounded border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity bg-gray-50"
-                          onClick={() => openLightbox('/cerfa-13757.png', 'CERFA 13757 - Mandat à un professionnel')}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                        <div className="hidden w-full h-48 bg-gray-100 rounded border border-gray-200 items-center justify-center">
-                          <FileText className="w-12 h-12 text-gray-400" />
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openLightbox('/cerfa-13757.png', 'CERFA 13757 - Mandat à un professionnel')}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                        >
-                          <ZoomIn className="w-4 h-4" />
-                          Agrandir
-                        </button>
-                        <button
-                          onClick={() => downloadImage('/cerfa-13757.png', 'CERFA-13757-mandat-professionnel.png')}
-                          className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
+                  {section.infoText && (
+                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mt-4">
+                      <p className="text-sm text-blue-800">{section.infoText}</p>
+                    </div>
+                  )}
+
+                  {(section.cerfaCards || []).length > 0 && (
+                    <div className="mt-6 pt-6 border-t border-gray-300">
+                      {section.cerfaTitle && (
+                        <p className="font-semibold text-gray-900 mb-4">{section.cerfaTitle}</p>
+                      )}
+                      <div className={`grid grid-cols-1 ${(section.cerfaCards || []).length > 1 ? 'md:grid-cols-2' : ''} gap-4`}>
+                        {section.cerfaCards.map((card) => {
+                          const imageFile = isImageFile(card.fileUrl);
+                          const fallbackName = card.downloadFilename || `${card.title || 'cerfa'}.jpg`;
+
+                          return (
+                            <div key={card.id} className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-red-600 transition-colors">
+                              <div className="flex items-center justify-between mb-3 gap-3">
+                                <h4 className="font-semibold text-gray-900">{card.title}</h4>
+                                {card.badge && (
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{card.badge}</span>
+                                )}
+                              </div>
+                              <div className="relative mb-3">
+                                {imageFile ? (
+                                  <>
+                                    <img
+                                      src={card.fileUrl}
+                                      alt={card.title}
+                                      className="w-full h-48 object-contain rounded border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity bg-gray-50"
+                                      onClick={() => openLightbox(card.fileUrl, card.title)}
+                                      onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.nextSibling.style.display = 'flex';
+                                      }}
+                                    />
+                                    <div className="hidden w-full h-48 bg-gray-100 rounded border border-gray-200 items-center justify-center">
+                                      <FileText className="w-12 h-12 text-gray-400" />
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="w-full h-48 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
+                                    <div className="text-center text-gray-500">
+                                      <FileText className="w-12 h-12 mx-auto mb-2" />
+                                      <p className="text-sm">Aperçu non disponible</p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                {imageFile ? (
+                                  <button
+                                    onClick={() => openLightbox(card.fileUrl, card.title)}
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                                  >
+                                    <ZoomIn className="w-4 h-4" />
+                                    Agrandir
+                                  </button>
+                                ) : (
+                                  <a
+                                    href={card.fileUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                                  >
+                                    <ExternalLink className="w-4 h-4" />
+                                    Ouvrir
+                                  </a>
+                                )}
+                                <button
+                                  onClick={() => downloadImage(card.fileUrl, fallbackName)}
+                                  className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
-            </div>
-
-            {/* Changement de titulaire */}
-            <div className="mb-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                <FileText className="w-7 h-7 text-red-600" />
-                Changement de titulaire
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-6 space-y-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Ancienne Carte Grise</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">
-                    Certificat de cession original (et D. A. si achat professionnel)
-                  </span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">
-                    Contrôle technique de moins de 6 mois (si véhicule de + de 4 ans)
-                  </span>
-                </div>
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mt-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>Cas particulier :</strong> pour les 1ère immatriculations en France : Quitus Fiscal + certificat de conformité.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Changement de domicile */}
-            <div className="mb-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                <FileText className="w-7 h-7 text-red-600" />
-                Changement de domicile
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-6 space-y-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Carte Grise</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Contrôle technique en cours de validité</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Duplicata carte grise */}
-            <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                <FileText className="w-7 h-7 text-red-600" />
-                Duplicata carte grise
-              </h3>
-              <div className="bg-gray-50 rounded-lg p-6 space-y-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Déclaration de perte ou de vol (Cerfa 13753)</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Procès verbal pour les vols</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Contrôle technique en cours de validité</span>
-                </div>
-                
-                {/* Formulaire CERFA 13753 */}
-                <div className="mt-6 pt-6 border-t border-gray-300">
-                  <p className="font-semibold text-gray-900 mb-4">Formulaire CERFA à télécharger :</p>
-                  <div className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-red-600 transition-colors">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-gray-900">CERFA 13753</h4>
-                      <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">Déclaration de perte ou de vol</span>
-                    </div>
-                    <div className="relative mb-3">
-                      <img 
-                        src="/cerfa-13753.jpg" 
-                        alt="CERFA 13753 - Déclaration de perte ou de vol"
-                        className="w-full h-48 object-contain rounded border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity bg-gray-50"
-                        onClick={() => openLightbox('/cerfa-13753.jpg', 'CERFA 13753 - Déclaration de perte ou de vol')}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                      <div className="hidden w-full h-48 bg-gray-100 rounded border border-gray-200 items-center justify-center">
-                        <FileText className="w-12 h-12 text-gray-400" />
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => openLightbox('/cerfa-13753.jpg', 'CERFA 13753 - Déclaration de perte ou de vol')}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                      >
-                        <ZoomIn className="w-4 h-4" />
-                        Agrandir
-                      </button>
-                      <button
-                        onClick={() => downloadImage('/cerfa-13753.jpg', 'CERFA-13753-declaration-perte-vol.jpg')}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </AnimatedSection>
 

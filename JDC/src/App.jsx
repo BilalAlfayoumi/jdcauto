@@ -1,10 +1,12 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Home from './Pages/Home'
 import Vehicles from './Pages/Vehicles'
 import VehicleDetail from './Pages/VehicleDetail'
 import TradeIn from './Pages/TradeIn'
 import Contact from './Pages/Contact'
 import Administrative from './Pages/Administrative'
+import AdminVehicles from './Pages/AdminVehicles'
+import AdminCarteGrise from './Pages/AdminCarteGrise'
 import MentionsLegales from './Pages/MentionsLegales'
 import CGV from './Pages/CGV'
 import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite'
@@ -24,6 +26,9 @@ function App() {
           <Route path="/trade-in" element={<TradeIn />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/administrative" element={<Administrative />} />
+          <Route path="/admin" element={<Navigate to="/admin/vehicles" replace />} />
+          <Route path="/admin/vehicles" element={<AdminVehicles />} />
+          <Route path="/admin/carte-grise" element={<AdminCarteGrise />} />
           <Route path="/mentions-legales" element={<MentionsLegales />} />
           <Route path="/cgv" element={<CGV />} />
           <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />

@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import ImageWithAnimation from '../Components/ImageWithAnimation';
+import { DEFAULT_VEHICLE_IMAGE } from '../utils';
 import emailjs from '@emailjs/browser';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { toast } from 'sonner';
@@ -362,10 +363,11 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
               <ImageWithAnimation
                   src={vehicle.photos && vehicle.photos.length > 0 
                     ? vehicle.photos[selectedPhotoIndex] 
-                    : vehicle.image_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1200&auto=format&fit=crop'}
+                    : vehicle.image_url || DEFAULT_VEHICLE_IMAGE}
                   alt={`${vehicle.brand} ${vehicle.model} - Photo ${selectedPhotoIndex + 1}`}
                   className="w-full h-96 object-cover group-hover:opacity-90 transition-opacity"
-                animation="zoom-in"
+                  animation="zoom-in"
+                  fallbackSrc={DEFAULT_VEHICLE_IMAGE}
               />
                 {/* Overlay hint on hover */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -427,7 +429,7 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                           alt={`${vehicle.brand} ${vehicle.model} - Miniature ${index + 1}`}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            e.target.src = 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=200&auto=format&fit=crop';
+                            e.target.src = DEFAULT_VEHICLE_IMAGE;
                           }}
                         />
                       </button>
@@ -880,6 +882,9 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                     src={vehicle.image_url}
                     alt={`${vehicle.brand} ${vehicle.model}`}
                     className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200 flex-shrink-0"
+                    onError={(e) => {
+                      e.currentTarget.src = DEFAULT_VEHICLE_IMAGE;
+                    }}
                   />
                 )}
                 <div className="flex-1">
@@ -1068,10 +1073,13 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
               src={
                 vehicle.photos && vehicle.photos.length > 0
                   ? vehicle.photos[lightboxPhotoIndex]
-                  : vehicle.image_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1200&auto=format&fit=crop'
+                  : vehicle.image_url || DEFAULT_VEHICLE_IMAGE
               }
               alt={`${vehicle.brand} ${vehicle.model} - Photo ${lightboxPhotoIndex + 1}`}
               className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.src = DEFAULT_VEHICLE_IMAGE;
+              }}
             />
 
             {/* Navigation Arrows */}

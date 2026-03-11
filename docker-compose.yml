@@ -1,0 +1,81 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: jdcauto-db
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: jdcauto
+      MYSQL_USER: jdcauto
+      MYSQL_PASSWORD: jdcauto
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./.docker/mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: jdcauto-php
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin123
+      DB_HOST: db
+      DB_NAME: jdcauto
+      DB_USER: jdcauto
+      DB_PASSWORD: jdcauto
+      SPIDER_VO_XML_URL: ""
+      SPIDER_VO_XML_FILE: /workspace/export.xml
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/workspace
+
+  frontend:
+    image: node:20-bookworm
+    container_name: jdcauto-frontend
+    depends_on:
+      - php
+    working_dir: /workspace/JDC
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_PROXY_TARGET: http://php
+    command: sh -lc "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./:/workspace
+      - jdcauto-node-modules:/workspace/JDC/node_modules
+
+  sync:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    working_dir: /workspace
+    environment:
+      DB_HOST: db
+      DB_NAME: jdcauto
+      DB_USER: jdcauto
+      DB_PASSWORD: jdcauto
+      SPIDER_VO_XML_URL: ""
+      SPIDER_VO_XML_FILE: /workspace/export.xml
+    command: php /workspace/htdocs/sync/spider_vo_sync.php
+    volumes:
+      - ./:/workspace
+
+volumes:
+  jdcauto-node-modules:

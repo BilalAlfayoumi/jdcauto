@@ -7,14 +7,14 @@
 require_once __DIR__ . '/index.php';
 
 class GandiDatabaseConfig {
-    private static $host = 'localhost';
-    private static $dbname = 'jdcauto';
-    private static $username = 'root';
-    private static $password = '';
-    
     public static function getConnection() {
-        $dsn = "mysql:host=" . self::$host . ";dbname=" . self::$dbname . ";charset=utf8mb4";
-        return new PDO($dsn, self::$username, self::$password, [
+        $host = getenv('DB_HOST') ?: 'localhost';
+        $dbname = getenv('DB_NAME') ?: 'jdcauto';
+        $username = getenv('DB_USER') ?: 'root';
+        $password = getenv('DB_PASSWORD') ?: '';
+
+        $dsn = "mysql:host=" . $host . ";dbname=" . $dbname . ";charset=utf8mb4";
+        return new PDO($dsn, $username, $password, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
         ]);
@@ -126,5 +126,4 @@ try {
     echo "<p>" . htmlspecialchars($e->getMessage()) . "</p>";
     echo "</body></html>";
 }
-
 

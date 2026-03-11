@@ -5,24 +5,24 @@
  */
 
 class GandiMySQL {
-    
-    // Configuration selon documentation Gandi
-    private static $config = [
-        'host' => 'localhost',
-        'dbname' => 'jdcauto', 
-        'username' => 'root',
-        'password' => '',
-        'charset' => 'utf8mb4',
-        'options' => [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
-            PDO::ATTR_PERSISTENT => false,
-            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4, sql_mode = 'STRICT_TRANS_TABLES'"
-        ]
-    ];
-    
     private static $connection = null;
+
+    private static function getConfig() {
+        return [
+            'host' => getenv('DB_HOST') ?: 'localhost',
+            'dbname' => getenv('DB_NAME') ?: 'jdcauto',
+            'username' => getenv('DB_USER') ?: 'root',
+            'password' => getenv('DB_PASSWORD') ?: '',
+            'charset' => 'utf8mb4',
+            'options' => [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::ATTR_PERSISTENT => false,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4, sql_mode = 'STRICT_TRANS_TABLES'"
+            ]
+        ];
+    }
     
     /**
      * Connexion sécurisée avec retry
@@ -31,6 +31,8 @@ class GandiMySQL {
         if (self::$connection !== null) {
             return self::$connection;
         }
+
+        $config = self::getConfig();
         
         $maxRetries = 3;
         $retryDelay = 1; // seconde
@@ -39,16 +41,16 @@ class GandiMySQL {
             try {
                 $dsn = sprintf(
                     "mysql:host=%s;dbname=%s;charset=%s",
-                    self::$config['host'],
-                    self::$config['dbname'], 
-                    self::$config['charset']
+                    $config['host'],
+                    $config['dbname'],
+                    $config['charset']
                 );
                 
                 self::$connection = new PDO(
                     $dsn,
-                    self::$config['username'],
-                    self::$config['password'],
-                    self::$config['options']
+                    $config['username'],
+                    $config['password'],
+                    $config['options']
                 );
                 
                 // Test de la connexion
@@ -95,22 +97,24 @@ class GandiMySQL {
      */
     public static function createDatabaseIfNotExists() {
         try {
+            $config = self::getConfig();
+
             // Connexion sans spécifier de base
             $dsn = sprintf(
                 "mysql:host=%s;charset=%s",
-                self::$config['host'],
-                self::$config['charset']
+                $config['host'],
+                $config['charset']
             );
             
             $pdo = new PDO(
                 $dsn,
-                self::$config['username'],
-                self::$config['password'],
-                self::$config['options']
+                $config['username'],
+                $config['password'],
+                $config['options']
             );
             
             // Créer la base
-            $sql = "CREATE DATABASE IF NOT EXISTS `" . self::$config['dbname'] . "` 
+            $sql = "CREATE DATABASE IF NOT EXISTS `" . $config['dbname'] . "` 
                     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci";
             
             $pdo->exec($sql);
@@ -129,6 +133,3 @@ if (basename($_SERVER['PHP_SELF']) === basename(__FILE__)) {
     header('Content-Type: application/json');
     echo json_encode(GandiMySQL::test(), JSON_UNESCAPED_UNICODE);
 }
-
-?>
-

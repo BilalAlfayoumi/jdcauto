@@ -6,6 +6,7 @@ import { Phone, Mail, MapPin, Menu, X } from 'lucide-react';
 export default function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const isAdminRoute = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
 
   // Déterminer la page actuelle basée sur l'URL
   const getCurrentPageName = () => {
@@ -27,6 +28,10 @@ export default function Layout({ children }) {
     { name: 'Carte grise & démarches administratives', page: 'Administrative' },
     { name: 'Contact', page: 'Contact' }
   ];
+
+  if (isAdminRoute) {
+    return <div className="min-h-screen bg-slate-100">{children}</div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -230,4 +235,3 @@ export default function Layout({ children }) {
     </div>
   );
 }
-

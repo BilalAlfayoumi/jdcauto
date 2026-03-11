@@ -16,17 +16,20 @@ if (!$isCLI) {
 }
 
 // Configuration
-$host = 'localhost';
-$dbname = 'jdcauto';
-$username = 'root';
-$password = '';
+$host = getenv('DB_HOST') ?: 'localhost';
+$dbname = getenv('DB_NAME') ?: 'jdcauto';
+$username = getenv('DB_USER') ?: 'root';
+$password = getenv('DB_PASSWORD') ?: '';
 
 // ⚠️ IMPORTANT : URL du flux XML Spider-VO
 // URL fournie par Spider-VO dans votre compte
-$spiderVoXmlUrl = 'https://www.spider-vo.net/export,st2div6b0860458b-fbb07722e1-03df2748e1-6e82247ae0.html';
+$spiderVoXmlUrl = getenv('SPIDER_VO_XML_URL');
+if ($spiderVoXmlUrl === false) {
+    $spiderVoXmlUrl = 'https://www.spider-vo.net/export,st2div6b0860458b-fbb07722e1-03df2748e1-6e82247ae0.html';
+}
 
 // Si pas d'URL configurée, utiliser le fichier local en fallback
-$xmlFile = __DIR__ . '/../../export.xml';
+$xmlFile = getenv('SPIDER_VO_XML_FILE') ?: (__DIR__ . '/../../export.xml');
 $useLocalFile = empty($spiderVoXmlUrl) || $spiderVoXmlUrl === 'https://votre-compte.spider-vo.com/export.xml';
 
 function logMessage($message, $type = 'info') {
@@ -53,6 +56,15 @@ try {
 } catch (PDOException $e) {
     logMessage("Erreur connexion: " . $e->getMessage(), 'error');
     exit(1);
+}
+
+$vehicleColumns = $pdo->query("SHOW COLUMNS FROM vehicles")->fetchAll(PDO::FETCH_COLUMN);
+if (!in_array('manual_status_override', $vehicleColumns, true)) {
+    $pdo->exec("ALTER TABLE vehicles ADD COLUMN manual_status_override VARCHAR(50) NULL AFTER etat");
+}
+if (!in_array('synced_status', $vehicleColumns, true)) {
+    $pdo->exec("ALTER TABLE vehicles ADD COLUMN synced_status VARCHAR(50) NULL AFTER manual_status_override");
+    $pdo->exec("UPDATE vehicles SET synced_status = etat WHERE synced_status IS NULL");
 }
 
 // Charger le XML
@@ -143,13 +155,12 @@ foreach ($vehicles as $vehiculeXML) {
         $carrosserie = $getCdata($vehiculeXML->carrosserie) ?: 'BERLINE';
         // Récupérer l'état depuis Spider-VO (peut être "Disponible", "Vendu", "Réservé", etc.)
         // Si pas d'état dans le XML, on garde l'état existant en base, sinon "Disponible" par défaut
-        $etat = $getCdata($vehiculeXML->etat);
-        if (empty($etat)) {
-            // Si pas d'état dans le XML, vérifier s'il existe déjà en base
-            $checkStmt = $pdo->prepare("SELECT etat FROM vehicles WHERE reference = ?");
+        $xmlEtat = $getCdata($vehiculeXML->etat);
+        if (empty($xmlEtat)) {
+            $checkStmt = $pdo->prepare("SELECT etat, synced_status, manual_status_override FROM vehicles WHERE reference = ?");
             $checkStmt->execute([$reference]);
             $existing = $checkStmt->fetch();
-            $etat = $existing ? $existing['etat'] : 'Disponible';
+            $xmlEtat = $existing['synced_status'] ?? ($existing['etat'] ?? 'Disponible');
         }
         
         // Description complète - préserver la structure
@@ -269,7 +280,7 @@ foreach ($vehicles as $vehiculeXML) {
         $options = array_values($options); // Réindexer
         
         // Vérifier si existe par référence
-        $existingStmt = $pdo->prepare("SELECT id FROM vehicles WHERE reference = ?");
+        $existingStmt = $pdo->prepare("SELECT id, manual_status_override, synced_status FROM vehicles WHERE reference = ?");
         $existingStmt->execute([$reference]);
         $existing = $existingStmt->fetch();
         
@@ -280,7 +291,7 @@ foreach ($vehicles as $vehiculeXML) {
             // - Version doit être identique (si disponible)
             // - Couleur extérieure doit être identique (si disponible)
             $duplicateSql = "
-                SELECT id FROM vehicles 
+                SELECT id, manual_status_override, synced_status FROM vehicles 
                 WHERE marque = ? 
                   AND modele = ? 
                   AND prix_vente = ? 
@@ -326,6 +337,9 @@ foreach ($vehicles as $vehiculeXML) {
         $columnsStmt = $pdo->query("SHOW COLUMNS FROM vehicles LIKE 'titre'");
         $hasTitre = $columnsStmt->rowCount() > 0;
         
+        $manualStatusOverride = $existing['manual_status_override'] ?? null;
+        $finalEtat = !empty($manualStatusOverride) ? $manualStatusOverride : $xmlEtat;
+
         if ($existing) {
             // Mise à jour (utiliser ID pour gérer les doublons détectés)
             $vehicleId = $existing['id'];
@@ -333,14 +347,14 @@ foreach ($vehicles as $vehiculeXML) {
                 $sql = "
                     UPDATE vehicles SET
                         reference = ?, marque = ?, modele = ?, version = ?, titre = ?, prix_vente = ?, kilometrage = ?,
-                        annee = ?, energie = ?, typeboite = ?, carrosserie = ?, etat = ?,
+                        annee = ?, energie = ?, typeboite = ?, carrosserie = ?, etat = ?, synced_status = ?,
                         description = ?, couleurexterieur = ?, nbrplace = ?, nbrporte = ?,
                         puissancedyn = ?, puissance_fiscale = ?, finition = ?, date_mec = ?, updated_at = NOW()
                     WHERE id = ?
                 ";
                 $pdo->prepare($sql)->execute([
                     $reference, $marque, $modele, $version, $titre, $prix_vente, $kilometrage,
-                    $annee, $energie, $typeboite, $carrosserie, $etat,
+                    $annee, $energie, $typeboite, $carrosserie, $finalEtat, $xmlEtat,
                     $description, $couleurexterieur, $nbrplace, $nbrporte,
                     $puissancedyn, $puissance_fiscale, $finition, $date_mec, $vehicleId
                 ]);
@@ -348,14 +362,14 @@ foreach ($vehicles as $vehiculeXML) {
                 $sql = "
                     UPDATE vehicles SET
                         reference = ?, marque = ?, modele = ?, version = ?, prix_vente = ?, kilometrage = ?,
-                        annee = ?, energie = ?, typeboite = ?, carrosserie = ?, etat = ?,
+                        annee = ?, energie = ?, typeboite = ?, carrosserie = ?, etat = ?, synced_status = ?,
                         description = ?, couleurexterieur = ?, nbrplace = ?, nbrporte = ?,
                         puissancedyn = ?, puissance_fiscale = ?, finition = ?, date_mec = ?, updated_at = NOW()
                     WHERE id = ?
                 ";
                 $pdo->prepare($sql)->execute([
                     $reference, $marque, $modele, $version, $prix_vente, $kilometrage,
-                    $annee, $energie, $typeboite, $carrosserie, $etat,
+                    $annee, $energie, $typeboite, $carrosserie, $finalEtat, $xmlEtat,
                     $description, $couleurexterieur, $nbrplace, $nbrporte,
                     $puissancedyn, $puissance_fiscale, $finition, $date_mec, $vehicleId
                 ]);
@@ -367,26 +381,26 @@ foreach ($vehicles as $vehiculeXML) {
                 $sql = "
                     INSERT INTO vehicles 
                     (reference, marque, modele, version, titre, prix_vente, kilometrage, annee, energie, 
-                     typeboite, carrosserie, etat, description, couleurexterieur, nbrplace, 
+                     typeboite, carrosserie, etat, synced_status, description, couleurexterieur, nbrplace, 
                      nbrporte, puissancedyn, puissance_fiscale, finition, date_mec, created_at, updated_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
                 ";
                 $pdo->prepare($sql)->execute([
                     $reference, $marque, $modele, $version, $titre, $prix_vente, $kilometrage,
-                    $annee, $energie, $typeboite, $carrosserie, $etat, $description,
+                    $annee, $energie, $typeboite, $carrosserie, $finalEtat, $xmlEtat, $description,
                     $couleurexterieur, $nbrplace, $nbrporte, $puissancedyn, $puissance_fiscale, $finition, $date_mec
                 ]);
             } else {
                 $sql = "
                     INSERT INTO vehicles 
                     (reference, marque, modele, version, prix_vente, kilometrage, annee, energie, 
-                     typeboite, carrosserie, etat, description, couleurexterieur, nbrplace, 
+                     typeboite, carrosserie, etat, synced_status, description, couleurexterieur, nbrplace, 
                      nbrporte, puissancedyn, puissance_fiscale, finition, date_mec, created_at, updated_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
                 ";
                 $pdo->prepare($sql)->execute([
                     $reference, $marque, $modele, $version, $prix_vente, $kilometrage,
-                    $annee, $energie, $typeboite, $carrosserie, $etat, $description,
+                    $annee, $energie, $typeboite, $carrosserie, $finalEtat, $xmlEtat, $description,
                     $couleurexterieur, $nbrplace, $nbrporte, $puissancedyn, $puissance_fiscale, $finition, $date_mec
                 ]);
             }
@@ -500,4 +514,3 @@ if (!$isCLI) {
 exit(0);
 
 ?>
-

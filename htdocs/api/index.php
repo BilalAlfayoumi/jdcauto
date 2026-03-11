@@ -8,6 +8,22 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 0); // Désactiver en production
 ini_set('log_errors', 1);
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+ini_set('session.cookie_httponly', '1');
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_name('jdcauto_admin');
+    session_start([
+        'cookie_httponly' => true,
+        'cookie_samesite' => 'Strict',
+        'cookie_secure' => (
+            (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+        ),
+        'use_strict_mode' => true,
+    ]);
+}
 
 // Auto-loader simple pour les classes (optionnel)
 spl_autoload_register(function ($className) {
@@ -70,20 +86,26 @@ spl_autoload_register(function ($className) {
  * ✅ CONFIGURÉ avec les paramètres Gandi
  */
 class GandiDatabaseConfig {
-    private static $host = 'localhost'; // Gandi utilise localhost
-    private static $dbname = 'jdcauto'; // Base de données principale
-    private static $username = 'root'; // Utilisateur Gandi par défaut
-    private static $password = ''; // Mot de passe vide par défaut Gandi
-    
     private static $connection = null;
+
+    private static function getConfig() {
+        return [
+            'host' => getenv('DB_HOST') ?: 'localhost',
+            'dbname' => getenv('DB_NAME') ?: 'jdcauto',
+            'username' => getenv('DB_USER') ?: 'root',
+            'password' => getenv('DB_PASSWORD') ?: ''
+        ];
+    }
     
     public static function getConnection() {
         if (self::$connection === null) {
+            $config = self::getConfig();
+
             try {
                 // Essayer d'abord avec la base, sinon sans base pour créer
-                $dsn = "mysql:host=" . self::$host . ";dbname=" . self::$dbname . ";charset=utf8mb4";
+                $dsn = "mysql:host=" . $config['host'] . ";dbname=" . $config['dbname'] . ";charset=utf8mb4";
                 
-                self::$connection = new PDO($dsn, self::$username, self::$password, [
+                self::$connection = new PDO($dsn, $config['username'], $config['password'], [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES => false,
@@ -94,18 +116,18 @@ class GandiDatabaseConfig {
                 // Si la base n'existe pas, essayer sans base
                 if (strpos($e->getMessage(), 'Unknown database') !== false) {
                     try {
-                        $dsn = "mysql:host=" . self::$host . ";charset=utf8mb4";
-                        $tempPdo = new PDO($dsn, self::$username, self::$password, [
+                        $dsn = "mysql:host=" . $config['host'] . ";charset=utf8mb4";
+                        $tempPdo = new PDO($dsn, $config['username'], $config['password'], [
                             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                             PDO::ATTR_TIMEOUT => 5
                         ]);
                         
                         // Créer la base
-                        $tempPdo->exec("CREATE DATABASE IF NOT EXISTS `" . self::$dbname . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                        $tempPdo->exec("CREATE DATABASE IF NOT EXISTS `" . $config['dbname'] . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
                         
                         // Réessayer avec la base
-                        $dsn = "mysql:host=" . self::$host . ";dbname=" . self::$dbname . ";charset=utf8mb4";
-                        self::$connection = new PDO($dsn, self::$username, self::$password, [
+                        $dsn = "mysql:host=" . $config['host'] . ";dbname=" . $config['dbname'] . ";charset=utf8mb4";
+                        self::$connection = new PDO($dsn, $config['username'], $config['password'], [
                             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                             PDO::ATTR_EMULATE_PREPARES => false
@@ -132,6 +154,9 @@ class GandiDatabaseConfig {
 class SimpleVehiclesAPI {
     
     private $pdo;
+    private const LOGIN_ATTEMPT_WINDOW_SECONDS = 900;
+    private const LOGIN_MAX_ATTEMPTS = 5;
+    private const SESSION_ROTATE_INTERVAL_SECONDS = 900;
     
     public function __construct() {
         try {
@@ -143,11 +168,10 @@ class SimpleVehiclesAPI {
     }
     
     public function handleRequest() {
-        // CORS pour React
+        $this->applySecurityHeaders();
+        $this->applyCorsHeaders();
+
         header('Content-Type: application/json; charset=utf-8');
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
         
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             http_response_code(200);
@@ -166,8 +190,30 @@ class SimpleVehiclesAPI {
                     return $this->getBrands();
                 case 'search':
                     return $this->search();
+                case 'carte_grise_pricing':
+                    return $this->getCarteGrisePricing();
+                case 'carte_grise_content':
+                    return $this->getCarteGriseContent();
                 case 'contact':
                     return $this->createContactRequest();
+                case 'admin_session':
+                    return $this->getAdminSession();
+                case 'admin_login':
+                    return $this->adminLogin();
+                case 'admin_logout':
+                    return $this->adminLogout();
+                case 'admin_carte_grise_pricing':
+                    return $this->saveCarteGrisePricing();
+                case 'admin_carte_grise_content':
+                    return $this->saveCarteGriseContent();
+                case 'admin_upload_carte_grise_file':
+                    return $this->uploadCarteGriseFile();
+                case 'admin_vehicles':
+                    return $this->getAdminVehicles();
+                case 'admin_vehicle_status':
+                    return $this->updateVehicleStatus();
+                case 'admin_activity':
+                    return $this->getAdminActivity();
                 default:
                     return $this->error('Action non reconnue', 404);
             }
@@ -184,13 +230,1004 @@ class SimpleVehiclesAPI {
             return $this->error($message, 500);
         }
     }
+
+    private function getRequestData() {
+        $json = file_get_contents('php://input');
+        $data = json_decode($json, true);
+
+        if (is_array($data)) {
+            return $data;
+        }
+
+        return $_POST;
+    }
+
+    private function isHttpsRequest() {
+        return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+    }
+
+    private function applySecurityHeaders() {
+        header('X-Frame-Options: SAMEORIGIN');
+        header('X-Content-Type-Options: nosniff');
+        header('Referrer-Policy: same-origin');
+        header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+        if ($this->isHttpsRequest()) {
+            header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+        }
+    }
+
+    private function applyCorsHeaders() {
+        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
+
+        $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+        if ($origin === '') {
+            return;
+        }
+
+        $allowedOrigins = [
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:8000',
+            'http://127.0.0.1:8000',
+        ];
+
+        $scheme = $this->isHttpsRequest() ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        if ($host !== '') {
+            $allowedOrigins[] = $scheme . '://' . $host;
+        }
+
+        if (in_array($origin, $allowedOrigins, true)) {
+            header('Access-Control-Allow-Origin: ' . $origin);
+            header('Vary: Origin');
+            header('Access-Control-Allow-Credentials: true');
+        }
+    }
+
+    private function isLocalRequest() {
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        return strpos($host, 'localhost') !== false
+            || strpos($host, '127.0.0.1') !== false
+            || strpos($host, 'php') !== false;
+    }
+
+    private function getAdminConfig() {
+        $config = [
+            'username' => getenv('ADMIN_USERNAME') ?: null,
+            'password' => getenv('ADMIN_PASSWORD') ?: null,
+            'password_hash' => getenv('ADMIN_PASSWORD_HASH') ?: null,
+            'session_timeout_minutes' => getenv('ADMIN_SESSION_TIMEOUT_MINUTES') ?: null,
+        ];
+
+        $configFiles = [
+            __DIR__ . '/../config/admin_auth.php',
+            __DIR__ . '/../config/admin_auth.local.php',
+        ];
+
+        foreach ($configFiles as $configFile) {
+            if (file_exists($configFile)) {
+                $fileConfig = require $configFile;
+                if (is_array($fileConfig)) {
+                    if (empty($config['username']) && !empty($fileConfig['username'])) {
+                        $config['username'] = (string)$fileConfig['username'];
+                    }
+                    if (empty($config['password']) && !empty($fileConfig['password'])) {
+                        $config['password'] = (string)$fileConfig['password'];
+                    }
+                    if (empty($config['password_hash']) && !empty($fileConfig['password_hash'])) {
+                        $config['password_hash'] = (string)$fileConfig['password_hash'];
+                    }
+                    if (empty($config['session_timeout_minutes']) && !empty($fileConfig['session_timeout_minutes'])) {
+                        $config['session_timeout_minutes'] = (int)$fileConfig['session_timeout_minutes'];
+                    }
+                }
+            }
+        }
+
+        if ($this->isLocalRequest()) {
+            if (empty($config['username'])) {
+                $config['username'] = 'admin';
+            }
+            if (empty($config['password'])) {
+                $config['password'] = 'admin123';
+            }
+        }
+
+        $config['session_timeout_minutes'] = max(5, (int)($config['session_timeout_minutes'] ?: 30));
+
+        return $config;
+    }
+
+    private function getAdminUsername() {
+        $config = $this->getAdminConfig();
+        return $config['username'] ?: null;
+    }
+
+    private function getAdminPassword() {
+        $config = $this->getAdminConfig();
+        return $config['password'] ?: null;
+    }
+
+    private function getAdminPasswordHash() {
+        $config = $this->getAdminConfig();
+        return $config['password_hash'] ?: null;
+    }
+
+    private function getAdminSessionTimeoutMinutes() {
+        $config = $this->getAdminConfig();
+        return (int)($config['session_timeout_minutes'] ?? 30);
+    }
+
+    private function getCurrentAdminUsername() {
+        return trim((string)($_SESSION['admin_username'] ?? ''));
+    }
+
+    private function getRequestFingerprint() {
+        $userAgent = (string)($_SERVER['HTTP_USER_AGENT'] ?? 'unknown');
+        return hash('sha256', $userAgent);
+    }
+
+    private function issueCsrfToken() {
+        if (empty($_SESSION['admin_csrf_token'])) {
+            $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+        }
+
+        return $_SESSION['admin_csrf_token'];
+    }
+
+    private function getCsrfToken() {
+        return trim((string)($_SESSION['admin_csrf_token'] ?? ''));
+    }
+
+    private function validateCsrfToken() {
+        $sessionToken = $this->getCsrfToken();
+        $requestToken = trim((string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
+
+        if ($sessionToken === '' || $requestToken === '' || !hash_equals($sessionToken, $requestToken)) {
+            $this->error('Jeton CSRF invalide', 403);
+        }
+    }
+
+    private function isAdminSessionExpired() {
+        if (empty($_SESSION['admin_authenticated'])) {
+            return false;
+        }
+
+        $lastActivity = $_SESSION['admin_last_activity'] ?? null;
+        if (empty($lastActivity)) {
+            return true;
+        }
+
+        return (time() - (int)$lastActivity) > ($this->getAdminSessionTimeoutMinutes() * 60);
+    }
+
+    private function shouldRotateSessionId() {
+        $lastRotation = (int)($_SESSION['admin_last_rotation'] ?? 0);
+        if ($lastRotation <= 0) {
+            return true;
+        }
+
+        return (time() - $lastRotation) >= self::SESSION_ROTATE_INTERVAL_SECONDS;
+    }
+
+    private function rotateSessionIdIfNeeded($force = false) {
+        if ($force || $this->shouldRotateSessionId()) {
+            session_regenerate_id(true);
+            $_SESSION['admin_last_rotation'] = time();
+        }
+    }
+
+    private function clearAdminSession() {
+        unset(
+            $_SESSION['admin_authenticated'],
+            $_SESSION['admin_authenticated_at'],
+            $_SESSION['admin_last_activity'],
+            $_SESSION['admin_last_rotation'],
+            $_SESSION['admin_username'],
+            $_SESSION['admin_fingerprint'],
+            $_SESSION['admin_csrf_token']
+        );
+    }
+
+    private function touchAdminSession() {
+        $_SESSION['admin_last_activity'] = time();
+    }
+
+    private function isAdminAuthenticated() {
+        if (empty($_SESSION['admin_authenticated'])) {
+            return false;
+        }
+
+        $expectedFingerprint = trim((string)($_SESSION['admin_fingerprint'] ?? ''));
+        if ($expectedFingerprint === '' || !hash_equals($expectedFingerprint, $this->getRequestFingerprint())) {
+            $this->clearAdminSession();
+            return false;
+        }
+
+        if ($this->isAdminSessionExpired()) {
+            $this->clearAdminSession();
+            return false;
+        }
+
+        return true;
+    }
+
+    private function requireAdminAuth() {
+        if (!$this->isAdminAuthenticated()) {
+            $this->error('Authentification requise', 401);
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->validateCsrfToken();
+        }
+
+        $this->touchAdminSession();
+        $this->rotateSessionIdIfNeeded();
+    }
+
+    private function ensureSettingsTableExists() {
+        $sql = "CREATE TABLE IF NOT EXISTS site_settings (
+            setting_key VARCHAR(190) PRIMARY KEY,
+            setting_value LONGTEXT NOT NULL,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        $this->pdo->exec($sql);
+    }
+
+    private function ensureAdminActivityTableExists() {
+        $sql = "CREATE TABLE IF NOT EXISTS admin_activity_log (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            admin_username VARCHAR(190) NOT NULL,
+            action_type VARCHAR(100) NOT NULL,
+            target_type VARCHAR(100) NOT NULL,
+            target_id VARCHAR(190) DEFAULT NULL,
+            summary VARCHAR(255) NOT NULL,
+            metadata LONGTEXT DEFAULT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            KEY idx_admin_activity_created_at (created_at),
+            KEY idx_admin_activity_target (target_type, target_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        $this->pdo->exec($sql);
+    }
+
+    private function ensureAdminLoginAttemptsTableExists() {
+        $sql = "CREATE TABLE IF NOT EXISTS admin_login_attempts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            ip_address VARCHAR(64) NOT NULL,
+            username_attempted VARCHAR(190) DEFAULT NULL,
+            success TINYINT(1) NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            KEY idx_admin_login_attempts_ip_created (ip_address, created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        $this->pdo->exec($sql);
+    }
+
+    private function ensureVehicleAdminColumns() {
+        $columns = $this->pdo->query("SHOW COLUMNS FROM vehicles")->fetchAll(PDO::FETCH_COLUMN);
+
+        if (!in_array('manual_status_override', $columns, true)) {
+            $this->pdo->exec("ALTER TABLE vehicles ADD COLUMN manual_status_override VARCHAR(50) NULL AFTER etat");
+        }
+
+        if (!in_array('synced_status', $columns, true)) {
+            $this->pdo->exec("ALTER TABLE vehicles ADD COLUMN synced_status VARCHAR(50) NULL AFTER manual_status_override");
+            $this->pdo->exec("UPDATE vehicles SET synced_status = etat WHERE synced_status IS NULL");
+        }
+    }
+
+    private function ensureAdminSchema() {
+        if ($this->pdo === null) {
+            $this->error('Base de données non configurée', 503);
+        }
+
+        $this->ensureSettingsTableExists();
+        $this->ensureAdminActivityTableExists();
+        $this->ensureAdminLoginAttemptsTableExists();
+        $this->ensureVehicleAdminColumns();
+    }
+
+    private function getClientIpAddress() {
+        foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $header) {
+            if (empty($_SERVER[$header])) {
+                continue;
+            }
+
+            $rawValue = (string)$_SERVER[$header];
+            $ip = trim(explode(',', $rawValue)[0]);
+            if ($ip !== '') {
+                return substr($ip, 0, 64);
+            }
+        }
+
+        return 'unknown';
+    }
+
+    private function isLoginRateLimited($ipAddress) {
+        if ($this->pdo === null) {
+            return false;
+        }
+
+        $this->ensureAdminLoginAttemptsTableExists();
+
+        $stmt = $this->pdo->prepare("
+            SELECT COUNT(*)
+            FROM admin_login_attempts
+            WHERE ip_address = ?
+              AND success = 0
+              AND created_at >= (NOW() - INTERVAL ? SECOND)
+        ");
+        $stmt->execute([$ipAddress, self::LOGIN_ATTEMPT_WINDOW_SECONDS]);
+
+        return (int)$stmt->fetchColumn() >= self::LOGIN_MAX_ATTEMPTS;
+    }
+
+    private function recordLoginAttempt($ipAddress, $usernameAttempted, $success) {
+        if ($this->pdo === null) {
+            return;
+        }
+
+        $this->ensureAdminLoginAttemptsTableExists();
+
+        $stmt = $this->pdo->prepare("
+            INSERT INTO admin_login_attempts (ip_address, username_attempted, success, created_at)
+            VALUES (?, ?, ?, NOW())
+        ");
+        $stmt->execute([
+            $ipAddress,
+            $usernameAttempted !== '' ? $usernameAttempted : null,
+            $success ? 1 : 0,
+        ]);
+    }
+
+    private function verifyAdminPassword($plainPassword) {
+        $passwordHash = $this->getAdminPasswordHash();
+        if (!empty($passwordHash)) {
+            return password_verify($plainPassword, $passwordHash);
+        }
+
+        $configuredPassword = $this->getAdminPassword();
+        if ($configuredPassword === null) {
+            return false;
+        }
+
+        return hash_equals($configuredPassword, $plainPassword);
+    }
+
+    private function logAdminActivity($actionType, $targetType, $targetId, $summary, $metadata = null) {
+        if ($this->pdo === null) {
+            return;
+        }
+
+        $this->ensureAdminActivityTableExists();
+
+        $encodedMetadata = null;
+        if ($metadata !== null) {
+            $encodedMetadata = json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        $stmt = $this->pdo->prepare("
+            INSERT INTO admin_activity_log (admin_username, action_type, target_type, target_id, summary, metadata, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([
+            $this->getCurrentAdminUsername() ?: 'admin',
+            trim((string)$actionType),
+            trim((string)$targetType),
+            $targetId !== null ? trim((string)$targetId) : null,
+            trim((string)$summary),
+            $encodedMetadata,
+        ]);
+    }
+
+    private function getSettingValue($key) {
+        $this->ensureSettingsTableExists();
+
+        $stmt = $this->pdo->prepare("SELECT setting_value FROM site_settings WHERE setting_key = ?");
+        $stmt->execute([$key]);
+        $row = $stmt->fetch();
+
+        return $row['setting_value'] ?? null;
+    }
+
+    private function setSettingValue($key, $value) {
+        $this->ensureSettingsTableExists();
+
+        $stmt = $this->pdo->prepare("
+            INSERT INTO site_settings (setting_key, setting_value, updated_at)
+            VALUES (?, ?, NOW())
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()
+        ");
+        $stmt->execute([$key, $value]);
+    }
+
+    private function getAdminSession() {
+        $configured = $this->getAdminUsername() !== null
+            && ($this->getAdminPassword() !== null || $this->getAdminPasswordHash() !== null);
+
+        return $this->success([
+            'authenticated' => $this->isAdminAuthenticated(),
+            'configured' => $configured,
+            'username' => $this->isAdminAuthenticated() ? $this->getCurrentAdminUsername() : null,
+            'session_timeout_minutes' => $this->getAdminSessionTimeoutMinutes(),
+            'csrf_token' => $this->issueCsrfToken(),
+            'last_activity_at' => !empty($_SESSION['admin_last_activity'])
+                ? date('c', (int)$_SESSION['admin_last_activity'])
+                : null,
+        ]);
+    }
+
+    private function adminLogin() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return $this->error('Méthode non autorisée. Utilisez POST.', 405);
+        }
+
+        $configuredUsername = $this->getAdminUsername();
+        $configuredPassword = $this->getAdminPassword();
+        $configuredPasswordHash = $this->getAdminPasswordHash();
+        if ($configuredUsername === null || ($configuredPassword === null && $configuredPasswordHash === null)) {
+            return $this->error('Identifiants admin non configurés sur le serveur', 500);
+        }
+
+        $data = $this->getRequestData();
+        $username = trim((string)($data['username'] ?? ''));
+        $password = trim((string)($data['password'] ?? ''));
+        $ipAddress = $this->getClientIpAddress();
+
+        $this->validateCsrfToken();
+
+        if ($this->isLoginRateLimited($ipAddress)) {
+            return $this->error('Trop de tentatives de connexion. Réessayez plus tard.', 429);
+        }
+
+        if ($username === '') {
+            return $this->error('Identifiant requis', 400);
+        }
+
+        if ($password === '') {
+            return $this->error('Mot de passe requis', 400);
+        }
+
+        if (!hash_equals($configuredUsername, $username) || !$this->verifyAdminPassword($password)) {
+            $this->recordLoginAttempt($ipAddress, $username, false);
+            return $this->error('Identifiants invalides', 401);
+        }
+
+        session_regenerate_id(true);
+        $_SESSION['admin_authenticated'] = true;
+        $_SESSION['admin_authenticated_at'] = date('c');
+        $_SESSION['admin_username'] = $configuredUsername;
+        $_SESSION['admin_fingerprint'] = $this->getRequestFingerprint();
+        $_SESSION['admin_last_rotation'] = time();
+        $this->touchAdminSession();
+        $csrfToken = $this->issueCsrfToken();
+        $this->recordLoginAttempt($ipAddress, $username, true);
+
+        $this->logAdminActivity('login', 'session', null, 'Connexion administrateur', [
+            'username' => $configuredUsername,
+        ]);
+
+        return $this->success([
+            'authenticated' => true,
+            'username' => $configuredUsername,
+            'csrf_token' => $csrfToken,
+        ]);
+    }
+
+    private function adminLogout() {
+        if ($this->isAdminAuthenticated()) {
+            $this->logAdminActivity('logout', 'session', null, 'Déconnexion administrateur', [
+                'username' => $this->getCurrentAdminUsername(),
+            ]);
+        }
+
+        $this->clearAdminSession();
+        $_SESSION = [];
+        if (session_id() !== '') {
+            session_regenerate_id(true);
+            session_destroy();
+        }
+
+        return $this->success([
+            'authenticated' => false
+        ]);
+    }
+
+    private function getCarteGrisePricing() {
+        if ($this->pdo === null) {
+            return $this->success(null);
+        }
+
+        $contentValue = $this->getSettingValue('carte_grise_content');
+        if ($contentValue !== null) {
+            $content = json_decode($contentValue, true);
+            if (is_array($content) && isset($content['pricingItems']) && is_array($content['pricingItems'])) {
+                return $this->success($content['pricingItems']);
+            }
+        }
+
+        $value = $this->getSettingValue('carte_grise_pricing');
+        if ($value === null) {
+            return $this->success(null);
+        }
+
+        $decoded = json_decode($value, true);
+        if (!is_array($decoded)) {
+            return $this->success(null);
+        }
+
+        return $this->success($decoded);
+    }
+
+    private function getCarteGriseContent() {
+        if ($this->pdo === null) {
+            return $this->success(null);
+        }
+
+        $value = $this->getSettingValue('carte_grise_content');
+        if ($value === null) {
+            return $this->success(null);
+        }
+
+        $decoded = json_decode($value, true);
+        if (!is_array($decoded)) {
+            return $this->success(null);
+        }
+
+        return $this->success($decoded);
+    }
+
+    private function saveCarteGrisePricing() {
+        $this->requireAdminAuth();
+        $this->ensureAdminSchema();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return $this->error('Méthode non autorisée. Utilisez POST.', 405);
+        }
+
+        $data = $this->getRequestData();
+        $items = $data['items'] ?? null;
+
+        if (!is_array($items) || count($items) === 0) {
+            return $this->error('Liste de tarifs invalide', 400);
+        }
+
+        $sanitized = [];
+        foreach ($items as $item) {
+            $sanitized[] = [
+                'id' => trim((string)($item['id'] ?? '')),
+                'title' => trim((string)($item['title'] ?? '')),
+                'subtitle' => trim((string)($item['subtitle'] ?? '')),
+                'price' => trim((string)($item['price'] ?? '')),
+                'note' => trim((string)($item['note'] ?? '')),
+                'popular' => !empty($item['popular'])
+            ];
+        }
+
+        foreach ($sanitized as $item) {
+            if ($item['id'] === '' || $item['title'] === '' || $item['price'] === '') {
+                return $this->error('Chaque tarif doit avoir un identifiant, un titre et un prix', 400);
+            }
+        }
+
+        $this->setSettingValue('carte_grise_pricing', json_encode($sanitized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+        return $this->success([
+            'message' => 'Tarifs mis à jour',
+            'items' => $sanitized
+        ]);
+    }
+
+    private function normalizeCarteGriseContent($content) {
+        if (!is_array($content)) {
+            $this->error('Contenu carte grise invalide', 400);
+        }
+
+        $pricingItems = [];
+        foreach (($content['pricingItems'] ?? []) as $item) {
+            $pricingItems[] = [
+                'id' => trim((string)($item['id'] ?? '')),
+                'title' => trim((string)($item['title'] ?? '')),
+                'subtitle' => trim((string)($item['subtitle'] ?? '')),
+                'price' => trim((string)($item['price'] ?? '')),
+                'note' => trim((string)($item['note'] ?? '')),
+                'popular' => !empty($item['popular']),
+            ];
+        }
+
+        $documentSections = [];
+        foreach (($content['documentSections'] ?? []) as $section) {
+            $items = [];
+            foreach (($section['items'] ?? []) as $line) {
+                $line = trim((string)$line);
+                if ($line !== '') {
+                    $items[] = $line;
+                }
+            }
+
+            $cerfaCards = [];
+            foreach (($section['cerfaCards'] ?? []) as $card) {
+                $fileMeta = $card['fileMeta'] ?? null;
+                if (!is_array($fileMeta)) {
+                    $fileMeta = [];
+                }
+
+                $cerfaCards[] = [
+                    'id' => trim((string)($card['id'] ?? '')),
+                    'title' => trim((string)($card['title'] ?? '')),
+                    'badge' => trim((string)($card['badge'] ?? '')),
+                    'fileUrl' => trim((string)($card['fileUrl'] ?? '')),
+                    'downloadFilename' => trim((string)($card['downloadFilename'] ?? '')),
+                    'fileMeta' => [
+                        'mimeType' => trim((string)($fileMeta['mimeType'] ?? '')),
+                        'size' => (int)($fileMeta['size'] ?? 0),
+                        'extension' => trim((string)($fileMeta['extension'] ?? '')),
+                        'isImage' => !empty($fileMeta['isImage']),
+                    ],
+                ];
+            }
+
+            $documentSections[] = [
+                'id' => trim((string)($section['id'] ?? '')),
+                'title' => trim((string)($section['title'] ?? '')),
+                'items' => $items,
+                'infoText' => trim((string)($section['infoText'] ?? '')),
+                'cerfaTitle' => trim((string)($section['cerfaTitle'] ?? '')),
+                'cerfaCards' => $cerfaCards,
+            ];
+        }
+
+        return [
+            'pricingItems' => $pricingItems,
+            'documentSections' => $documentSections,
+        ];
+    }
+
+    private function saveCarteGriseContent() {
+        $this->requireAdminAuth();
+        $this->ensureAdminSchema();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return $this->error('Méthode non autorisée. Utilisez POST.', 405);
+        }
+
+        $data = $this->getRequestData();
+        $content = $this->normalizeCarteGriseContent($data['content'] ?? null);
+
+        $this->setSettingValue('carte_grise_content', json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $this->logAdminActivity('save', 'carte_grise', 'content', 'Mise à jour du contenu carte grise', [
+            'pricing_items_count' => count($content['pricingItems']),
+            'document_sections_count' => count($content['documentSections']),
+        ]);
+
+        return $this->success([
+            'message' => 'Contenu carte grise mis à jour',
+            'content' => $content,
+        ]);
+    }
+
+    private function uploadCarteGriseFile() {
+        $this->requireAdminAuth();
+        $this->ensureAdminSchema();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return $this->error('Méthode non autorisée. Utilisez POST.', 405);
+        }
+
+        if (!isset($_FILES['file'])) {
+            return $this->error('Fichier requis', 400);
+        }
+
+        $file = $_FILES['file'];
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return $this->error('Erreur lors de l\'upload du fichier', 400);
+        }
+
+        $originalName = basename((string)$file['name']);
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $allowed = ['png', 'jpg', 'jpeg', 'webp', 'pdf'];
+
+        if (!in_array($extension, $allowed, true)) {
+            return $this->error('Format de fichier non autorisé', 400);
+        }
+
+        $uploadDir = dirname(__DIR__) . '/uploads/carte-grise';
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0775, true) && !is_dir($uploadDir)) {
+            return $this->error('Impossible de créer le dossier d\'upload', 500);
+        }
+
+        $safeName = preg_replace('/[^A-Za-z0-9._-]/', '-', pathinfo($originalName, PATHINFO_FILENAME));
+        $safeName = trim($safeName, '-');
+        if ($safeName === '') {
+            $safeName = 'cerfa';
+        }
+
+        $filename = $safeName . '-' . date('YmdHis') . '.' . $extension;
+        $targetPath = $uploadDir . '/' . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+            return $this->error('Impossible de déplacer le fichier uploadé', 500);
+        }
+
+        $mimeType = '';
+        if (function_exists('mime_content_type')) {
+            $mimeType = (string)(mime_content_type($targetPath) ?: '');
+        }
+        if ($mimeType === '') {
+            $mimeType = $extension === 'pdf' ? 'application/pdf' : 'image/' . ($extension === 'jpg' ? 'jpeg' : $extension);
+        }
+
+        $fileSize = (int)filesize($targetPath);
+        $isImage = in_array($extension, ['png', 'jpg', 'jpeg', 'webp'], true);
+
+        $this->logAdminActivity('upload', 'carte_grise_file', $filename, 'Import d\'un fichier CERFA', [
+            'filename' => $filename,
+            'mime_type' => $mimeType,
+            'size' => $fileSize,
+        ]);
+
+        return $this->success([
+            'public_url' => '/uploads/carte-grise/' . $filename,
+            'filename' => $filename,
+            'mime_type' => $mimeType,
+            'size' => $fileSize,
+            'extension' => $extension,
+            'is_image' => $isImage,
+        ]);
+    }
+
+    private function getAdminVehicles() {
+        $this->requireAdminAuth();
+        $this->ensureAdminSchema();
+
+        $page = max((int)($_GET['page'] ?? 1), 1);
+        $perPage = min(max((int)($_GET['per_page'] ?? 24), 1), 100);
+        $offset = ($page - 1) * $perPage;
+        $status = trim((string)($_GET['status'] ?? ''));
+        $query = trim((string)($_GET['q'] ?? ''));
+        $brand = trim((string)($_GET['brand'] ?? ''));
+        $model = trim((string)($_GET['model'] ?? ''));
+        $year = (int)($_GET['year'] ?? 0);
+        $sort = trim((string)($_GET['sort'] ?? 'updated_desc'));
+
+        $whereParts = ["1=1"];
+        $params = [];
+
+        if ($status !== '' && $status !== 'all') {
+            $whereParts[] = "etat = ?";
+            $params[] = $status;
+        }
+
+        if ($query !== '') {
+            $queryLike = '%' . preg_replace('/\s+/', '%', $query) . '%';
+            $whereParts[] = "(
+                reference LIKE ?
+                OR marque LIKE ?
+                OR modele LIKE ?
+                OR version LIKE ?
+                OR CONCAT_WS(' ', marque, modele) LIKE ?
+                OR CONCAT_WS(' ', marque, modele, version) LIKE ?
+            )";
+            $params[] = $queryLike;
+            $params[] = $queryLike;
+            $params[] = $queryLike;
+            $params[] = $queryLike;
+            $params[] = $queryLike;
+            $params[] = $queryLike;
+        }
+
+        if ($brand !== '') {
+            $whereParts[] = "marque = ?";
+            $params[] = $brand;
+        }
+
+        if ($model !== '') {
+            $whereParts[] = "modele = ?";
+            $params[] = $model;
+        }
+
+        if ($year > 0) {
+            $whereParts[] = "annee = ?";
+            $params[] = $year;
+        }
+
+        $whereSql = implode(' AND ', $whereParts);
+        $orderBy = "updated_at DESC, id DESC";
+        switch ($sort) {
+            case 'price_asc':
+                $orderBy = "prix_vente ASC, id DESC";
+                break;
+            case 'price_desc':
+                $orderBy = "prix_vente DESC, id DESC";
+                break;
+            case 'year_asc':
+                $orderBy = "annee ASC, id DESC";
+                break;
+            case 'year_desc':
+                $orderBy = "annee DESC, id DESC";
+                break;
+            case 'brand_asc':
+                $orderBy = "marque ASC, modele ASC, id DESC";
+                break;
+        }
+
+        $countStmt = $this->pdo->prepare("SELECT COUNT(*) FROM vehicles WHERE {$whereSql}");
+        $countStmt->execute($params);
+        $total = (int)$countStmt->fetchColumn();
+
+        $sql = "SELECT id, reference, marque, modele, version, prix_vente, kilometrage, annee, energie, typeboite, carrosserie, etat, manual_status_override, synced_status, updated_at
+                FROM vehicles
+                WHERE {$whereSql}
+                ORDER BY {$orderBy}
+                LIMIT ? OFFSET ?";
+
+        $stmt = $this->pdo->prepare($sql);
+        $statementParams = $params;
+        $statementParams[] = $perPage;
+        $statementParams[] = $offset;
+
+        foreach ($statementParams as $index => $value) {
+            $stmt->bindValue($index + 1, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $vehicles = $stmt->fetchAll();
+
+        foreach ($vehicles as &$vehicle) {
+            $photoStmt = $this->pdo->prepare("
+                SELECT photo_url
+                FROM vehicle_photos
+                WHERE vehicle_id = ?
+                ORDER BY photo_order
+                LIMIT 1
+            ");
+            $photoStmt->execute([$vehicle['id']]);
+            $photo = $photoStmt->fetch();
+
+            $vehicle['image_url'] = $photo['photo_url'] ?? '';
+            $vehicle['price'] = isset($vehicle['prix_vente']) ? (float)$vehicle['prix_vente'] : 0;
+            $vehicle['mileage'] = isset($vehicle['kilometrage']) ? (int)$vehicle['kilometrage'] : 0;
+            $vehicle['year'] = isset($vehicle['annee']) ? (int)$vehicle['annee'] : 0;
+            $vehicle['fuel_type'] = $vehicle['energie'] ?? '';
+            $vehicle['gearbox'] = (isset($vehicle['typeboite']) && $vehicle['typeboite'] === 'A') ? 'Automatique' : 'Manuelle';
+            $vehicle['brand'] = $vehicle['marque'] ?? '';
+            $vehicle['model'] = $vehicle['modele'] ?? '';
+            $vehicle['status'] = $vehicle['etat'] ?? 'Disponible';
+            $vehicle['manual_override_active'] = !empty($vehicle['manual_status_override']);
+        }
+
+        $brands = $this->pdo->query("SELECT DISTINCT marque FROM vehicles WHERE marque <> '' ORDER BY marque ASC")->fetchAll(PDO::FETCH_COLUMN);
+        $years = $this->pdo->query("SELECT DISTINCT annee FROM vehicles WHERE annee IS NOT NULL AND annee > 0 ORDER BY annee DESC")->fetchAll(PDO::FETCH_COLUMN);
+
+        $modelParams = [];
+        $modelsSql = "SELECT DISTINCT modele FROM vehicles";
+        if ($brand !== '') {
+            $modelsSql .= " WHERE marque = ?";
+            $modelParams[] = $brand;
+        }
+        $modelsSql .= " ORDER BY modele ASC";
+        $modelsStmt = $this->pdo->prepare($modelsSql);
+        $modelsStmt->execute($modelParams);
+        $models = $modelsStmt->fetchAll(PDO::FETCH_COLUMN);
+
+        return $this->success([
+            'items' => $vehicles,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'total_pages' => max(1, (int)ceil($total / $perPage)),
+            ],
+            'filters' => [
+                'brands' => $brands,
+                'models' => $models,
+                'years' => array_map('intval', $years),
+            ],
+        ]);
+    }
+
+    private function updateVehicleStatus() {
+        $this->requireAdminAuth();
+        $this->ensureAdminSchema();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return $this->error('Méthode non autorisée. Utilisez POST.', 405);
+        }
+
+        $data = $this->getRequestData();
+        $vehicleId = (int)($data['vehicle_id'] ?? 0);
+        $status = trim((string)($data['status'] ?? ''));
+
+        if ($vehicleId <= 0) {
+            return $this->error('Véhicule invalide', 400);
+        }
+
+        $allowedStatuses = ['Disponible', 'Vendu', 'Réservé', 'AUTO'];
+        if (!in_array($status, $allowedStatuses, true)) {
+            return $this->error('Statut invalide', 400);
+        }
+
+        $stmt = $this->pdo->prepare("SELECT id, synced_status FROM vehicles WHERE id = ?");
+        $stmt->execute([$vehicleId]);
+        $vehicle = $stmt->fetch();
+
+        if (!$vehicle) {
+            return $this->error('Véhicule non trouvé', 404);
+        }
+
+        if ($status === 'AUTO') {
+            $finalStatus = $vehicle['synced_status'] ?: 'Disponible';
+            $update = $this->pdo->prepare("
+                UPDATE vehicles
+                SET manual_status_override = NULL, etat = ?, updated_at = NOW()
+                WHERE id = ?
+            ");
+            $update->execute([$finalStatus, $vehicleId]);
+        } else {
+            $finalStatus = $status;
+            $update = $this->pdo->prepare("
+                UPDATE vehicles
+                SET manual_status_override = ?, etat = ?, updated_at = NOW()
+                WHERE id = ?
+            ");
+            $update->execute([$status, $finalStatus, $vehicleId]);
+        }
+
+        $this->logAdminActivity('update_status', 'vehicle', (string)$vehicleId, 'Changement de statut véhicule', [
+            'vehicle_id' => $vehicleId,
+            'status' => $finalStatus,
+            'mode' => $status === 'AUTO' ? 'auto' : 'manual',
+        ]);
+
+        return $this->success([
+            'message' => 'Statut mis à jour',
+            'status' => $finalStatus
+        ]);
+    }
+
+    private function getAdminActivity() {
+        $this->requireAdminAuth();
+        $this->ensureAdminSchema();
+
+        $limit = min(max((int)($_GET['limit'] ?? 20), 1), 100);
+        $targetType = trim((string)($_GET['target_type'] ?? ''));
+
+        $sql = "SELECT id, admin_username, action_type, target_type, target_id, summary, metadata, created_at
+                FROM admin_activity_log";
+        $params = [];
+
+        if ($targetType !== '') {
+            $sql .= " WHERE target_type = ?";
+            $params[] = $targetType;
+        }
+
+        $sql .= " ORDER BY created_at DESC, id DESC LIMIT ?";
+        $params[] = $limit;
+
+        $stmt = $this->pdo->prepare($sql);
+        foreach ($params as $index => $value) {
+            $stmt->bindValue($index + 1, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+
+        foreach ($rows as &$row) {
+            $row['metadata'] = !empty($row['metadata']) ? json_decode($row['metadata'], true) : null;
+        }
+
+        return $this->success($rows);
+    }
     
     private function getVehicles() {
         if ($this->pdo === null) {
             return $this->error('Base de données non configurée. Veuillez exécuter install/setup.php', 503);
         }
         
-        $limit = min((int)($_GET['limit'] ?? 12), 50);
+        $limit = min((int)($_GET['limit'] ?? 12), 100);
         $status = $_GET['status'] ?? 'Disponible';
         
         // Vérifier si la table existe
@@ -237,7 +1274,7 @@ class SimpleVehiclesAPI {
             $vehiclesSql = "SELECT " . implode(', ', $selectFields) . " 
                            FROM vehicles";
             
-            if ($hasEtat) {
+            if ($hasEtat && $status !== 'all') {
                 $vehiclesSql .= " WHERE etat = ?";
             }
             
@@ -253,7 +1290,7 @@ class SimpleVehiclesAPI {
             $vehiclesSql .= " LIMIT ?";
             
             $vehiclesStmt = $this->pdo->prepare($vehiclesSql);
-            if ($hasEtat) {
+            if ($hasEtat && $status !== 'all') {
                 $vehiclesStmt->execute([$status, $limit]);
             } else {
                 $vehiclesStmt->execute([$limit]);
@@ -446,14 +1483,7 @@ class SimpleVehiclesAPI {
             return $this->error('Méthode non autorisée. Utilisez POST.', 405);
         }
         
-        // Lire les données JSON du body
-        $json = file_get_contents('php://input');
-        $data = json_decode($json, true);
-        
-        if (!$data) {
-            // Essayer avec $_POST si JSON échoue
-            $data = $_POST;
-        }
+        $data = $this->getRequestData();
         
         // Validation des champs requis
         $required = ['first_name', 'last_name', 'email', 'phone', 'message', 'type'];

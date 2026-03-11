@@ -21,7 +21,7 @@ export default function MentionsLegales() {
                 <div className="flex items-start gap-3 mb-4">
                   <Building className="w-6 h-6 text-red-600 mt-1 flex-shrink-0" />
                   <h2 className="text-2xl font-bold text-gray-900">1. Éditeur du site</h2>
-                </div>
+                    </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-gray-700 leading-relaxed mb-2">
                     <strong>Raison sociale :</strong> JDC AUTO

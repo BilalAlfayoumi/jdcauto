@@ -54,7 +54,7 @@ export default function Vehicles() {
   const { data: allVehicles = [], isLoading } = useQuery({
     queryKey: ['vehicles'],
     queryFn: async () => {
-      const response = await fetch('/api/index.php?action=vehicles&limit=100');
+      const response = await fetch('/api/index.php?action=vehicles&limit=100&status=all');
       if (!response.ok) throw new Error('Erreur API');
       const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Erreur API');
@@ -109,7 +109,6 @@ export default function Vehicles() {
 
   // Filter vehicles
   const filteredVehicles = allVehicles.filter(vehicle => {
-    if (vehicle.status !== 'Disponible') return false;
     if (filters.brand && vehicle.brand !== filters.brand) return false;
     if (filters.model && vehicle.model !== filters.model) return false;
     if (vehicle.price < filters.minPrice) return false;
@@ -138,6 +137,12 @@ export default function Vehicles() {
 
   // Sort vehicles
   const sortedVehicles = [...filteredVehicles].sort((a, b) => {
+    const statusPriority = {
+      'Disponible': 0,
+      'Réservé': 1,
+      'Vendu': 2,
+    };
+
     switch (sortBy) {
       case 'price-asc': return a.price - b.price;
       case 'price-desc': return b.price - a.price;
@@ -145,7 +150,10 @@ export default function Vehicles() {
       case 'year-desc': return b.year - a.year;
       case 'mileage-asc': return a.mileage - b.mileage;
       case 'mileage-desc': return b.mileage - a.mileage;
-      default: return 0; // recent (already sorted by API)
+      default: {
+        const statusDelta = (statusPriority[a.status] ?? 99) - (statusPriority[b.status] ?? 99);
+        return statusDelta;
+      }
     }
   });
 
@@ -407,9 +415,14 @@ export default function Vehicles() {
             {/* Toolbar */}
             <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <span className="text-gray-700 font-medium">
+                <div>
+                  <span className="text-gray-700 font-medium">
                   {sortedVehicles.length} véhicule{sortedVehicles.length > 1 ? 's' : ''}
-                </span>
+                  </span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Les véhicules vendus et réservés restent visibles avec leur badge.
+                  </p>
+                </div>
               </div>
 
               <div className="flex items-center gap-4">

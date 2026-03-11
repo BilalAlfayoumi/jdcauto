@@ -19,6 +19,20 @@ export default defineConfig({
     port: 5173,
     host: true,
     open: true,
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/sync': {
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
     watch: {
       ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/src/backend/**'],
     },

@@ -69,4 +69,4 @@ Après le déploiement, votre site devrait être disponible sur :
 - Le dossier `dist` doit être commité pour que Gandi puisse déployer le site
 - Assurez-vous d'être sur la branche `main` avant de déployer
 - Le script de déploiement vérifie automatiquement la branche actuelle
-
+- Avant de déployer l'admin, configurez son identifiant et idéalement un hash de mot de passe via `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH`, ou via un fichier serveur non versionné `htdocs/config/admin_auth.local.php`

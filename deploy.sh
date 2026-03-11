@@ -10,10 +10,10 @@ echo "🚀 Début du déploiement..."
 # Aller dans le dossier du projet
 cd "$(dirname "$0")/JDC"
 
-# Vérifier que nous sommes sur la branche main
+# Vérifier la branche courante
 CURRENT_BRANCH=$(git branch --show-current)
-if [ "$CURRENT_BRANCH" != "main" ]; then
-    echo "⚠️  Vous n'êtes pas sur la branche main. Branche actuelle: $CURRENT_BRANCH"
+if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
+    echo "⚠️  Vous n'êtes ni sur main ni sur master. Branche actuelle: $CURRENT_BRANCH"
     read -p "Continuer quand même? (y/n) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -42,11 +42,11 @@ fi
 
 # Push vers GitHub (origin)
 echo "⬆️  Push vers GitHub..."
-git push origin main || echo "⚠️  Erreur lors du push vers GitHub (peut être ignorée)"
+git push origin "$CURRENT_BRANCH" || echo "⚠️  Erreur lors du push vers GitHub (peut être ignorée)"
 
 # Push vers Gandi
 echo "⬆️  Push vers Gandi..."
-git push gandi master || {
+git push gandi "$CURRENT_BRANCH" || {
     echo "❌ Erreur lors du push vers Gandi"
     exit 1
 }
@@ -60,4 +60,3 @@ ssh a1ec35a4-fabe-11f0-b829-00163e816020@git.sd3.gpaas.net deploy www.jdcauto.fr
 
 echo "✅ Déploiement terminé avec succès!"
 echo "🌐 Votre site devrait être disponible sur https://jdcauto.fr"
-

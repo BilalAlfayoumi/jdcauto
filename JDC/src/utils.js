@@ -1,3 +1,5 @@
+export const DEFAULT_VEHICLE_IMAGE = '/jdcauto-1.jpg';
+
 /**
  * Crée une URL pour une page donnée
  * @param {string} pageName - Nom de la page (ex: 'Vehicles', 'Home', 'Contact')
@@ -15,6 +17,7 @@ export function createPageUrl(pageName) {
     'tradein': '/trade-in',
     'contact': '/contact',
     'administrative': '/administrative',
+    'admin': '/admin',
     'mentionslegales': '/mentions-legales',
     'cgv': '/cgv',
     'politiqueconfidentialite': '/politique-confidentialite',
@@ -22,4 +25,3 @@ export function createPageUrl(pageName) {
   
   return routeMap[normalizedName] || `/${normalizedName}`;
 }
-
