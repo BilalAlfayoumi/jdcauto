@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { Phone, Mail, MapPin, Menu, X } from 'lucide-react';
+import { Phone, Mail, MapPin, Menu, ShieldCheck, X } from 'lucide-react';
 
 export default function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -28,6 +28,7 @@ export default function Layout({ children }) {
     { name: 'Carte grise & démarches administratives', page: 'Administrative' },
     { name: 'Contact', page: 'Contact' }
   ];
+  const adminUrl = createPageUrl('Admin');
 
   if (isAdminRoute) {
     return <div className="min-h-screen bg-slate-100">{children}</div>;
@@ -79,30 +80,40 @@ export default function Layout({ children }) {
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-1">
-              {navigation.map((item) => (
-                <Link
-                  key={item.page}
-                  to={createPageUrl(item.page)}
-                  onClick={() => {
-                    window.scrollTo({ top: 0, behavior: 'instant' });
-                  }}
-                  className={`relative px-4 py-2 text-sm font-semibold transition-all duration-300 rounded-lg group ${
-                    currentPageName === item.page
-                      ? 'text-red-600 bg-red-50'
-                      : 'text-gray-700 hover:text-red-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="relative z-10">{item.name}</span>
-                  {currentPageName === item.page && (
-                    <span className="absolute inset-0 bg-red-50 rounded-lg -z-0" />
-                  )}
-                  <span className={`absolute bottom-1 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-red-600 transition-all duration-300 rounded-full ${
-                    currentPageName === item.page ? 'w-3/4' : 'group-hover:w-3/4'
-                  }`} />
-                </Link>
-              ))}
-            </nav>
+            <div className="hidden lg:flex items-center gap-4">
+              <nav className="flex items-center gap-1">
+                {navigation.map((item) => (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    onClick={() => {
+                      window.scrollTo({ top: 0, behavior: 'instant' });
+                    }}
+                    className={`relative px-4 py-2 text-sm font-semibold transition-all duration-300 rounded-lg group ${
+                      currentPageName === item.page
+                        ? 'text-red-600 bg-red-50'
+                        : 'text-gray-700 hover:text-red-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="relative z-10">{item.name}</span>
+                    {currentPageName === item.page && (
+                      <span className="absolute inset-0 bg-red-50 rounded-lg -z-0" />
+                    )}
+                    <span className={`absolute bottom-1 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-red-600 transition-all duration-300 rounded-full ${
+                      currentPageName === item.page ? 'w-3/4' : 'group-hover:w-3/4'
+                    }`} />
+                  </Link>
+                ))}
+              </nav>
+
+              <Link
+                to={adminUrl}
+                className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-600"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Connexion admin
+              </Link>
+            </div>
 
             {/* Mobile Menu Button */}
             <button
@@ -143,6 +154,18 @@ export default function Layout({ children }) {
                   {item.name}
                 </Link>
               ))}
+
+              <Link
+                to={adminUrl}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'instant' });
+                }}
+                className="mx-2 mt-3 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-600"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Connexion admin
+              </Link>
             </nav>
           </div>
         </div>
