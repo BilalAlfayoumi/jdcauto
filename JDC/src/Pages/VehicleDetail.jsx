@@ -38,6 +38,11 @@ export default function VehicleDetail() {
   const [isEquipmentsOpen, setIsEquipmentsOpen] = React.useState(false);
   const [isDescriptionOpen, setIsDescriptionOpen] = React.useState(false);
   const [openCategory, setOpenCategory] = React.useState(null);
+  const statusBadgeClasses = {
+    Disponible: 'bg-green-100 text-green-800',
+    Réservé: 'bg-yellow-100 text-yellow-800',
+    Vendu: 'bg-slate-200 text-slate-800',
+  };
 
   // Fonction pour catégoriser et organiser les équipements
   const categorizeEquipments = (options) => {
@@ -477,16 +482,16 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
               </div>
 
               {/* Informations clés complètes */}
-              <div className="mb-8 pb-8 border-b">
+              <section className="mb-6 sm:mb-8 rounded-2xl border border-gray-200 bg-gray-50/80 p-4 sm:p-6">
                 <button
                   onClick={() => setIsKeyInfoOpen(!isKeyInfoOpen)}
-                  className="w-full flex items-center justify-between text-2xl font-bold text-gray-900 mb-6 hover:text-red-600 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between gap-4 text-left text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 hover:text-red-600 transition-colors cursor-pointer"
                 >
                   <span>Les informations clés</span>
                   {isKeyInfoOpen ? (
-                    <ChevronUp className="w-6 h-6 transition-transform" />
+                    <ChevronUp className="w-5 h-5 sm:w-6 sm:h-6 transition-transform flex-shrink-0" />
                   ) : (
-                    <ChevronDown className="w-6 h-6 transition-transform" />
+                    <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 transition-transform flex-shrink-0" />
                   )}
                 </button>
                 <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 transition-all duration-300 overflow-hidden ${
@@ -584,7 +589,7 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                     </div>
                   )}
                 </div>
-              </div>
+              </section>
 
               {/* Équipements et Options - Section collapsible */}
               {vehicle.options && vehicle.options.length > 0 && (() => {
@@ -592,10 +597,10 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                 const categories = Object.keys(categorized);
                 
                 return (
-                  <div className="mb-8">
+                  <section className="mb-6 sm:mb-8 rounded-2xl border border-gray-200 bg-white p-4 sm:p-6">
                     <button
                       onClick={() => setIsEquipmentsOpen(!isEquipmentsOpen)}
-                      className="w-full flex items-center justify-between text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 hover:text-red-600 transition-colors cursor-pointer px-2 sm:px-0"
+                      className="w-full flex items-center justify-between gap-4 text-left text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 hover:text-red-600 transition-colors cursor-pointer"
                     >
                       <span>Équipements et Options</span>
                       {isEquipmentsOpen ? (
@@ -608,7 +613,7 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                       isEquipmentsOpen ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
                     }`}>
                       {/* Style Desktop - Ancien design */}
-                      <div className="hidden md:block bg-white rounded-lg border border-gray-200 p-6 md:p-8 space-y-8">
+                      <div className="hidden md:block bg-white rounded-lg border border-gray-200 p-4 md:p-6 space-y-8">
                         {categories.map((category) => (
                           <div key={category} className="border-b border-gray-200 last:border-b-0 pb-8 last:pb-0">
                             <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
@@ -711,22 +716,22 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                         ))}
                       </div>
                     </div>
-                  </div>
+                  </section>
                 );
               })()}
 
               {/* Description */}
               {vehicle.description && (
-                <div className="mb-8">
+                <section className="mb-6 sm:mb-8 rounded-2xl border border-gray-200 bg-white p-4 sm:p-6">
                   <button
                     onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
-                    className="w-full flex items-center justify-between text-2xl font-bold text-gray-900 mb-6 hover:text-red-600 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between gap-4 text-left text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 hover:text-red-600 transition-colors cursor-pointer"
                   >
                     <span>Description</span>
                     {isDescriptionOpen ? (
-                      <ChevronUp className="w-6 h-6 transition-transform" />
+                      <ChevronUp className="w-5 h-5 sm:w-6 sm:h-6 transition-transform flex-shrink-0" />
                     ) : (
-                      <ChevronDown className="w-6 h-6 transition-transform" />
+                      <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 transition-transform flex-shrink-0" />
                     )}
                   </button>
                   <div className={`transition-all duration-300 overflow-hidden ${
@@ -772,7 +777,7 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                     })}
                     </div>
                   </div>
-                </div>
+                </section>
               )}
             </div>
           </div>
@@ -785,14 +790,9 @@ ${data.message ? `\nMessage du client :\n${data.message}` : ''}
                 <div className="text-4xl font-bold text-red-600 mb-2">
                   {vehicle.price.toLocaleString('fr-FR')} €
                 </div>
-                {vehicle.status === 'Disponible' && (
-                  <span className="inline-block px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
-                    Disponible
-                  </span>
-                )}
-                {vehicle.status === 'Réservé' && (
-                  <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-semibold rounded-full">
-                    Réservé
+                {vehicle.status && statusBadgeClasses[vehicle.status] && (
+                  <span className={`inline-block px-3 py-1 text-sm font-semibold rounded-full ${statusBadgeClasses[vehicle.status]}`}>
+                    {vehicle.status}
                   </span>
                 )}
               </div>
