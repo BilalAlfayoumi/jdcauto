@@ -63,10 +63,6 @@ function LoginScreen({ username, password, setUsername, setPassword, loginMutati
           >
             {loginMutation.isPending ? 'Connexion...' : 'Se connecter'}
           </button>
-
-          <p className="text-xs text-slate-500">
-            En local Docker, l’identifiant par défaut est `admin` et le mot de passe `admin123`.
-          </p>
         </form>
       </div>
     </div>
