@@ -38,8 +38,8 @@ export default function Layout({ children }) {
     <div className="min-h-screen flex flex-col bg-white">
       {/* Top Bar */}
       <div className="bg-gradient-to-r from-gray-900 to-black text-white py-2.5 px-4 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center text-sm">
-          <div className="flex items-center gap-6">
+        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3 text-sm">
+          <div className="flex items-center gap-4 sm:gap-6">
             <a href="tel:+33650256734" className="flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
               <Phone className="w-4 h-4 group-hover:scale-110 transition-transform" />
               <span className="font-medium">06 50 25 67 34</span>
@@ -49,9 +49,18 @@ export default function Layout({ children }) {
               <span className="font-medium">jdcauto33@orange.fr</span>
             </a>
           </div>
-          <div className="hidden md:flex items-center gap-2 text-xs text-gray-300">
-            <MapPin className="w-4 h-4 text-red-500" />
-            <span>Du lundi au vendredi: 08H00 - 12H00 & 14H00-19H30 | Le samedi: Sur rendez-vous</span>
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-2 text-xs text-gray-300">
+              <MapPin className="w-4 h-4 text-red-500" />
+              <span>Du lundi au vendredi: 08H00 - 12H00 & 14H00-19H30 | Le samedi: Sur rendez-vous</span>
+            </div>
+            <Link
+              to={adminUrl}
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-600 hover:border-red-600 sm:px-4 sm:text-sm"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Connexion admin
+            </Link>
           </div>
         </div>
       </div>
@@ -106,13 +115,6 @@ export default function Layout({ children }) {
                 ))}
               </nav>
 
-              <Link
-                to={adminUrl}
-                className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-600"
-              >
-                <ShieldCheck className="w-4 h-4" />
-                Connexion admin
-              </Link>
             </div>
 
             {/* Mobile Menu Button */}
