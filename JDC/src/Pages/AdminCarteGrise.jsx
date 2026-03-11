@@ -576,10 +576,14 @@ export default function AdminCarteGrise() {
                               rows={6}
                               value={(section.items || []).join('\n')}
                               onChange={(event) => updateSection(sectionIndex, {
-                                items: event.target.value.split('\n').map((item) => item.trim()).filter(Boolean),
+                                items: event.target.value.split('\n'),
                               })}
                               className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-600"
+                              placeholder={"Un document par ligne\nExemple : Carte grise\nJustificatif de domicile\nPièce d'identité"}
                             />
+                            <p className="mt-2 text-xs text-slate-500">
+                              Appuie sur Entrée pour passer à la ligne suivante. Le nettoyage de la liste se fait au moment de l’enregistrement.
+                            </p>
                           </label>
 
                           <label className="block">
@@ -764,7 +768,7 @@ export default function AdminCarteGrise() {
                         </div>
                       ) : (
                         <>
-                          {(section.items || []).map((item, itemIndex) => (
+                          {(section.items || []).filter((item) => String(item || '').trim() !== '').map((item, itemIndex) => (
                             <div key={`${section.id}-item-${itemIndex}`} className="flex items-start gap-3">
                               <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                               <span className="text-gray-700">{item}</span>
