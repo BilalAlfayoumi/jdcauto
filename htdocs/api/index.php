@@ -179,6 +179,9 @@ class SimpleVehiclesAPI {
     private const LOGIN_ATTEMPT_WINDOW_SECONDS = 900;
     private const LOGIN_MAX_ATTEMPTS = 5;
     private const SESSION_ROTATE_INTERVAL_SECONDS = 900;
+    private const VEHICLE_IMAGE_PROXY_HOST_SUFFIXES = [
+        'edge.scw.cloud',
+    ];
     
     public function __construct() {
         try {
@@ -193,14 +196,18 @@ class SimpleVehiclesAPI {
         $this->applySecurityHeaders();
         $this->applyCorsHeaders();
 
-        header('Content-Type: application/json; charset=utf-8');
-        
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             http_response_code(200);
             exit;
         }
         
         $action = $_GET['action'] ?? ($_POST['action'] ?? 'vehicles');
+
+        if ($action === 'vehicle_image') {
+            return $this->proxyVehicleImage();
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
         
         try {
             switch ($action) {
@@ -208,6 +215,8 @@ class SimpleVehiclesAPI {
                     return $this->getVehicles();
                 case 'vehicle':
                     return $this->getVehicle();
+                case 'vehicle_image':
+                    return $this->proxyVehicleImage();
                 case 'brands':
                     return $this->getBrands();
                 case 'search':
@@ -262,6 +271,173 @@ class SimpleVehiclesAPI {
         }
 
         return $_POST;
+    }
+
+    private function encodeVehicleImageSource($url) {
+        return rtrim(strtr(base64_encode((string)$url), '+/', '-_'), '=');
+    }
+
+    private function decodeVehicleImageSource($encodedUrl) {
+        $encodedUrl = trim((string)$encodedUrl);
+        if ($encodedUrl === '') {
+            return '';
+        }
+
+        $padding = strlen($encodedUrl) % 4;
+        if ($padding > 0) {
+            $encodedUrl .= str_repeat('=', 4 - $padding);
+        }
+
+        $decoded = base64_decode(strtr($encodedUrl, '-_', '+/'), true);
+        return $decoded !== false ? trim($decoded) : '';
+    }
+
+    private function getVehicleImageDefaultPath() {
+        return realpath(__DIR__ . '/../jdcauto-1.jpg') ?: (__DIR__ . '/../jdcauto-1.jpg');
+    }
+
+    private function outputDefaultVehicleImage() {
+        $defaultPath = $this->getVehicleImageDefaultPath();
+        if (!is_file($defaultPath) || !is_readable($defaultPath)) {
+            http_response_code(404);
+            exit;
+        }
+
+        header('Content-Type: image/jpeg');
+        header('Cache-Control: public, max-age=300');
+        header('Content-Length: ' . filesize($defaultPath));
+        readfile($defaultPath);
+        exit;
+    }
+
+    private function isAllowedVehicleImageHost($host) {
+        $host = strtolower(trim((string)$host));
+        if ($host === '') {
+            return false;
+        }
+
+        foreach (self::VEHICLE_IMAGE_PROXY_HOST_SUFFIXES as $suffix) {
+            $suffix = strtolower(trim((string)$suffix));
+            if ($host === $suffix || substr($host, -strlen('.' . $suffix)) === '.' . $suffix) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeVehicleImageUrl($url) {
+        $url = trim((string)$url);
+        if ($url === '') {
+            return '';
+        }
+
+        $parsedUrl = parse_url($url);
+        if (!is_array($parsedUrl) || empty($parsedUrl['scheme']) || empty($parsedUrl['host'])) {
+            return '';
+        }
+
+        $scheme = strtolower((string)$parsedUrl['scheme']);
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return '';
+        }
+
+        if (!$this->isAllowedVehicleImageHost((string)$parsedUrl['host'])) {
+            return '';
+        }
+
+        return '/api/index.php?action=vehicle_image&src=' . rawurlencode($this->encodeVehicleImageSource($url));
+    }
+
+    private function buildVehicleDeduplicationKey($vehicle) {
+        $parts = [
+            strtoupper(trim((string)($vehicle['marque'] ?? ''))),
+            strtoupper(trim((string)($vehicle['modele'] ?? ''))),
+            number_format((float)($vehicle['prix_vente'] ?? 0), 2, '.', ''),
+            (string)(int)($vehicle['kilometrage'] ?? 0),
+            (string)(int)($vehicle['annee'] ?? 0),
+            strtoupper(trim((string)($vehicle['version'] ?? ''))),
+            strtoupper(trim((string)($vehicle['couleurexterieur'] ?? ''))),
+        ];
+
+        return implode('|', $parts);
+    }
+
+    private function deduplicateVehicleRows($vehicles) {
+        $uniqueVehicles = [];
+        $seenKeys = [];
+
+        foreach ($vehicles as $vehicle) {
+            $dedupeKey = $this->buildVehicleDeduplicationKey($vehicle);
+            if (isset($seenKeys[$dedupeKey])) {
+                continue;
+            }
+
+            $seenKeys[$dedupeKey] = true;
+            $uniqueVehicles[] = $vehicle;
+        }
+
+        return $uniqueVehicles;
+    }
+
+    private function proxyVehicleImage() {
+        $encodedSource = $_GET['src'] ?? '';
+        $sourceUrl = $this->decodeVehicleImageSource($encodedSource);
+
+        if ($sourceUrl === '') {
+            return $this->outputDefaultVehicleImage();
+        }
+
+        $parsedUrl = parse_url($sourceUrl);
+        if (!is_array($parsedUrl) || empty($parsedUrl['scheme']) || empty($parsedUrl['host'])) {
+            return $this->outputDefaultVehicleImage();
+        }
+
+        if (!in_array(strtolower((string)$parsedUrl['scheme']), ['http', 'https'], true)) {
+            return $this->outputDefaultVehicleImage();
+        }
+
+        if (!$this->isAllowedVehicleImageHost((string)$parsedUrl['host'])) {
+            return $this->outputDefaultVehicleImage();
+        }
+
+        $ch = curl_init($sourceUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 12,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_MAXREDIRS => 3,
+            CURLOPT_USERAGENT => 'JDC-Auto-ImageProxy/1.0',
+            CURLOPT_HTTPHEADER => ['Accept: image/*'],
+            CURLOPT_HEADER => true,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $headerSize = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        $curlError = curl_errno($ch);
+        curl_close($ch);
+
+        if ($response === false || $curlError !== 0 || $httpCode < 200 || $httpCode >= 300 || $headerSize <= 0) {
+            return $this->outputDefaultVehicleImage();
+        }
+
+        $body = substr($response, $headerSize);
+        if ($body === false || $body === '') {
+            return $this->outputDefaultVehicleImage();
+        }
+
+        if ($contentType === '' || stripos($contentType, 'image/') !== 0) {
+            $contentType = 'image/jpeg';
+        }
+
+        header('Content-Type: ' . $contentType);
+        header('Cache-Control: public, max-age=86400');
+        header('Content-Length: ' . strlen($body));
+        echo $body;
+        exit;
     }
 
     private function isHttpsRequest() {
@@ -1250,6 +1426,7 @@ class SimpleVehiclesAPI {
         }
         
         $limit = min((int)($_GET['limit'] ?? 12), 100);
+        $queryLimit = min(max($limit * 4, $limit), 500);
         $status = $_GET['status'] ?? 'Disponible';
         
         // Vérifier si la table existe
@@ -1302,9 +1479,9 @@ class SimpleVehiclesAPI {
             
             // Utiliser updated_at si disponible, sinon date_modif, sinon id
             if (in_array('updated_at', $availableColumns)) {
-                $vehiclesSql .= " ORDER BY updated_at DESC";
+                $vehiclesSql .= " ORDER BY updated_at DESC, id DESC";
             } else if ($hasDateModif) {
-                $vehiclesSql .= " ORDER BY date_modif DESC";
+                $vehiclesSql .= " ORDER BY date_modif DESC, id DESC";
             } else if (in_array('id', $availableColumns)) {
                 $vehiclesSql .= " ORDER BY id DESC";
             }
@@ -1313,11 +1490,12 @@ class SimpleVehiclesAPI {
             
             $vehiclesStmt = $this->pdo->prepare($vehiclesSql);
             if ($hasEtat && $status !== 'all') {
-                $vehiclesStmt->execute([$status, $limit]);
+                $vehiclesStmt->execute([$status, $queryLimit]);
             } else {
-                $vehiclesStmt->execute([$limit]);
+                $vehiclesStmt->execute([$queryLimit]);
             }
-            $vehicles = $vehiclesStmt->fetchAll();
+            $vehicles = $this->deduplicateVehicleRows($vehiclesStmt->fetchAll());
+            $vehicles = array_slice($vehicles, 0, $limit);
             
             // Chaque véhicule est unique, donc quantity = 1
             foreach ($vehicles as &$vehicle) {
@@ -1344,7 +1522,7 @@ class SimpleVehiclesAPI {
                     ");
                     $photoStmt->execute([$vehicle['id']]);
                     $photo = $photoStmt->fetch();
-                    $vehicle['image_url'] = $photo['photo_url'] ?? '';
+                    $vehicle['image_url'] = $this->normalizeVehicleImageUrl($photo['photo_url'] ?? '');
                 } else {
                     $vehicle['image_url'] = '';
                 }
@@ -1398,8 +1576,8 @@ class SimpleVehiclesAPI {
         ");
         $stmt->execute([$id]);
         $photos = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        $vehicle['photos'] = $photos;
-        $vehicle['image_url'] = $photos[0] ?? '';
+        $vehicle['photos'] = array_values(array_filter(array_map([$this, 'normalizeVehicleImageUrl'], $photos)));
+        $vehicle['image_url'] = $vehicle['photos'][0] ?? '';
         
         // Format pour React
         $vehicle['price'] = (float)$vehicle['prix_vente'];

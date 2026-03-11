@@ -45,6 +45,179 @@ function logMessage($message, $type = 'info') {
     }
 }
 
+function buildVehicleDuplicateGroups(PDO $pdo) {
+    $duplicatesSql = "
+        SELECT 
+            marque,
+            modele,
+            prix_vente,
+            kilometrage,
+            annee,
+            COALESCE(version, '') AS version_normalized,
+            COALESCE(couleurexterieur, '') AS couleur_normalized,
+            COUNT(*) AS duplicate_count
+        FROM vehicles
+        GROUP BY 
+            marque,
+            modele,
+            prix_vente,
+            kilometrage,
+            annee,
+            COALESCE(version, ''),
+            COALESCE(couleurexterieur, '')
+        HAVING COUNT(*) > 1
+        ORDER BY duplicate_count DESC
+    ";
+
+    return $pdo->query($duplicatesSql)->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function mergeDuplicateVehicles(PDO $pdo) {
+    $duplicateGroups = buildVehicleDuplicateGroups($pdo);
+    if (empty($duplicateGroups)) {
+        return [
+            'groups_merged' => 0,
+            'vehicles_removed' => 0,
+            'photos_merged' => 0,
+            'options_merged' => 0,
+        ];
+    }
+
+    $hasVehicleOptions = $pdo->query("SHOW TABLES LIKE 'vehicle_options'")->rowCount() > 0;
+    $groupsMerged = 0;
+    $vehiclesRemoved = 0;
+    $photosMerged = 0;
+    $optionsMerged = 0;
+
+    foreach ($duplicateGroups as $group) {
+        $vehiclesSql = "
+            SELECT id, reference, manual_status_override, synced_status, etat, updated_at
+            FROM vehicles
+            WHERE marque = ?
+              AND modele = ?
+              AND prix_vente = ?
+              AND kilometrage = ?
+              AND annee = ?
+              AND COALESCE(version, '') = ?
+              AND COALESCE(couleurexterieur, '') = ?
+            ORDER BY
+              CASE WHEN manual_status_override IS NOT NULL AND manual_status_override <> '' THEN 1 ELSE 0 END DESC,
+              updated_at DESC,
+              id DESC
+        ";
+
+        $vehiclesStmt = $pdo->prepare($vehiclesSql);
+        $vehiclesStmt->execute([
+            $group['marque'],
+            $group['modele'],
+            $group['prix_vente'],
+            $group['kilometrage'],
+            $group['annee'],
+            $group['version_normalized'],
+            $group['couleur_normalized'],
+        ]);
+        $duplicateVehicles = $vehiclesStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (count($duplicateVehicles) < 2) {
+            continue;
+        }
+
+        $keepVehicle = $duplicateVehicles[0];
+        $removeVehicles = array_slice($duplicateVehicles, 1);
+        $allIds = array_map('intval', array_column($duplicateVehicles, 'id'));
+        $removeIds = array_map('intval', array_column($removeVehicles, 'id'));
+        $placeholders = implode(',', array_fill(0, count($allIds), '?'));
+        $removePlaceholders = implode(',', array_fill(0, count($removeIds), '?'));
+
+        try {
+            $pdo->beginTransaction();
+
+            $photosStmt = $pdo->prepare("
+                SELECT photo_url
+                FROM vehicle_photos
+                WHERE vehicle_id IN ($placeholders)
+                ORDER BY vehicle_id DESC, photo_order ASC
+            ");
+            $photosStmt->execute($allIds);
+            $mergedPhotoUrls = [];
+            foreach ($photosStmt->fetchAll(PDO::FETCH_COLUMN) as $photoUrl) {
+                $photoUrl = trim((string)$photoUrl);
+                if ($photoUrl !== '' && !in_array($photoUrl, $mergedPhotoUrls, true)) {
+                    $mergedPhotoUrls[] = $photoUrl;
+                }
+            }
+
+            $pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id = ?")->execute([(int)$keepVehicle['id']]);
+            if (!empty($mergedPhotoUrls)) {
+                $insertPhotoStmt = $pdo->prepare("
+                    INSERT INTO vehicle_photos (vehicle_id, photo_url, photo_order)
+                    VALUES (?, ?, ?)
+                ");
+                foreach ($mergedPhotoUrls as $index => $photoUrl) {
+                    $insertPhotoStmt->execute([(int)$keepVehicle['id'], $photoUrl, $index]);
+                    $photosMerged++;
+                }
+            }
+
+            if ($hasVehicleOptions) {
+                $optionsStmt = $pdo->prepare("
+                    SELECT option_nom
+                    FROM vehicle_options
+                    WHERE vehicle_id IN ($placeholders)
+                    ORDER BY vehicle_id DESC, id ASC
+                ");
+                $optionsStmt->execute($allIds);
+                $mergedOptions = [];
+                foreach ($optionsStmt->fetchAll(PDO::FETCH_COLUMN) as $optionName) {
+                    $optionName = trim((string)$optionName);
+                    if ($optionName !== '' && !in_array($optionName, $mergedOptions, true)) {
+                        $mergedOptions[] = $optionName;
+                    }
+                }
+
+                $pdo->prepare("DELETE FROM vehicle_options WHERE vehicle_id = ?")->execute([(int)$keepVehicle['id']]);
+                if (!empty($mergedOptions)) {
+                    $insertOptionStmt = $pdo->prepare("
+                        INSERT INTO vehicle_options (vehicle_id, option_nom, montant)
+                        VALUES (?, ?, 0.00)
+                    ");
+                    foreach ($mergedOptions as $optionName) {
+                        $insertOptionStmt->execute([(int)$keepVehicle['id'], $optionName]);
+                        $optionsMerged++;
+                    }
+                }
+            }
+
+            $deletePhotosStmt = $pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id IN ($removePlaceholders)");
+            $deletePhotosStmt->execute($removeIds);
+
+            if ($hasVehicleOptions) {
+                $deleteOptionsStmt = $pdo->prepare("DELETE FROM vehicle_options WHERE vehicle_id IN ($removePlaceholders)");
+                $deleteOptionsStmt->execute($removeIds);
+            }
+
+            $deleteVehiclesStmt = $pdo->prepare("DELETE FROM vehicles WHERE id IN ($removePlaceholders)");
+            $deleteVehiclesStmt->execute($removeIds);
+
+            $pdo->commit();
+            $groupsMerged++;
+            $vehiclesRemoved += count($removeIds);
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            logMessage("Nettoyage doublons impossible pour {$group['marque']} {$group['modele']}: " . $exception->getMessage(), 'error');
+        }
+    }
+
+    return [
+        'groups_merged' => $groupsMerged,
+        'vehicles_removed' => $vehiclesRemoved,
+        'photos_merged' => $photosMerged,
+        'options_merged' => $optionsMerged,
+    ];
+}
+
 try {
     $pdo = new PDO(
         "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
@@ -487,6 +660,12 @@ foreach ($vehicles as $vehiculeXML) {
         $errors++;
         logMessage("Erreur véhicule $reference: " . $e->getMessage(), 'error');
     }
+}
+
+$duplicateCleanup = mergeDuplicateVehicles($pdo);
+if ($duplicateCleanup['groups_merged'] > 0) {
+    logMessage("Nettoyage doublons en base: {$duplicateCleanup['groups_merged']} groupes fusionnés", 'info');
+    logMessage("Doublons supprimés: {$duplicateCleanup['vehicles_removed']} véhicules", 'info');
 }
 
 // Résumé
