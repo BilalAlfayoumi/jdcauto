@@ -32,6 +32,12 @@ const heroSlides = [
 export default function HeroSliderFixed() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setIsMounted(true), 80);
+    return () => clearTimeout(t);
+  }, []);
   
   // Search filters state - Déclaré en premier
   const [searchFilters, setSearchFilters] = useState({
@@ -169,18 +175,24 @@ export default function HeroSliderFixed() {
           {/* Content */}
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-white z-20 w-full pt-4 md:pt-8 flex flex-col h-full">
             <div className="max-w-3xl flex-1">
-              <div
-                className={`transition-all duration-700 ${
-                  isTransitioning ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
-                }`}
+              {/* Titre : pop au montage initial */}
+              <h1
+                className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3 leading-tight
+                  transition-all duration-700 ease-out
+                  ${!isMounted ? 'opacity-0 translate-y-8 scale-95' : isTransitioning ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0 scale-100'}
+                `}
               >
-                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3 leading-tight">
-                  {currentSlideData?.title || 'JDC Auto'}
-                </h1>
-                <p className="text-sm sm:text-base md:text-lg text-gray-200">
-                  {currentSlideData?.subtitle || 'Votre partenaire automobile'}
-                </p>
-              </div>
+                {currentSlideData?.title || 'JDC Auto'}
+              </h1>
+              {/* Subtitle : légèrement décalé */}
+              <p
+                className={`text-sm sm:text-base md:text-lg text-gray-200
+                  transition-all duration-700 ease-out delay-150
+                  ${!isMounted ? 'opacity-0 translate-y-6' : isTransitioning ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}
+                `}
+              >
+                {currentSlideData?.subtitle || 'Votre partenaire automobile'}
+              </p>
             </div>
           </div>
 
@@ -217,7 +229,10 @@ export default function HeroSliderFixed() {
           </div>
 
           {/* Search Bar - Desktop only */}
-          <div className="hidden lg:block absolute bottom-0 left-0 right-0 z-30 px-4 pb-6">
+          <div className={`hidden lg:block absolute bottom-0 left-0 right-0 z-30 px-4 pb-6
+            transition-all duration-700 ease-out delay-300
+            ${!isMounted ? 'opacity-0 translate-y-6' : 'opacity-100 translate-y-0'}
+          `}>
             <div className="max-w-6xl mx-auto">
               <div className="flex justify-between items-center mb-3 px-2">
                 <div className="text-white font-semibold text-base">
