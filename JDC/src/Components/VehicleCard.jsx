@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '../utils';
+import { createPageUrl, DEFAULT_VEHICLE_IMAGE } from '../utils';
 import { Fuel, Gauge, Settings, Calendar } from 'lucide-react';
 import ImageWithAnimation from './ImageWithAnimation';
 
@@ -13,7 +13,7 @@ export default function VehicleCard({ vehicle, index = 0 }) {
         className="relative overflow-hidden aspect-[4/3] block group/image"
       >
         <ImageWithAnimation
-          src={vehicle.image_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&auto=format&fit=crop'}
+          src={vehicle.image_url || DEFAULT_VEHICLE_IMAGE}
           alt={`${vehicle.brand} ${vehicle.model}`}
           className="w-full h-full group-hover:scale-110 transition-transform duration-500"
           animation="zoom-in"

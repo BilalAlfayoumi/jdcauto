@@ -256,7 +256,6 @@ function removeStaleAvailableVehicles(PDO $pdo, array $processedReferences) {
         FROM vehicles
         WHERE reference NOT IN ($placeholders)
           AND (manual_status_override IS NULL OR manual_status_override = '')
-          AND (etat = 'Disponible' OR synced_status = 'Disponible' OR synced_status IS NULL)
     ";
 
     $stmt = $pdo->prepare($sql);

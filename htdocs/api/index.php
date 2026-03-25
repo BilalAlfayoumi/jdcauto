@@ -386,19 +386,23 @@ class SimpleVehiclesAPI {
         $sourceUrl = $this->decodeVehicleImageSource($encodedSource);
 
         if ($sourceUrl === '') {
+            error_log('[JDC-ImageProxy] Empty source URL (encoded: ' . $encodedSource . ')');
             return $this->outputDefaultVehicleImage();
         }
 
         $parsedUrl = parse_url($sourceUrl);
         if (!is_array($parsedUrl) || empty($parsedUrl['scheme']) || empty($parsedUrl['host'])) {
+            error_log('[JDC-ImageProxy] Invalid URL format: ' . $sourceUrl);
             return $this->outputDefaultVehicleImage();
         }
 
         if (!in_array(strtolower((string)$parsedUrl['scheme']), ['http', 'https'], true)) {
+            error_log('[JDC-ImageProxy] Non-http scheme rejected: ' . $sourceUrl);
             return $this->outputDefaultVehicleImage();
         }
 
         if (!$this->isAllowedVehicleImageHost((string)$parsedUrl['host'])) {
+            error_log('[JDC-ImageProxy] Host not in whitelist: ' . $parsedUrl['host'] . ' (url: ' . $sourceUrl . ')');
             return $this->outputDefaultVehicleImage();
         }
 
@@ -422,6 +426,7 @@ class SimpleVehiclesAPI {
         curl_close($ch);
 
         if ($response === false || $curlError !== 0 || $httpCode < 200 || $httpCode >= 300 || $headerSize <= 0) {
+            error_log('[JDC-ImageProxy] Fetch failed — url: ' . $sourceUrl . ' | http_code: ' . $httpCode . ' | curl_errno: ' . $curlError);
             return $this->outputDefaultVehicleImage();
         }
 
