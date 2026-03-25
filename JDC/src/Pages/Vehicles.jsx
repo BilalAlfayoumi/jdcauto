@@ -419,9 +419,7 @@ export default function Vehicles() {
                   <span className="text-gray-700 font-medium">
                   {sortedVehicles.length} véhicule{sortedVehicles.length > 1 ? 's' : ''}
                   </span>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Les véhicules vendus et réservés restent visibles avec leur badge.
-                  </p>
+
                 </div>
               </div>
 
