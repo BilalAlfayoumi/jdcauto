@@ -38,8 +38,8 @@ export default function Home() {
       if (!data.success) throw new Error(data.error || 'Erreur API');
       return data.data || [];
     },
-    staleTime: 0,
-    cacheTime: 0,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   return (

@@ -60,8 +60,8 @@ export default function Vehicles() {
       if (!data.success) throw new Error(data.error || 'Erreur API');
       return data.data || [];
     },
-    staleTime: 0, // Toujours rafraîchir
-    cacheTime: 0, // Pas de cache
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   // Get price and year ranges from data
