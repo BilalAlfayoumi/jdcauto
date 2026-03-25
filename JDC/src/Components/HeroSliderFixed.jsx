@@ -160,11 +160,15 @@ export default function HeroSliderFixed() {
                 index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
               }`}
             >
-              <div className="absolute inset-0">
-                <img 
+              <div className="absolute inset-0 overflow-hidden">
+                <img
                   src={slide.image}
                   alt={slide.title}
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full object-cover transition-all duration-1000 ease-out
+                    ${index === 0
+                      ? (!isMounted ? 'opacity-0 scale-110' : 'opacity-100 scale-100')
+                      : 'opacity-100 scale-100'
+                    }`}
                   loading={index === 0 ? 'eager' : 'lazy'}
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
