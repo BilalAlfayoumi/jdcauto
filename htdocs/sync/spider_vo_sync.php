@@ -585,8 +585,9 @@ foreach ($vehicles as $vehiculeXML) {
         $columnsStmt = $pdo->query("SHOW COLUMNS FROM vehicles LIKE 'titre'");
         $hasTitre = $columnsStmt->rowCount() > 0;
         
-        $manualStatusOverride = $existing['manual_status_override'] ?? null;
-        $finalEtat = !empty($manualStatusOverride) ? $manualStatusOverride : $xmlEtat;
+        // Statut géré uniquement par l'admin : conserver l'état actuel pour les véhicules existants,
+        // toujours "Disponible" pour les nouveaux véhicules ajoutés depuis Spider-VO.
+        $finalEtat = $existing ? ($existing['etat'] ?? 'Disponible') : 'Disponible';
 
         if ($existing) {
             // Mise à jour (utiliser ID pour gérer les doublons détectés)
@@ -743,10 +744,8 @@ if ($duplicateCleanup['groups_merged'] > 0) {
     logMessage("Doublons supprimés: {$duplicateCleanup['vehicles_removed']} véhicules", 'info');
 }
 
-$staleVehiclesRemoved = removeStaleAvailableVehicles($pdo, $processedReferences);
-if ($staleVehiclesRemoved > 0) {
-    logMessage("Véhicules obsolètes supprimés: $staleVehiclesRemoved", 'info');
-}
+// Suppression automatique désactivée : les véhicules restent sur le site indéfiniment.
+// Le statut est géré manuellement par l'admin (Disponible / Réservé / Vendu).
 
 // Résumé
 logMessage("Import terminé", 'success');
