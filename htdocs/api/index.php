@@ -220,6 +220,8 @@ class SimpleVehiclesAPI {
                     return $this->proxyVehicleImage();
                 case 'brands':
                     return $this->getBrands();
+                case 'hero_data':
+                    return $this->getHeroData();
                 case 'search':
                     return $this->search();
                 case 'carte_grise_pricing':
@@ -1632,6 +1634,43 @@ class SimpleVehiclesAPI {
         return $this->success($brands);
     }
     
+    private function getHeroData() {
+        $stmt = $this->pdo->query("
+            SELECT marque, modele, prix_vente
+            FROM vehicles
+            WHERE etat = 'Disponible'
+            ORDER BY marque, modele
+        ");
+        $rows = $stmt->fetchAll();
+
+        $brands = [];
+        $modelsByBrand = [];
+        $prices = [];
+
+        foreach ($rows as $row) {
+            $brand = trim((string)$row['marque']);
+            $model = trim((string)$row['modele']);
+            $price = (float)$row['prix_vente'];
+
+            if ($brand === '') continue;
+
+            if (!isset($brands[$brand])) $brands[$brand] = true;
+            if ($model !== '') $modelsByBrand[$brand][$model] = true;
+            if ($price > 0) $prices[] = $price;
+        }
+
+        ksort($brands);
+        ksort($modelsByBrand);
+        foreach ($modelsByBrand as &$m) { ksort($m); $m = array_keys($m); }
+
+        return $this->success([
+            'total'           => count($rows),
+            'brands'          => array_keys($brands),
+            'models_by_brand' => $modelsByBrand,
+            'price_max'       => $prices ? (int)max($prices) : 100000,
+        ]);
+    }
+
     private function search() {
         $query = $_GET['q'] ?? '';
         $limit = min((int)($_GET['limit'] ?? 10), 20);

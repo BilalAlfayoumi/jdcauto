@@ -46,55 +46,31 @@ export default function HeroSliderFixed() {
     maxPrice: ''
   });
   
-  // Fetch real vehicles data from API
-  const { data: allVehicles = [] } = useQuery({
-    queryKey: ['vehicles', 'hero-search'],
+  // Fetch hero data (marques, modèles, count) — requête légère dédiée
+  const { data: heroData } = useQuery({
+    queryKey: ['hero_data'],
     queryFn: async () => {
-      const response = await fetch('/api/index.php?action=vehicles&limit=100');
+      const response = await fetch('/api/index.php?action=hero_data');
       if (!response.ok) throw new Error('Erreur API');
       const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Erreur API');
-      return data.data || [];
+      return data.data;
     },
-    staleTime: 0,
-    cacheTime: 0,
+    staleTime: 5 * 60 * 1000, // cache 5 minutes
   });
-  
-  // Calculate real data from vehicles
-  const availableCount = allVehicles.length;
-  
-  // Get unique brands from real vehicles
-  const uniqueBrands = [...new Set(allVehicles.map(v => v.brand || v.marque))].filter(Boolean).sort();
-  
-  // Get unique models for selected brand
-  const uniqueModels = searchFilters.brand
-    ? [...new Set(allVehicles
-        .filter(v => (v.brand || v.marque) === searchFilters.brand)
-        .map(v => v.model || v.modele)
-      )].filter(Boolean).sort()
-    : [];
-  
-  // Calculate price range from real vehicles
-  const priceRange = allVehicles.length > 0 
-    ? {
-        min: Math.min(...allVehicles.map(v => v.price || parseFloat(v.prix_vente || 0))),
-        max: Math.max(...allVehicles.map(v => v.price || parseFloat(v.prix_vente || 0)))
-      }
-    : { min: 0, max: 100000 };
-  
-  // Generate price options based on real data
+
+  const availableCount = heroData?.total ?? 0;
+  const uniqueBrands   = heroData?.brands ?? [];
+  const uniqueModels   = searchFilters.brand ? (heroData?.models_by_brand?.[searchFilters.brand] ?? []) : [];
+
+  // Options de prix basées sur le prix max réel
+  const priceMax = heroData?.price_max ?? 100000;
   const priceOptions = [];
-  if (priceRange.max > 0) {
-    const step = Math.ceil(priceRange.max / 5);
-    for (let i = step; i <= priceRange.max; i += step) {
-      priceOptions.push(i);
-    }
-    // Add max price if not already included
-    if (priceOptions[priceOptions.length - 1] < priceRange.max) {
-      priceOptions.push(priceRange.max);
-    }
+  if (priceMax > 0) {
+    const step = Math.ceil(priceMax / 5);
+    for (let i = step; i <= priceMax; i += step) priceOptions.push(i);
+    if (priceOptions[priceOptions.length - 1] < priceMax) priceOptions.push(priceMax);
   } else {
-    // Fallback prices
     priceOptions.push(10000, 15000, 20000, 30000, 50000);
   }
   
