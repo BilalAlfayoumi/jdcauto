@@ -12,12 +12,13 @@ export default function VehicleCard({ vehicle, index = 0 }) {
         to={createPageUrl('VehicleDetail') + `?id=${vehicle.id || vehicle.reference || ''}`}
         className="relative overflow-hidden aspect-[4/3] block group/image"
       >
+        <div className="w-full h-full bg-gray-200 animate-pulse absolute inset-0" />
         <ImageWithAnimation
           src={vehicle.image_url || DEFAULT_VEHICLE_IMAGE}
           alt={`${vehicle.brand} ${vehicle.model}`}
-          className="w-full h-full group-hover:scale-110 transition-transform duration-500"
+          className="w-full h-full group-hover:scale-110 transition-transform duration-500 relative"
           animation="zoom-in"
-          delay={index * 100}
+          delay={0}
         />
         {/* Overlay "Voir" au hover */}
         <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover/image:opacity-100">

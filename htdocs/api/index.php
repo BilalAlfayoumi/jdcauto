@@ -347,7 +347,7 @@ class SimpleVehiclesAPI {
             return '';
         }
 
-        return '/api/index.php?action=vehicle_image&src=' . rawurlencode($this->encodeVehicleImageSource($url));
+        return $url;
     }
 
     private function buildVehicleDeduplicationKey($vehicle) {
