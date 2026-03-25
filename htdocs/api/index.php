@@ -176,6 +176,7 @@ class GandiDatabaseConfig {
 class SimpleVehiclesAPI {
     
     private $pdo;
+    private const CACHE_TTL = 300; // 5 minutes
     private const LOGIN_ATTEMPT_WINDOW_SECONDS = 900;
     private const LOGIN_MAX_ATTEMPTS = 5;
     private const SESSION_ROTATE_INTERVAL_SECONDS = 900;
@@ -193,6 +194,28 @@ class SimpleVehiclesAPI {
         }
     }
     
+    private function getCacheKey(string $key): string {
+        return sys_get_temp_dir() . '/jdcauto_cache_' . preg_replace('/[^a-z0-9_]/', '_', $key) . '.json';
+    }
+
+    private function getFromCache(string $key): ?array {
+        $file = $this->getCacheKey($key);
+        if (file_exists($file) && (time() - filemtime($file)) < self::CACHE_TTL) {
+            $data = @json_decode(file_get_contents($file), true);
+            if (is_array($data)) return $data;
+        }
+        return null;
+    }
+
+    private function saveToCache(string $key, array $data): void {
+        @file_put_contents($this->getCacheKey($key), json_encode($data));
+    }
+
+    private function invalidateCache(string $key): void {
+        $file = $this->getCacheKey($key);
+        if (file_exists($file)) @unlink($file);
+    }
+
     public function handleRequest() {
         $this->applySecurityHeaders();
         $this->applyCorsHeaders();
@@ -1419,10 +1442,21 @@ class SimpleVehiclesAPI {
         if ($this->pdo === null) {
             return $this->error('Base de données non configurée. Veuillez exécuter install/setup.php', 503);
         }
-        
+
         $limit = min((int)($_GET['limit'] ?? 12), 100);
         $queryLimit = min(max($limit * 4, $limit), 500);
         $status = $_GET['status'] ?? 'Disponible';
+
+        // Cache pour la requête featured (home page) : pas de filtres, limit≤8, status=Disponible
+        $hasFilters = !empty($_GET['marque']) || !empty($_GET['modele']) || !empty($_GET['q'])
+            || !empty($_GET['prix_min']) || !empty($_GET['prix_max']) || !empty($_GET['annee_min'])
+            || !empty($_GET['annee_max']) || !empty($_GET['energie']) || !empty($_GET['typeboite'])
+            || !empty($_GET['carrosserie']);
+        $isFeatured = !$hasFilters && $limit <= 8 && $status === 'Disponible';
+        if ($isFeatured) {
+            $cached = $this->getFromCache('vehicles_featured');
+            if ($cached !== null) return $this->success($cached);
+        }
         
         // Vérifier si la table existe
         try {
@@ -1538,10 +1572,14 @@ class SimpleVehiclesAPI {
             $vehicle['category'] = $vehicle['carrosserie'] ?? '';
             $vehicle['quantity'] = isset($vehicle['quantity']) ? (int)$vehicle['quantity'] : 1;
         }
-        
+
+        if ($isFeatured) {
+            $this->saveToCache('vehicles_featured', $vehicles);
+        }
+
         return $this->success($vehicles);
     }
-    
+
     private function getVehicle() {
         $id = (int)($_GET['id'] ?? 0);
         
@@ -1635,6 +1673,9 @@ class SimpleVehiclesAPI {
     }
     
     private function getHeroData() {
+        $cached = $this->getFromCache('hero_data');
+        if ($cached !== null) return $this->success($cached);
+
         $stmt = $this->pdo->query("
             SELECT marque, modele, prix_vente
             FROM vehicles
@@ -1663,12 +1704,15 @@ class SimpleVehiclesAPI {
         ksort($modelsByBrand);
         foreach ($modelsByBrand as &$m) { ksort($m); $m = array_keys($m); }
 
-        return $this->success([
+        $result = [
             'total'           => count($rows),
             'brands'          => array_keys($brands),
             'models_by_brand' => $modelsByBrand,
             'price_max'       => $prices ? (int)max($prices) : 100000,
-        ]);
+        ];
+
+        $this->saveToCache('hero_data', $result);
+        return $this->success($result);
     }
 
     private function search() {
