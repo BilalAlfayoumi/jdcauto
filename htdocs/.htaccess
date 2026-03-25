@@ -5,11 +5,6 @@
 # Désactiver le listage des répertoires
 Options -Indexes
 
-# Forcer HTTPS
-RewriteEngine On
-RewriteCond %{HTTPS} off
-RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
 # Bloquer l'accès direct aux fichiers de configuration PHP
 <FilesMatch "(admin_auth|mysql_gandi)\.php$">
     Order Allow,Deny
