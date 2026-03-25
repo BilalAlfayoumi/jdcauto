@@ -251,15 +251,10 @@ class SimpleVehiclesAPI {
             }
         } catch (PDOException $e) {
             error_log("Erreur PDO API: " . $e->getMessage() . " | Code: " . $e->getCode());
-            // En mode debug, retourner l'erreur détaillée
-            $debug = $_GET['debug'] ?? false;
-            $message = $debug ? $e->getMessage() : 'Erreur base de données';
-            return $this->error($message, 500);
+            return $this->error('Erreur base de données', 500);
         } catch (Exception $e) {
             error_log("Erreur API: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString());
-            $debug = $_GET['debug'] ?? false;
-            $message = $debug ? $e->getMessage() : 'Erreur serveur';
-            return $this->error($message, 500);
+            return $this->error('Erreur serveur', 500);
         }
     }
 
@@ -528,15 +523,6 @@ class SimpleVehiclesAPI {
                         $config['session_timeout_minutes'] = (int)$fileConfig['session_timeout_minutes'];
                     }
                 }
-            }
-        }
-
-        if ($this->isLocalRequest()) {
-            if (empty($config['username'])) {
-                $config['username'] = 'admin';
-            }
-            if (empty($config['password'])) {
-                $config['password'] = 'admin123';
             }
         }
 
@@ -1208,14 +1194,15 @@ class SimpleVehiclesAPI {
         }
 
         if ($query !== '') {
-            $queryLike = '%' . preg_replace('/\s+/', '%', $query) . '%';
+            $escapedQuery = str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $query);
+            $queryLike = '%' . preg_replace('/\s+/', '%', $escapedQuery) . '%';
             $whereParts[] = "(
-                reference LIKE ?
-                OR marque LIKE ?
-                OR modele LIKE ?
-                OR version LIKE ?
-                OR CONCAT_WS(' ', marque, modele) LIKE ?
-                OR CONCAT_WS(' ', marque, modele, version) LIKE ?
+                reference LIKE ? ESCAPE '\\\\'
+                OR marque LIKE ? ESCAPE '\\\\'
+                OR modele LIKE ? ESCAPE '\\\\'
+                OR version LIKE ? ESCAPE '\\\\'
+                OR CONCAT_WS(' ', marque, modele) LIKE ? ESCAPE '\\\\'
+                OR CONCAT_WS(' ', marque, modele, version) LIKE ? ESCAPE '\\\\'
             )";
             $params[] = $queryLike;
             $params[] = $queryLike;
@@ -1703,15 +1690,31 @@ class SimpleVehiclesAPI {
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             return $this->error('Email invalide', 400);
         }
-        
+
+        // Validation reCAPTCHA côté serveur
+        $recaptchaToken = $data['recaptcha'] ?? '';
+        if (!$this->verifyRecaptcha($recaptchaToken)) {
+            return $this->error('Vérification reCAPTCHA échouée', 400);
+        }
+
         try {
             // Vérifier si la table existe, sinon la créer
             $this->ensureContactTableExists();
-            
+
+            // Rate limiting : max 5 messages par IP par heure
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+            $rateStmt = $this->pdo->prepare(
+                "SELECT COUNT(*) FROM contact_requests WHERE ip_address = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)"
+            );
+            $rateStmt->execute([$ip]);
+            if ((int)$rateStmt->fetchColumn() >= 5) {
+                return $this->error('Trop de messages envoyés. Réessayez dans 1 heure.', 429);
+            }
+
             // Insérer la demande de contact
-            $sql = "INSERT INTO contact_requests 
-                    (first_name, last_name, email, phone, message, type, subject, created_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+            $sql = "INSERT INTO contact_requests
+                    (first_name, last_name, email, phone, message, type, subject, ip_address, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
             
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([
@@ -1721,7 +1724,8 @@ class SimpleVehiclesAPI {
                 $data['phone'],
                 $data['message'],
                 $data['type'],
-                $data['subject'] ?? 'Demande de contact'
+                $data['subject'] ?? 'Demande de contact',
+                $ip
             ]);
             
             $contactId = $this->pdo->lastInsertId();
@@ -1787,15 +1791,42 @@ class SimpleVehiclesAPI {
             type VARCHAR(50) NOT NULL,
             subject VARCHAR(255),
             status VARCHAR(20) DEFAULT 'new',
+            ip_address VARCHAR(45) DEFAULT NULL,
             created_at DATETIME NOT NULL,
             updated_at DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
             INDEX idx_email (email),
             INDEX idx_type (type),
             INDEX idx_status (status),
-            INDEX idx_created_at (created_at)
+            INDEX idx_created_at (created_at),
+            INDEX idx_ip_address (ip_address)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-        
+
         $this->pdo->exec($sql);
+
+        // Ajouter la colonne ip_address si elle n'existe pas encore (migration)
+        $cols = $this->pdo->query("SHOW COLUMNS FROM contact_requests LIKE 'ip_address'")->rowCount();
+        if ($cols === 0) {
+            $this->pdo->exec("ALTER TABLE contact_requests ADD COLUMN ip_address VARCHAR(45) DEFAULT NULL, ADD INDEX idx_ip_address (ip_address)");
+        }
+    }
+
+    private function verifyRecaptcha(string $token): bool {
+        $secretKey = getenv('RECAPTCHA_SECRET_KEY') ?: '';
+        // Si pas de clé configurée, on skip la vérification (dev/local)
+        if (empty($secretKey)) {
+            return true;
+        }
+        if (empty($token)) {
+            return false;
+        }
+        $response = @file_get_contents(
+            'https://www.google.com/recaptcha/api/siteverify?secret=' . urlencode($secretKey) . '&response=' . urlencode($token)
+        );
+        if ($response === false) {
+            return false;
+        }
+        $result = json_decode($response, true);
+        return !empty($result['success']);
     }
     
     /**

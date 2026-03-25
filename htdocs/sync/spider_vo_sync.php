@@ -8,6 +8,17 @@
 // Mode CLI ou HTTP
 $isCLI = php_sapi_name() === 'cli';
 
+// Sécurité : authentification par token pour les requêtes HTTP
+if (!$isCLI) {
+    $syncToken = getenv('SYNC_SECRET_TOKEN') ?: 'jdcauto_sync_2024_secret';
+    $providedToken = $_GET['token'] ?? $_SERVER['HTTP_X_SYNC_TOKEN'] ?? '';
+    if (!hash_equals($syncToken, $providedToken)) {
+        http_response_code(403);
+        header('Content-Type: text/plain');
+        exit('Access denied');
+    }
+}
+
 if (!$isCLI) {
     header('Content-Type: text/html; charset=utf-8');
     echo "<!DOCTYPE html>\n<html><head><title>Synchronisation Spider-VO</title>";
@@ -325,8 +336,16 @@ if ($useLocalFile && file_exists($xmlFile)) {
     }
 } else {
     // Charger depuis URL Spider-VO
+    // Validation SSRF : seules les URLs spider-vo.net sont autorisées
+    $parsedSyncUrl = parse_url($spiderVoXmlUrl);
+    $allowedSyncHosts = ['www.spider-vo.net', 'spider-vo.net'];
+    if (!in_array($parsedSyncUrl['host'] ?? '', $allowedSyncHosts, true)) {
+        logMessage("URL Spider-VO non autorisée: " . ($parsedSyncUrl['host'] ?? 'invalide'), 'error');
+        exit(1);
+    }
+
     logMessage("Chargement depuis URL: $spiderVoXmlUrl", 'info');
-    
+
     $context = stream_context_create([
         'http' => [
             'timeout' => 300, // 5 minutes
@@ -343,7 +362,11 @@ if ($useLocalFile && file_exists($xmlFile)) {
         exit(1);
     }
     
-    $xml = @simplexml_load_string($xmlContent);
+    // Protection XXE : désactiver les entités externes avant parsing
+    libxml_disable_entity_loader(true);
+    libxml_use_internal_errors(true);
+    $xml = simplexml_load_string($xmlContent, 'SimpleXMLElement', LIBXML_NONET);
+    libxml_clear_errors();
     if (!$xml) {
         logMessage("Erreur parsing XML depuis Spider-VO", 'error');
         exit(1);
