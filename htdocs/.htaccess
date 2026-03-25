@@ -5,6 +5,12 @@
 # Désactiver le listage des répertoires
 Options -Indexes
 
+# SPA fallback : toutes les routes React → index.html
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ /index.html [L]
+
 # Bloquer l'accès direct aux fichiers de configuration PHP
 <FilesMatch "(admin_auth|mysql_gandi)\.php$">
     Order Allow,Deny
