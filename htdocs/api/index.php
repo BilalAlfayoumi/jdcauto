@@ -1502,8 +1502,15 @@ class SimpleVehiclesAPI {
             $vehiclesSql = "SELECT " . implode(', ', $selectFields) . " 
                            FROM vehicles";
             
+            $whereConditions = [];
             if ($hasEtat && $status !== 'all') {
-                $vehiclesSql .= " WHERE etat = ?";
+                $whereConditions[] = "etat = ?";
+            }
+            // Exclure les véhicules sans prix (0 ou null)
+            $whereConditions[] = "prix_vente > 0";
+
+            if (!empty($whereConditions)) {
+                $vehiclesSql .= " WHERE " . implode(' AND ', $whereConditions);
             }
             
             // Utiliser updated_at si disponible, sinon date_modif, sinon id
@@ -1518,11 +1525,12 @@ class SimpleVehiclesAPI {
             $vehiclesSql .= " LIMIT ?";
             
             $vehiclesStmt = $this->pdo->prepare($vehiclesSql);
+            $execParams = [];
             if ($hasEtat && $status !== 'all') {
-                $vehiclesStmt->execute([$status, $queryLimit]);
-            } else {
-                $vehiclesStmt->execute([$queryLimit]);
+                $execParams[] = $status;
             }
+            $execParams[] = $queryLimit;
+            $vehiclesStmt->execute($execParams);
             $vehicles = $this->deduplicateVehicleRows($vehiclesStmt->fetchAll());
             $vehicles = array_slice($vehicles, 0, $limit);
             
@@ -1587,12 +1595,12 @@ class SimpleVehiclesAPI {
             return $this->error('ID véhicule requis', 400);
         }
         
-        // Requête véhicule complet
-        $sql = "SELECT * FROM vehicles WHERE id = ?";
+        // Requête véhicule complet (exclure les véhicules à 0€)
+        $sql = "SELECT * FROM vehicles WHERE id = ? AND prix_vente > 0";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$id]);
         $vehicle = $stmt->fetch();
-        
+
         if (!$vehicle) {
             return $this->error('Véhicule non trouvé', 404);
         }

@@ -1,6 +1,8 @@
 services:
   db:
-    image: mysql:8.0
+    build:
+      context: ./docker/mysql
+      dockerfile: Dockerfile
     container_name: jdcauto-db
     command: --default-authentication-plugin=mysql_native_password
     environment:
@@ -11,8 +13,7 @@ services:
     ports:
       - "3307:3306"
     volumes:
-      - ./.docker/mysql-data:/var/lib/mysql
-      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+      - jdcauto-mysql-data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-proot"]
       interval: 5s
@@ -78,4 +79,5 @@ services:
       - ./:/workspace
 
 volumes:
+  jdcauto-mysql-data:
   jdcauto-node-modules:
