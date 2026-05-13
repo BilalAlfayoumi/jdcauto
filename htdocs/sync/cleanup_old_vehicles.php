@@ -1,10 +1,7 @@
 <?php
-// Script usage unique — supprime les véhicules avec vieilles URLs CDN mort
-$token = getenv('SYNC_SECRET_TOKEN') ?: 'jdcauto_sync_2024_secret';
-if (($_GET['token'] ?? '') !== $token) {
-    http_response_code(403);
-    die(json_encode(['error' => 'Interdit']));
-}
+// Script désactivé — tâche accomplie
+http_response_code(410);
+die(json_encode(['error' => 'Script désactivé']));
 
 $host     = 'localhost';
 $dbname   = 'jdcauto';
