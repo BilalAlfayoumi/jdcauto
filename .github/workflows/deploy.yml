@@ -14,7 +14,7 @@ jobs:
         run: |
           http_code=$(curl -s -o /tmp/sync_body.txt -w "%{http_code}" \
             --max-time 120 \
-            "https://www.jdcauto.fr/sync/spider_vo_sync.php?token=${{ secrets.SYNC_TOKEN }}")
+            "https://www.jdcauto.fr/sync/spider_vo_sync.php?token=jdcauto_sync_2024_secret")
           echo "Code HTTP: $http_code"
           cat /tmp/sync_body.txt | sed 's/<[^>]*>//g' | grep -v "^[[:space:]]*$" || true
           if [ "$http_code" != "200" ]; then
