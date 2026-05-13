@@ -1,50 +1,48 @@
 <?php
-// Script usage unique — supprimer après utilisation
-if (($_GET['token'] ?? '') !== 'jdcauto_sync_2024_secret') {
+// Script usage unique — supprime les véhicules avec vieilles URLs CDN mort
+$token = getenv('SYNC_SECRET_TOKEN') ?: 'jdcauto_sync_2024_secret';
+if (($_GET['token'] ?? '') !== $token) {
     http_response_code(403);
     die(json_encode(['error' => 'Interdit']));
 }
 
-require_once __DIR__ . '/../config/mysql_gandi.php';
-$pdo = GandiDatabaseConfig::getConnection();
+$host     = 'localhost';
+$dbname   = 'jdcauto';
+$username = 'root';
+$password = '';
+
+$pdo = new PDO(
+    "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+    $username,
+    $password,
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
 
 $references = [
-    '1553-0000073', // FIAT DUCATO
-    '1553-0000096', // VOLKSWAGEN PASSAT
-    '1553-0000101', // RENAULT CLIO
-    '1553-0000129', // RENAULT TWINGO
-    '1553-0000135', // VOLKSWAGEN POLO
-    '1553-0000150', // MINI MINI
-    '1553-0000153', // PORSCHE 911
-    '1553-0000155', // BMW SERIE 1
-    '1553-0000156', // LAMBORGHINI URUS
-    '1553-0000160', // PEUGEOT 308
-    '1553-0000161', // RENAULT CAPTUR
-    '1553-0000001', // AUDI RS Q3
-    '1553-0000089', // BMW SERIE 1
-    '1553-0000116', // TOYOTA YARIS
-    '1553-0000158', // CITROEN C3
+    '1553-0000073', '1553-0000096', '1553-0000101', '1553-0000129',
+    '1553-0000135', '1553-0000150', '1553-0000153', '1553-0000155',
+    '1553-0000156', '1553-0000160', '1553-0000161', '1553-0000001',
+    '1553-0000089', '1553-0000116', '1553-0000158',
 ];
 
-$placeholders = implode(',', array_fill(0, count($references), '?'));
-
-$ids = $pdo->prepare("SELECT id FROM vehicles WHERE reference IN ($placeholders)");
+$ph = implode(',', array_fill(0, count($references), '?'));
+$ids = $pdo->prepare("SELECT id FROM vehicles WHERE reference IN ($ph)");
 $ids->execute($references);
 $vehicleIds = array_map('intval', $ids->fetchAll(PDO::FETCH_COLUMN));
 
 if (empty($vehicleIds)) {
+    header('Content-Type: application/json');
     die(json_encode(['message' => 'Aucun véhicule trouvé', 'deleted' => 0]));
 }
 
-$idPlaceholders = implode(',', array_fill(0, count($vehicleIds), '?'));
+$idPh = implode(',', array_fill(0, count($vehicleIds), '?'));
 
 $pdo->beginTransaction();
-$pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id IN ($idPlaceholders)")->execute($vehicleIds);
-$hasOptions = $pdo->query("SHOW TABLES LIKE 'vehicle_options'")->rowCount() > 0;
-if ($hasOptions) {
-    $pdo->prepare("DELETE FROM vehicle_options WHERE vehicle_id IN ($idPlaceholders)")->execute($vehicleIds);
+$pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id IN ($idPh)")->execute($vehicleIds);
+if ($pdo->query("SHOW TABLES LIKE 'vehicle_options'")->rowCount() > 0) {
+    $pdo->prepare("DELETE FROM vehicle_options WHERE vehicle_id IN ($idPh)")->execute($vehicleIds);
 }
-$stmt = $pdo->prepare("DELETE FROM vehicles WHERE id IN ($idPlaceholders)");
+$stmt = $pdo->prepare("DELETE FROM vehicles WHERE id IN ($idPh)");
 $stmt->execute($vehicleIds);
 $pdo->commit();
 
