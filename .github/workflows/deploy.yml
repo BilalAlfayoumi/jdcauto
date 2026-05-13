@@ -6,6 +6,8 @@ on:
       - main
       - master
   workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'   # Tous les jours à 6h UTC (même heure que le cron Gandi)
 
 permissions:
   contents: read
@@ -58,3 +60,21 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  spider-vo-sync:
+    name: Sync Spider-VO
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Lancer la synchronisation Spider-VO
+        run: |
+          response=$(curl -s -w "\n%{http_code}" --max-time 120 \
+            "https://www.jdcauto.fr/sync/spider_vo_sync.php?token=${{ secrets.SYNC_TOKEN }}")
+          http_code=$(echo "$response" | tail -1)
+          body=$(echo "$response" | head -1)
+          echo "Code HTTP: $http_code"
+          echo "$body" | sed 's/<[^>]*>//g' | grep -v "^$" || true
+          if [ "$http_code" != "200" ]; then
+            echo "Erreur: code HTTP $http_code"
+            exit 1
+          fi
