@@ -40,7 +40,10 @@ $idPlaceholders = implode(',', array_fill(0, count($vehicleIds), '?'));
 
 $pdo->beginTransaction();
 $pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id IN ($idPlaceholders)")->execute($vehicleIds);
-$pdo->prepare("DELETE FROM vehicle_options WHERE vehicle_id IN ($idPlaceholders)")->execute($vehicleIds);
+$hasOptions = $pdo->query("SHOW TABLES LIKE 'vehicle_options'")->rowCount() > 0;
+if ($hasOptions) {
+    $pdo->prepare("DELETE FROM vehicle_options WHERE vehicle_id IN ($idPlaceholders)")->execute($vehicleIds);
+}
 $stmt = $pdo->prepare("DELETE FROM vehicles WHERE id IN ($idPlaceholders)");
 $stmt->execute($vehicleIds);
 $pdo->commit();
