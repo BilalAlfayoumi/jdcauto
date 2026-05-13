@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
+import { DEFAULT_VEHICLE_IMAGE } from '../utils';
 
 export default function ImageWithAnimation({ 
   src, 
@@ -8,21 +9,39 @@ export default function ImageWithAnimation({
   animation = 'fade-in',
   delay = 0,
   forceVisible = false, // Pour forcer l'animation même si pas dans le viewport (ex: hero slider)
+  fallbackSrc = DEFAULT_VEHICLE_IMAGE,
   ...props 
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [ref, isVisible] = useScrollAnimation({ threshold: 0.1 });
+  const [displaySrc, setDisplaySrc] = useState(src || fallbackSrc);
 
   useEffect(() => {
-    // Si l'image est déjà chargée, déclencher l'animation immédiatement
+    setDisplaySrc(src || fallbackSrc);
+    setIsLoaded(false);
+  }, [src, fallbackSrc]);
+
+  useEffect(() => {
     const img = new Image();
-    img.src = src;
+    img.src = displaySrc;
     if (img.complete) {
       setIsLoaded(true);
     } else {
       img.onload = () => setIsLoaded(true);
+      img.onerror = () => {
+        if (displaySrc !== fallbackSrc) {
+          setDisplaySrc(fallbackSrc);
+        } else {
+          setIsLoaded(true);
+        }
+      };
     }
-  }, [src]);
+
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [displaySrc, fallbackSrc]);
 
   // Si forceVisible est true, considérer comme visible
   const shouldAnimate = forceVisible ? isLoaded : (isLoaded && isVisible);
@@ -51,14 +70,20 @@ export default function ImageWithAnimation({
       className={`overflow-hidden ${className}`}
     >
       <img
-        src={src}
+        src={displaySrc}
         alt={alt}
         className={`w-full h-full object-cover transition-all duration-700 ease-out ${animationClasses[animation]}`}
         style={{ transitionDelay: `${delay}ms` }}
         onLoad={() => setIsLoaded(true)}
+        onError={() => {
+          if (displaySrc !== fallbackSrc) {
+            setDisplaySrc(fallbackSrc);
+          } else {
+            setIsLoaded(true);
+          }
+        }}
         {...props}
       />
     </div>
   );
 }
-
