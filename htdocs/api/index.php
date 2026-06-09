@@ -738,6 +738,17 @@ class SimpleVehiclesAPI {
         }
     }
 
+    private function ensureVehicleBlacklistTableExists() {
+        $sql = "CREATE TABLE IF NOT EXISTS vehicle_blacklist (
+            reference VARCHAR(190) PRIMARY KEY,
+            marque VARCHAR(190) DEFAULT NULL,
+            modele VARCHAR(190) DEFAULT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        $this->pdo->exec($sql);
+    }
+
     private function ensureAdminSchema() {
         if ($this->pdo === null) {
             $this->error('Base de données non configurée', 503);
@@ -747,6 +758,7 @@ class SimpleVehiclesAPI {
         $this->ensureAdminActivityTableExists();
         $this->ensureAdminLoginAttemptsTableExists();
         $this->ensureVehicleAdminColumns();
+        $this->ensureVehicleBlacklistTableExists();
     }
 
     private function getClientIpAddress() {
@@ -1409,6 +1421,7 @@ class SimpleVehiclesAPI {
 
     private function deleteVehicle() {
         $this->requireAdminAuth();
+        $this->ensureAdminSchema();
 
         $data = $this->getRequestData();
         $vehicleId = (int)($data['vehicle_id'] ?? 0);
@@ -1429,6 +1442,11 @@ class SimpleVehiclesAPI {
 
         $this->pdo->beginTransaction();
         try {
+            // Blacklister la référence pour que la sync Spider-VO ne réimporte pas ce véhicule
+            if (!empty($vehicle['reference'])) {
+                $this->pdo->prepare("INSERT IGNORE INTO vehicle_blacklist (reference, marque, modele) VALUES (?, ?, ?)")
+                    ->execute([$vehicle['reference'], $vehicle['marque'], $vehicle['modele']]);
+            }
             $this->pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id = ?")->execute([$vehicleId]);
             if ($hasOptions) {
                 $this->pdo->prepare("DELETE FROM vehicle_options WHERE vehicle_id = ?")->execute([$vehicleId]);

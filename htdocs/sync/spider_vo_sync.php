@@ -324,6 +324,40 @@ if (!in_array('synced_status', $vehicleColumns, true)) {
     $pdo->exec("UPDATE vehicles SET synced_status = etat WHERE synced_status IS NULL");
 }
 
+// Véhicules supprimés définitivement par l'admin : leurs références ne doivent
+// jamais être réimportées, même si elles sont toujours présentes dans le flux.
+$pdo->exec("CREATE TABLE IF NOT EXISTS vehicle_blacklist (
+    reference VARCHAR(190) PRIMARY KEY,
+    marque VARCHAR(190) DEFAULT NULL,
+    modele VARCHAR(190) DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+$blacklistedReferences = array_flip(
+    $pdo->query("SELECT reference FROM vehicle_blacklist")->fetchAll(PDO::FETCH_COLUMN)
+);
+
+// Supprimer les véhicules blacklistés encore en base (ex. réimportés par une sync
+// antérieure à la blacklist) — la suppression automatique générale étant désactivée,
+// ce nettoyage est le seul mécanisme qui les retire.
+if (!empty($blacklistedReferences)) {
+    $blacklistPlaceholders = implode(',', array_fill(0, count($blacklistedReferences), '?'));
+    $blacklistRefs = array_keys($blacklistedReferences);
+    $stmt = $pdo->prepare("SELECT id FROM vehicles WHERE reference IN ($blacklistPlaceholders)");
+    $stmt->execute($blacklistRefs);
+    $blacklistedIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+
+    if (!empty($blacklistedIds)) {
+        $hasOptionsTable = $pdo->query("SHOW TABLES LIKE 'vehicle_options'")->rowCount() > 0;
+        $idPlaceholders = implode(',', array_fill(0, count($blacklistedIds), '?'));
+        $pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id IN ($idPlaceholders)")->execute($blacklistedIds);
+        if ($hasOptionsTable) {
+            $pdo->prepare("DELETE FROM vehicle_options WHERE vehicle_id IN ($idPlaceholders)")->execute($blacklistedIds);
+        }
+        $pdo->prepare("DELETE FROM vehicles WHERE id IN ($idPlaceholders)")->execute($blacklistedIds);
+        logMessage("Nettoyage blacklist: " . count($blacklistedIds) . " véhicule(s) supprimé(s) (supprimés par l'admin)", 'info');
+    }
+}
+
 // Charger le XML
 logMessage("Chargement du flux XML Spider-VO...", 'info');
 
@@ -403,6 +437,7 @@ $updated = 0;
 $errors = 0;
 $photosImported = 0;
 $duplicatesSkipped = 0;
+$blacklistedSkipped = 0;
 $processedReferences = [];
 
 logMessage("Début de l'import...", 'info');
@@ -411,6 +446,11 @@ foreach ($vehicles as $vehiculeXML) {
     try {
         $reference = $getCdata($vehiculeXML->reference);
         if (empty($reference)) continue;
+        // Référence blacklistée (véhicule supprimé définitivement par l'admin) : ignorer.
+        if (isset($blacklistedReferences[$reference])) {
+            $blacklistedSkipped++;
+            continue;
+        }
         $processedReferences[] = $reference;
         
         // Extraire données
@@ -776,6 +816,9 @@ logMessage("Ajoutés: $imported véhicules", 'info');
 logMessage("Mis à jour: $updated véhicules", 'info');
 if ($duplicatesSkipped > 0) {
     logMessage("Doublons évités: $duplicatesSkipped véhicules (fusionnés avec véhicules existants)", 'info');
+}
+if ($blacklistedSkipped > 0) {
+    logMessage("Ignorés (blacklist): $blacklistedSkipped véhicule(s) supprimé(s) par l'admin", 'info');
 }
 logMessage("Photos importées: $photosImported", 'info');
 if ($errors > 0) {
