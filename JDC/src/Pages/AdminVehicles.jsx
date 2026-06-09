@@ -2,10 +2,10 @@ import React, { useDeferredValue, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowUpDown, Car, ExternalLink, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
+import { ArchiveRestore, ArrowUpDown, Car, ExternalLink, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
 import AdminShell from '../Components/AdminShell';
 import AdminActivityList from '../Components/AdminActivityList';
-import { deleteAdminVehicle, getAdminActivity, getAdminVehicles, updateAdminVehicleStatus } from '../api/adminClient';
+import { deleteAdminVehicle, getAdminActivity, getAdminBlacklist, getAdminVehicles, restoreAdminVehicle, updateAdminVehicleStatus } from '../api/adminClient';
 import { createPageUrl, DEFAULT_VEHICLE_IMAGE } from '../utils';
 
 function statusBadgeClasses(status) {
@@ -69,15 +69,39 @@ export default function AdminVehicles() {
     setStatusDrafts((current) => ({ ...current, ...drafts }));
   }, [vehiclesQuery.data]);
 
+  const blacklistQuery = useQuery({
+    queryKey: ['admin-blacklist'],
+    queryFn: () => getAdminBlacklist(),
+    staleTime: 0,
+    gcTime: 0,
+  });
+
   const deleteVehicleMutation = useMutation({
     mutationFn: (vehicleId) => deleteAdminVehicle(vehicleId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin-vehicles'] });
       await queryClient.invalidateQueries({ queryKey: ['admin-activity'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin-blacklist'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles', 'featured'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles', 'hero-search'] });
-      toast.success('Véhicule supprimé définitivement');
+      toast.success('Véhicule supprimé — récupérable dans la corbeille en bas de page');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const restoreVehicleMutation = useMutation({
+    mutationFn: (reference) => restoreAdminVehicle(reference),
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin-vehicles'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin-activity'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin-blacklist'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles', 'featured'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles', 'hero-search'] });
+      toast.success(data?.message || 'Véhicule restauré');
     },
     onError: (error) => {
       toast.error(error.message);
@@ -282,7 +306,7 @@ export default function AdminVehicles() {
                         <button
                           type="button"
                           onClick={() => {
-                            if (!window.confirm(`Supprimer définitivement ${vehicle.brand} ${vehicle.model} (réf. ${vehicle.reference}) ?\n\nCette action est irréversible.`)) {
+                            if (!window.confirm(`Supprimer ${vehicle.brand} ${vehicle.model} (réf. ${vehicle.reference}) ?\n\nLe véhicule disparaîtra du site. En cas d'erreur, vous pourrez le restaurer depuis la corbeille en bas de cette page.`)) {
                               return;
                             }
                             deleteVehicleMutation.mutate(vehicle.id);
@@ -369,6 +393,62 @@ export default function AdminVehicles() {
                 </div>
               )}
             </>
+          )}
+        </section>
+
+        <section className="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-6">
+          <div className="flex items-start gap-3 mb-6">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Corbeille</h2>
+              <p className="text-sm sm:text-base text-slate-500">
+                Véhicules supprimés du site. Restaurez-en un pour le faire réapparaître automatiquement.
+              </p>
+            </div>
+          </div>
+
+          {blacklistQuery.isLoading ? (
+            <div className="text-slate-500">Chargement de la corbeille...</div>
+          ) : (blacklistQuery.data || []).length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-slate-300 px-6 py-10 text-center text-slate-500">
+              La corbeille est vide.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(blacklistQuery.data || []).map((entry) => (
+                <div
+                  key={entry.reference}
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-4"
+                >
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 break-words">
+                      {entry.marque} {entry.modele}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      Réf. {entry.reference} • supprimé le {new Date(entry.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!window.confirm(`Restaurer ${entry.marque} ${entry.modele} (réf. ${entry.reference}) ?\n\nLe véhicule sera de nouveau visible sur le site d'ici une à deux minutes.`)) {
+                        return;
+                      }
+                      restoreVehicleMutation.mutate(entry.reference);
+                    }}
+                    disabled={restoreVehicleMutation.isPending}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-white px-4 py-3 text-sm font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-60 shrink-0"
+                  >
+                    <ArchiveRestore className="w-4 h-4" />
+                    {restoreVehicleMutation.isPending && restoreVehicleMutation.variables === entry.reference
+                      ? 'Restauration en cours...'
+                      : 'Restaurer'}
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </section>
 

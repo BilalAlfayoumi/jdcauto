@@ -271,6 +271,10 @@ class SimpleVehiclesAPI {
                     return $this->updateVehicleStatus();
                 case 'admin_vehicle_delete':
                     return $this->deleteVehicle();
+                case 'admin_blacklist':
+                    return $this->getBlacklistedVehicles();
+                case 'admin_blacklist_restore':
+                    return $this->restoreBlacklistedVehicle();
                 case 'admin_activity':
                     return $this->getAdminActivity();
                 default:
@@ -1466,6 +1470,68 @@ class SimpleVehiclesAPI {
         ]);
 
         return $this->success(['message' => 'Véhicule supprimé définitivement']);
+    }
+
+    private function getBlacklistedVehicles() {
+        $this->requireAdminAuth();
+        $this->ensureAdminSchema();
+
+        $rows = $this->pdo->query(
+            "SELECT reference, marque, modele, created_at FROM vehicle_blacklist ORDER BY created_at DESC"
+        )->fetchAll();
+
+        return $this->success($rows);
+    }
+
+    private function restoreBlacklistedVehicle() {
+        $this->requireAdminAuth();
+        $this->ensureAdminSchema();
+
+        $data = $this->getRequestData();
+        $reference = trim((string)($data['reference'] ?? ''));
+
+        if ($reference === '') {
+            return $this->error('Référence invalide', 400);
+        }
+
+        $stmt = $this->pdo->prepare("SELECT reference, marque, modele FROM vehicle_blacklist WHERE reference = ?");
+        $stmt->execute([$reference]);
+        $entry = $stmt->fetch();
+
+        if (!$entry) {
+            return $this->error('Véhicule non trouvé dans la corbeille', 404);
+        }
+
+        $this->pdo->prepare("DELETE FROM vehicle_blacklist WHERE reference = ?")->execute([$reference]);
+
+        $this->logAdminActivity('restore_vehicle', 'vehicle', $reference, 'Restauration du véhicule depuis la corbeille', [
+            'reference' => $entry['reference'],
+            'marque' => $entry['marque'],
+            'modele' => $entry['modele'],
+        ]);
+
+        // Relancer la sync Spider-VO pour réimporter le véhicule immédiatement.
+        // En cas d'échec, il reviendra de toute façon à la prochaine sync automatique.
+        $syncTriggered = false;
+        $syncUrl = 'https://www.jdcauto.fr/sync/spider_vo_sync.php?token=jdcauto_sync_2024_secret';
+        $ch = curl_init($syncUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 120,
+            CURLOPT_CONNECTTIMEOUT => 10,
+        ]);
+        $syncOutput = curl_exec($ch);
+        if ($syncOutput !== false && curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200) {
+            $syncTriggered = true;
+        }
+        curl_close($ch);
+
+        return $this->success([
+            'message' => $syncTriggered
+                ? 'Véhicule restauré — il est de nouveau visible sur le site'
+                : 'Véhicule restauré — il réapparaîtra à la prochaine synchronisation (moins d\'une heure)',
+            'sync_triggered' => $syncTriggered,
+        ]);
     }
 
     private function getAdminActivity() {

@@ -145,6 +145,17 @@ export function deleteAdminVehicle(vehicleId) {
   });
 }
 
+export function getAdminBlacklist() {
+  return request('admin_blacklist');
+}
+
+export function restoreAdminVehicle(reference) {
+  return request('admin_blacklist_restore', {
+    method: 'POST',
+    body: { reference },
+  });
+}
+
 export function getAdminActivity({ targetType = '', limit = 20 } = {}) {
   return requestWithQuery('admin_activity', {
     target_type: targetType,
