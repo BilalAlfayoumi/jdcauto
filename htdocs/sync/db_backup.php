@@ -12,6 +12,13 @@
 $isCLI = php_sapi_name() === 'cli';
 
 if (!$isCLI) {
+    // Indispensable : sans no-store, le Varnish de Gandi met le dump en cache
+    // et le sert ensuite à n'importe qui, sans vérification du token.
+    header('Cache-Control: no-store, no-cache, private, max-age=0');
+    header('Pragma: no-cache');
+}
+
+if (!$isCLI) {
     $tokenFile = __DIR__ . '/../config/backup_token.local.php';
     $backupToken = '';
     if (file_exists($tokenFile)) {
