@@ -5,8 +5,12 @@
 # Désactiver le listage des répertoires
 Options -Indexes
 
-# SPA fallback : toutes les routes React → index.html
+# Forcer HTTPS : le mot de passe admin ne doit jamais transiter en clair
 RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# SPA fallback : toutes les routes React → index.html
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ /index.html [L]
@@ -24,6 +28,8 @@ RewriteRule ^ /index.html [L]
 
 # Headers de sécurité
 <IfModule mod_headers.c>
+    # HSTS : les navigateurs n'essaieront plus jamais le site en HTTP (1 an)
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set X-Content-Type-Options "nosniff"
     Header always set Referrer-Policy "same-origin"
