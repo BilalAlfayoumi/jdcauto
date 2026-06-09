@@ -2,10 +2,10 @@ import React, { useDeferredValue, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowUpDown, Car, ExternalLink, RefreshCw, Save, Search } from 'lucide-react';
+import { ArrowUpDown, Car, ExternalLink, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
 import AdminShell from '../Components/AdminShell';
 import AdminActivityList from '../Components/AdminActivityList';
-import { getAdminActivity, getAdminVehicles, updateAdminVehicleStatus } from '../api/adminClient';
+import { deleteAdminVehicle, getAdminActivity, getAdminVehicles, updateAdminVehicleStatus } from '../api/adminClient';
 import { createPageUrl, DEFAULT_VEHICLE_IMAGE } from '../utils';
 
 function statusBadgeClasses(status) {
@@ -68,6 +68,21 @@ export default function AdminVehicles() {
     });
     setStatusDrafts((current) => ({ ...current, ...drafts }));
   }, [vehiclesQuery.data]);
+
+  const deleteVehicleMutation = useMutation({
+    mutationFn: (vehicleId) => deleteAdminVehicle(vehicleId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin-vehicles'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin-activity'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles', 'featured'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles', 'hero-search'] });
+      toast.success('Véhicule supprimé définitivement');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ vehicleId, status }) => updateAdminVehicleStatus(vehicleId, status),
@@ -264,6 +279,20 @@ export default function AdminVehicles() {
                           <ExternalLink className="w-4 h-4" />
                           Voir la fiche publique
                         </Link>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!window.confirm(`Supprimer définitivement ${vehicle.brand} ${vehicle.model} (réf. ${vehicle.reference}) ?\n\nCette action est irréversible.`)) {
+                              return;
+                            }
+                            deleteVehicleMutation.mutate(vehicle.id);
+                          }}
+                          disabled={deleteVehicleMutation.isPending}
+                          className="inline-flex items-center gap-2 rounded-2xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Supprimer
+                        </button>
                       </div>
 
                       <div className="mt-auto flex flex-col md:flex-row gap-3">

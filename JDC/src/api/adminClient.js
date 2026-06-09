@@ -138,6 +138,13 @@ export function updateAdminVehicleStatus(vehicleId, status) {
   });
 }
 
+export function deleteAdminVehicle(vehicleId) {
+  return request('admin_vehicle_delete', {
+    method: 'POST',
+    body: { vehicle_id: vehicleId },
+  });
+}
+
 export function getAdminActivity({ targetType = '', limit = 20 } = {}) {
   return requestWithQuery('admin_activity', {
     target_type: targetType,

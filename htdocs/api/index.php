@@ -269,6 +269,8 @@ class SimpleVehiclesAPI {
                     return $this->getAdminVehicles();
                 case 'admin_vehicle_status':
                     return $this->updateVehicleStatus();
+                case 'admin_vehicle_delete':
+                    return $this->deleteVehicle();
                 case 'admin_activity':
                     return $this->getAdminActivity();
                 default:
@@ -1403,6 +1405,49 @@ class SimpleVehiclesAPI {
             'message' => 'Statut mis à jour',
             'status' => $finalStatus
         ]);
+    }
+
+    private function deleteVehicle() {
+        $this->requireAdminAuth();
+
+        $data = $this->getRequestData();
+        $vehicleId = (int)($data['vehicle_id'] ?? 0);
+
+        if ($vehicleId <= 0) {
+            return $this->error('Véhicule invalide', 400);
+        }
+
+        $stmt = $this->pdo->prepare("SELECT id, marque, modele, reference FROM vehicles WHERE id = ?");
+        $stmt->execute([$vehicleId]);
+        $vehicle = $stmt->fetch();
+
+        if (!$vehicle) {
+            return $this->error('Véhicule non trouvé', 404);
+        }
+
+        $hasOptions = $this->pdo->query("SHOW TABLES LIKE 'vehicle_options'")->rowCount() > 0;
+
+        $this->pdo->beginTransaction();
+        try {
+            $this->pdo->prepare("DELETE FROM vehicle_photos WHERE vehicle_id = ?")->execute([$vehicleId]);
+            if ($hasOptions) {
+                $this->pdo->prepare("DELETE FROM vehicle_options WHERE vehicle_id = ?")->execute([$vehicleId]);
+            }
+            $this->pdo->prepare("DELETE FROM vehicles WHERE id = ?")->execute([$vehicleId]);
+            $this->pdo->commit();
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            return $this->error('Erreur lors de la suppression', 500);
+        }
+
+        $this->logAdminActivity('delete_vehicle', 'vehicle', (string)$vehicleId, 'Suppression définitive du véhicule', [
+            'vehicle_id' => $vehicleId,
+            'marque' => $vehicle['marque'],
+            'modele' => $vehicle['modele'],
+            'reference' => $vehicle['reference'],
+        ]);
+
+        return $this->success(['message' => 'Véhicule supprimé définitivement']);
     }
 
     private function getAdminActivity() {

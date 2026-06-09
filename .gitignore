@@ -26,3 +26,4 @@ Temporary Items
 .docker/mysql-data/
 htdocs/uploads/
 htdocs/config/admin_auth.local.php
+htdocs/config/backup_token.local.php

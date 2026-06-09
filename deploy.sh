@@ -62,5 +62,11 @@ ssh a1ec35a4-fabe-11f0-b829-00163e816020@git.sd3.gpaas.net deploy www.jdcauto.fr
     exit 1
 }
 
+# Tagger ce déploiement pour permettre un rollback (./rollback.sh)
+DEPLOY_TAG="deploy-$(date +'%Y%m%d-%H%M%S')"
+git tag "$DEPLOY_TAG"
+git push origin "$DEPLOY_TAG" || echo "⚠️  Tag non pushé vers GitHub (peut être ignoré)"
+echo "🏷️  Déploiement taggé: $DEPLOY_TAG"
+
 echo "✅ Déploiement terminé avec succès!"
 echo "🌐 Votre site devrait être disponible sur https://jdcauto.fr"
