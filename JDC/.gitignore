@@ -8,8 +8,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
-dist-ssr
+# dist - Non ignoré car nécessaire pour le déploiement Gandi
+# dist-ssr
 *.local
 
 # Editor directories and files

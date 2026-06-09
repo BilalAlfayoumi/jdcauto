@@ -22,3 +22,9 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+# Docker local
+.docker/mysql-data/
+htdocs/uploads/
+htdocs/config/admin_auth.local.php
+htdocs/config/backup_token.local.php
+htdocs/config/admin_auth.php

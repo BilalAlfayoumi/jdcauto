@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { Phone, Mail, MapPin, Menu, X, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
+import { Phone, Mail, MapPin, Menu, ShieldCheck, X } from 'lucide-react';
 
 export default function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const isAdminRoute = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
 
   // Déterminer la page actuelle basée sur l'URL
   const getCurrentPageName = () => {
@@ -27,25 +28,39 @@ export default function Layout({ children }) {
     { name: 'Carte grise & démarches administratives', page: 'Administrative' },
     { name: 'Contact', page: 'Contact' }
   ];
+  const adminUrl = createPageUrl('Admin');
+
+  if (isAdminRoute) {
+    return <div className="min-h-screen bg-slate-100">{children}</div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Top Bar */}
       <div className="bg-gradient-to-r from-gray-900 to-black text-white py-2.5 px-4 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center text-sm">
-          <div className="flex items-center gap-6">
-            <a href="tel:0556973752" className="flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
+        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3 text-sm">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <a href="tel:+33650256734" className="flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
               <Phone className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span className="font-medium">05 56 97 37 52</span>
+              <span className="font-medium">06 50 25 67 34</span>
             </a>
-            <a href="mailto:contact@jdcauto.fr" className="hidden sm:flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
+            <a href="mailto:jdcauto33@orange.fr" className="hidden sm:flex items-center gap-2 hover:text-red-500 transition-all duration-300 group">
               <Mail className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span className="font-medium">contact@jdcauto.fr</span>
+              <span className="font-medium">jdcauto33@orange.fr</span>
             </a>
           </div>
-          <div className="hidden md:flex items-center gap-2 text-xs text-gray-300">
-            <MapPin className="w-4 h-4 text-red-500" />
-            <span>Lun-Ven: 9h-19h | Sam: 9h-18h</span>
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-2 text-xs text-gray-300">
+              <MapPin className="w-4 h-4 text-red-500" />
+              <span>Du lundi au vendredi: 08H00 - 12H00 & 14H00-19H30 | Le samedi: Sur rendez-vous</span>
+            </div>
+            <Link
+              to={adminUrl}
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-600 hover:border-red-600 sm:px-4 sm:text-sm"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Connexion admin
+            </Link>
           </div>
         </div>
       </div>
@@ -66,34 +81,41 @@ export default function Layout({ children }) {
                 src="/LOGO.jpg" 
                 alt="JDC Auto" 
                 className="h-12 sm:h-16 object-contain transition-transform duration-300 group-hover:scale-105"
+                onError={(e) => {
+                  console.error('Logo image failed to load');
+                  e.target.style.display = 'none';
+                }}
               />
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-1">
-              {navigation.map((item) => (
-                <Link
-                  key={item.page}
-                  to={createPageUrl(item.page)}
-                  onClick={() => {
-                    window.scrollTo({ top: 0, behavior: 'instant' });
-                  }}
-                  className={`relative px-4 py-2 text-sm font-semibold transition-all duration-300 rounded-lg group ${
-                    currentPageName === item.page
-                      ? 'text-red-600 bg-red-50'
-                      : 'text-gray-700 hover:text-red-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="relative z-10">{item.name}</span>
-                  {currentPageName === item.page && (
-                    <span className="absolute inset-0 bg-red-50 rounded-lg -z-0" />
-                  )}
-                  <span className={`absolute bottom-1 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-red-600 transition-all duration-300 rounded-full ${
-                    currentPageName === item.page ? 'w-3/4' : 'group-hover:w-3/4'
-                  }`} />
-                </Link>
-              ))}
-            </nav>
+            <div className="hidden lg:flex items-center gap-4">
+              <nav className="flex items-center gap-1">
+                {navigation.map((item) => (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    onClick={() => {
+                      window.scrollTo({ top: 0, behavior: 'instant' });
+                    }}
+                    className={`relative px-4 py-2 text-sm font-semibold transition-all duration-300 rounded-lg group ${
+                      currentPageName === item.page
+                        ? 'text-red-600 bg-red-50'
+                        : 'text-gray-700 hover:text-red-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="relative z-10">{item.name}</span>
+                    {currentPageName === item.page && (
+                      <span className="absolute inset-0 bg-red-50 rounded-lg -z-0" />
+                    )}
+                    <span className={`absolute bottom-1 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-red-600 transition-all duration-300 rounded-full ${
+                      currentPageName === item.page ? 'w-3/4' : 'group-hover:w-3/4'
+                    }`} />
+                  </Link>
+                ))}
+              </nav>
+
+            </div>
 
             {/* Mobile Menu Button */}
             <button
@@ -134,6 +156,18 @@ export default function Layout({ children }) {
                   {item.name}
                 </Link>
               ))}
+
+              <Link
+                to={adminUrl}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'instant' });
+                }}
+                className="mx-2 mt-3 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-600"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Connexion admin
+              </Link>
             </nav>
           </div>
         </div>
@@ -154,49 +188,14 @@ export default function Layout({ children }) {
                 src="/LOGO.jpg" 
                 alt="JDC Auto" 
                 className="h-12 mb-4 object-contain"
+                onError={(e) => {
+                  console.error('Logo image failed to load in footer');
+                  e.target.style.display = 'none';
+                }}
               />
-              <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                Votre agence de transaction automobile de confiance. Achat, vente et reprise de véhicules d'occasion avec garantie et sécurité.
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Mandataire depuis plus de 30 ans en Aquitaine. Garage automobile multimarque à Mérignac depuis 2003. Services : vente, reprise, financement, LOA, mécanique, carrosserie, carte grise. +99% de satisfaction client, près de 16 000 véhicules livrés.
               </p>
-              {/* Social Media */}
-              <div className="flex gap-4">
-                <a 
-                  href="https://facebook.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-gray-800 hover:bg-red-600 rounded-lg flex items-center justify-center transition-all duration-300 group"
-                  aria-label="Facebook"
-                >
-                  <Facebook className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
-                </a>
-                <a 
-                  href="https://instagram.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-gray-800 hover:bg-red-600 rounded-lg flex items-center justify-center transition-all duration-300 group"
-                  aria-label="Instagram"
-                >
-                  <Instagram className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
-                </a>
-                <a 
-                  href="https://linkedin.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-gray-800 hover:bg-red-600 rounded-lg flex items-center justify-center transition-all duration-300 group"
-                  aria-label="LinkedIn"
-                >
-                  <Linkedin className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
-                </a>
-                <a 
-                  href="https://twitter.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-gray-800 hover:bg-red-600 rounded-lg flex items-center justify-center transition-all duration-300 group"
-                  aria-label="Twitter"
-                >
-                  <Twitter className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
-                </a>
-              </div>
             </div>
 
             {/* Contact */}
@@ -205,15 +204,15 @@ export default function Layout({ children }) {
               <div className="space-y-3 text-sm text-gray-400">
                 <div className="flex items-start gap-2">
                   <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
-                  <span>123 Avenue de la République<br />33000 Bordeaux</span>
+                  <span>93 Av. de Magudas<br />33700 Mérignac</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 flex-shrink-0" />
-                  <a href="tel:0556973752" className="hover:text-red-500 transition-colors">05 56 97 37 52</a>
+                  <a href="tel:+33650256734" className="hover:text-red-500 transition-colors">06 50 25 67 34</a>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 flex-shrink-0" />
-                  <a href="mailto:contact@jdcauto.fr" className="hover:text-red-500 transition-colors">contact@jdcauto.fr</a>
+                  <a href="mailto:jdcauto33@orange.fr" className="hover:text-red-500 transition-colors">jdcauto33@orange.fr</a>
                 </div>
               </div>
             </div>
@@ -222,9 +221,8 @@ export default function Layout({ children }) {
             <div>
               <h4 className="text-lg font-semibold mb-4">Horaires d'ouverture</h4>
               <div className="space-y-2 text-sm text-gray-400">
-                <p><span className="text-white">Lundi - Vendredi:</span> 9h00 - 19h00</p>
-                <p><span className="text-white">Samedi:</span> 9h00 - 18h00</p>
-                <p><span className="text-white">Dimanche:</span> Fermé</p>
+                <p><span className="text-white">Du lundi au vendredi:</span> 08H00 - 12H00 & 14H00-19H30</p>
+                <p><span className="text-white">Le samedi:</span> Sur rendez-vous</p>
               </div>
             </div>
 
@@ -250,11 +248,11 @@ export default function Layout({ children }) {
 
           {/* Bottom Footer */}
           <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
-            <p>© 2024 JDC AUTO - Tous droits réservés</p>
+            <p>© 2026 JDC AUTO - Tous droits réservés</p>
             <div className="flex gap-6 mt-4 md:mt-0">
-              <a href="#" className="hover:text-red-500 transition-colors">Mentions légales</a>
-              <a href="#" className="hover:text-red-500 transition-colors">CGV</a>
-              <a href="#" className="hover:text-red-500 transition-colors">Politique de confidentialité</a>
+              <Link to="/mentions-legales" className="hover:text-red-500 transition-colors">Mentions légales</Link>
+              <Link to="/cgv" className="hover:text-red-500 transition-colors">CGV</Link>
+              <Link to="/politique-confidentialite" className="hover:text-red-500 transition-colors">Politique de confidentialité</Link>
             </div>
           </div>
         </div>
@@ -262,4 +260,3 @@ export default function Layout({ children }) {
     </div>
   );
 }
-
