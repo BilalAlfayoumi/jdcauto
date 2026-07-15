@@ -40,6 +40,15 @@ export const defaultCarteGriseContent = {
       note: 'TTC',
       popular: false,
     },
+    {
+      id: 'plaque_immatriculation',
+      title: "Plaque d'immatriculation",
+      subtitle: 'Fabrication sur place',
+      price: '19€',
+      note: "TTC l'unité",
+      popular: false,
+      imageUrl: '/plaque-immatriculation.png',
+    },
   ],
   documentSections: [
     {
@@ -136,7 +145,10 @@ export const defaultCarteGriseContent = {
 
 export function cloneCarteGriseContent(content = defaultCarteGriseContent) {
   return {
-    pricingItems: (content.pricingItems || []).map((item) => ({ ...item })),
+    pricingItems: (content.pricingItems || []).map((item) => ({
+      ...item,
+      imageUrl: item.imageUrl || '',
+    })),
     documentSections: (content.documentSections || []).map((section) => ({
       ...section,
       items: [...(section.items || [])],

@@ -196,6 +196,17 @@ export default function Administrative() {
                         POPULAIRE
                       </div>
                     )}
+                    {item.imageUrl && (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="w-full h-32 object-contain rounded mb-4 bg-white cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => openLightbox(item.imageUrl, item.title)}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    )}
                     <h3 className="text-lg font-bold text-gray-900 mb-1">{item.title}</h3>
                     {item.subtitle && (
                       <p className="text-sm text-gray-600 mb-3">{item.subtitle}</p>

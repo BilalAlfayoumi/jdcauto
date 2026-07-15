@@ -168,7 +168,7 @@ export default function AdminCarteGrise() {
   const uploadMutation = useMutation({
     mutationFn: uploadCarteGriseFile,
     onSuccess: () => {
-      toast.success('Fichier CERFA importé');
+      toast.success('Fichier importé');
       setUploadingCardId(null);
     },
     onError: (error) => {
@@ -210,6 +210,7 @@ export default function AdminCarteGrise() {
         price: '',
         note: 'TTC',
         popular: false,
+        imageUrl: '',
       });
       return next;
     });
@@ -288,6 +289,21 @@ export default function AdminCarteGrise() {
       next.documentSections[sectionIndex].cerfaCards[cardIndex][key] = value;
       return next;
     });
+  };
+
+  const handlePricingImageUpload = async (index, file) => {
+    if (!file) {
+      return;
+    }
+
+    const currentItem = content.pricingItems[index];
+    if (currentItem.imageUrl && !window.confirm(`Remplacer la photo actuelle de "${currentItem.title}" ?`)) {
+      return;
+    }
+
+    setUploadingCardId(currentItem.id);
+    const uploaded = await uploadMutation.mutateAsync(file);
+    updatePricingItem(index, 'imageUrl', uploaded.public_url);
   };
 
   const handleUpload = async (sectionIndex, cardIndex, file) => {
@@ -486,6 +502,48 @@ export default function AdminCarteGrise() {
                             />
                             <span className="text-sm font-semibold text-slate-700">Afficher le badge POPULAIRE</span>
                           </label>
+
+                          <div className="rounded-2xl border border-slate-300 bg-white px-4 py-3 md:col-span-2">
+                            <span className="block text-sm font-semibold text-slate-700 mb-2">Photo du produit (optionnelle)</span>
+                            <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+                              <div className="h-24 w-full sm:w-44 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0">
+                                {item.imageUrl ? (
+                                  <img src={item.imageUrl} alt={item.title} className="w-full h-full object-contain" />
+                                ) : (
+                                  <span className="text-sm text-slate-500">Aucune photo</span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-black">
+                                  <Upload className="w-4 h-4" />
+                                  {uploadingCardId === item.id ? 'Import...' : (item.imageUrl ? 'Remplacer' : 'Ajouter une photo')}
+                                  <input
+                                    type="file"
+                                    accept=".png,.jpg,.jpeg,.webp"
+                                    className="hidden"
+                                    onChange={(event) => {
+                                      handlePricingImageUpload(index, event.target.files?.[0]);
+                                      event.target.value = '';
+                                    }}
+                                  />
+                                </label>
+                                {item.imageUrl && (
+                                  <ActionButton
+                                    tone="danger"
+                                    onClick={() => {
+                                      if (!window.confirm('Retirer la photo de ce bloc ?')) {
+                                        return;
+                                      }
+                                      updatePricingItem(index, 'imageUrl', '');
+                                    }}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    Retirer
+                                  </ActionButton>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
                         <div className="flex justify-end">
@@ -497,6 +555,13 @@ export default function AdminCarteGrise() {
                       </div>
                     ) : (
                       <>
+                        {item.imageUrl && (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            className="w-full h-32 object-contain rounded mb-4 bg-white"
+                          />
+                        )}
                         <div className="text-3xl font-bold text-red-600 mb-1">{item.price || '0€'}</div>
                         <p className="text-sm text-gray-600">{item.note || 'TTC'}</p>
                       </>

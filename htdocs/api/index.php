@@ -971,10 +971,53 @@ class SimpleVehiclesAPI {
         ]);
     }
 
+    // Migration one-shot : ajoute le produit "Plaque d'immatriculation" au contenu
+    // déjà personnalisé en base. Le flag évite de le réinjecter si l'admin le supprime.
+    private function migratePlaquePricingItem() {
+        if ($this->pdo === null) {
+            return;
+        }
+
+        if ($this->getSettingValue('carte_grise_plaque_migrated') !== null) {
+            return;
+        }
+
+        $contentValue = $this->getSettingValue('carte_grise_content');
+        if ($contentValue !== null) {
+            $content = json_decode($contentValue, true);
+            if (is_array($content) && isset($content['pricingItems']) && is_array($content['pricingItems'])) {
+                $hasPlaque = false;
+                foreach ($content['pricingItems'] as $item) {
+                    if (($item['id'] ?? '') === 'plaque_immatriculation') {
+                        $hasPlaque = true;
+                        break;
+                    }
+                }
+
+                if (!$hasPlaque) {
+                    $content['pricingItems'][] = [
+                        'id' => 'plaque_immatriculation',
+                        'title' => "Plaque d'immatriculation",
+                        'subtitle' => 'Fabrication sur place',
+                        'price' => '19€',
+                        'note' => "TTC l'unité",
+                        'popular' => false,
+                        'imageUrl' => '/plaque-immatriculation.png',
+                    ];
+                    $this->setSettingValue('carte_grise_content', json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                }
+            }
+        }
+
+        $this->setSettingValue('carte_grise_plaque_migrated', '1');
+    }
+
     private function getCarteGrisePricing() {
         if ($this->pdo === null) {
             return $this->success(null);
         }
+
+        $this->migratePlaquePricingItem();
 
         $contentValue = $this->getSettingValue('carte_grise_content');
         if ($contentValue !== null) {
@@ -1001,6 +1044,8 @@ class SimpleVehiclesAPI {
         if ($this->pdo === null) {
             return $this->success(null);
         }
+
+        $this->migratePlaquePricingItem();
 
         $value = $this->getSettingValue('carte_grise_content');
         if ($value === null) {
@@ -1070,6 +1115,7 @@ class SimpleVehiclesAPI {
                 'price' => trim((string)($item['price'] ?? '')),
                 'note' => trim((string)($item['note'] ?? '')),
                 'popular' => !empty($item['popular']),
+                'imageUrl' => trim((string)($item['imageUrl'] ?? '')),
             ];
         }
 
