@@ -1,0 +1,6 @@
+.git
+.DS_Store
+node_modules
+JDC/node_modules
+JDC/dist
+.docker/mysql-data

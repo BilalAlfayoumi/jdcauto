@@ -1,0 +1,74 @@
+name: Surveillance du site
+
+# Si un check échoue, le workflow échoue et GitHub envoie un email
+# automatique au propriétaire du repo. Voir RUNBOOK.md pour le dépannage.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/10 * * * *'  # Toutes les 10 minutes (délais GitHub possibles)
+
+jobs:
+  healthcheck:
+    name: Site et API en ligne
+    runs-on: ubuntu-latest
+    steps:
+      - name: Page d'accueil accessible
+        run: |
+          http_code=$(curl -s -o home.html -w "%{http_code}" --max-time 30 \
+            "https://www.jdcauto.fr/")
+          echo "Code HTTP: $http_code"
+          if [ "$http_code" != "200" ]; then
+            echo "ECHEC: la page d'accueil renvoie $http_code"
+            exit 1
+          fi
+
+      - name: La page servie est bien le site (pas une page d'erreur)
+        run: |
+          if ! grep -qi "JDC" home.html; then
+            echo "ECHEC: le HTML ne contient pas 'JDC' — page d'erreur ou de maintenance ?"
+            head -c 500 home.html
+            exit 1
+          fi
+
+      - name: API PHP + base de données fonctionnelles
+        run: |
+          http_code=$(curl -s -o api.json -w "%{http_code}" --max-time 30 \
+            "https://www.jdcauto.fr/api/index.php?action=carte_grise_content")
+          echo "Code HTTP: $http_code"
+          if [ "$http_code" != "200" ]; then
+            echo "ECHEC: l'API renvoie $http_code"
+            cat api.json || true
+            exit 1
+          fi
+          # Vérifie que la réponse est du JSON valide avec success=true
+          # (une erreur MySQL renverrait success=false ou du HTML)
+          python3 -c "
+          import json, sys
+          data = json.load(open('api.json'))
+          if not data.get('success'):
+              print('ECHEC: API success=false —', data.get('error'))
+              sys.exit(1)
+          if not data.get('data', {}).get('pricingItems'):
+              print('ECHEC: API sans pricingItems — contenu vide ?')
+              sys.exit(1)
+          print('API OK,', len(data['data']['pricingItems']), 'tarifs')
+          "
+
+      - name: API véhicules fonctionnelle
+        run: |
+          http_code=$(curl -s -o vehicles.json -w "%{http_code}" --max-time 30 \
+            "https://www.jdcauto.fr/api/index.php?action=vehicles")
+          echo "Code HTTP: $http_code"
+          if [ "$http_code" != "200" ]; then
+            echo "ECHEC: l'API véhicules renvoie $http_code"
+            cat vehicles.json || true
+            exit 1
+          fi
+          python3 -c "
+          import json, sys
+          data = json.load(open('vehicles.json'))
+          if not data.get('success'):
+              print('ECHEC: API véhicules success=false —', data.get('error'))
+              sys.exit(1)
+          print('API véhicules OK')
+          "

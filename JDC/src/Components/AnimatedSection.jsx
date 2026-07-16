@@ -19,6 +19,9 @@ export default function AnimatedSection({
     'zoom-in': isVisible 
       ? 'opacity-100 scale-100' 
       : 'opacity-0 scale-95',
+    'pop': isVisible 
+      ? 'opacity-100 scale-100 animate-pop' 
+      : 'opacity-0 scale-75',
     'slide-left': isVisible 
       ? 'opacity-100 translate-x-0' 
       : 'opacity-0 -translate-x-8',
