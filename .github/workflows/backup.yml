@@ -1,0 +1,58 @@
+name: Backup MySQL
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 4 * * *'  # Tous les jours à 4h30 UTC
+
+jobs:
+  db-backup:
+    name: Sauvegarde base de données
+    runs-on: ubuntu-latest
+    steps:
+      - name: Télécharger le dump SQL
+        run: |
+          http_code=$(curl -s -o backup.sql.gz -w "%{http_code}" \
+            --max-time 300 \
+            -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
+            "https://www.jdcauto.fr/sync/db_backup.php")
+          echo "Code HTTP: $http_code"
+          if [ "$http_code" != "200" ]; then
+            echo "Echec: code HTTP $http_code"
+            cat backup.sql.gz || true
+            exit 1
+          fi
+
+      - name: Vérifier l'intégrité du dump
+        run: |
+          gunzip -t backup.sql.gz
+          size=$(stat -c%s backup.sql.gz)
+          echo "Taille: $size bytes"
+          if [ "$size" -lt 1024 ]; then
+            echo "Echec: dump suspicieusement petit ($size bytes)"
+            exit 1
+          fi
+          gunzip -c backup.sql.gz | head -5
+          if ! gunzip -c backup.sql.gz | grep -q "CREATE TABLE"; then
+            echo "Echec: aucun CREATE TABLE dans le dump"
+            exit 1
+          fi
+          gunzip -c backup.sql.gz | grep -c "CREATE TABLE" | xargs echo "Tables sauvegardées:"
+
+      # Repo public : les artefacts sont téléchargeables par n'importe qui,
+      # le dump doit donc être chiffré. Déchiffrement :
+      # gpg --batch --passphrase "$BACKUP_TOKEN" -d fichier.sql.gz.gpg > backup.sql.gz
+      - name: Chiffrer la sauvegarde
+        run: |
+          gpg --batch --symmetric --cipher-algo AES256 \
+            --passphrase "${{ secrets.BACKUP_TOKEN }}" \
+            -o "jdcauto-db-$(date +%Y-%m-%d).sql.gz.gpg" backup.sql.gz
+          rm backup.sql.gz
+
+      - name: Archiver la sauvegarde
+        uses: actions/upload-artifact@v4
+        with:
+          name: jdcauto-db-${{ github.run_id }}
+          path: jdcauto-db-*.sql.gz.gpg
+          retention-days: 30
+          if-no-files-found: error

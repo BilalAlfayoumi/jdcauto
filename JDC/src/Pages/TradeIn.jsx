@@ -1,6 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation } from '@tanstack/react-query';
+import emailjs from '@emailjs/browser';
+import ReCAPTCHA from 'react-google-recaptcha';
 import ProgressBar from '../Components/ProgressBar';
 import AnimatedSection from '../Components/AnimatedSection';
 import { useParallax } from '../hooks/useParallax';
@@ -10,7 +12,6 @@ import {
   TrendingUp, 
   Clock, 
   Shield,
-  Search,
   ChevronRight,
   ChevronLeft,
   Award,
@@ -18,44 +19,60 @@ import {
   FileText,
   DollarSign,
   ArrowRight,
-  Check
+  Check,
+  Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function TradeIn() {
   const [currentStep, setCurrentStep] = useState(0);
-  const [isSearching, setIsSearching] = useState(false);
   const formSectionRef = useRef(null);
+  const recaptchaRefTradeIn = useRef(null);
   const { opacity, translateY } = useParallax();
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  // Clé reCAPTCHA (à remplacer par votre clé de site)
+  const RECAPTCHA_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'; // Clé de test Google (à remplacer)
+  
+  useEffect(() => {
+    setIsLoaded(true);
+    // Initialiser EmailJS
+    emailjs.init('AQaaMiMFeiYBqPjIr');
+  }, []);
+
+  // Configuration EmailJS pour reprise
+  const EMAILJS_CONFIG = {
+    SERVICE_ID: 'service_uxxnivr',
+    TEMPLATE_ID: 'template_ti3q0oj',
+    PUBLIC_KEY: 'AQaaMiMFeiYBqPjIr'
+  };
   
   const [formData, setFormData] = useState({
-    // Step 1: Immatriculation
-    licensePlate: '',
-    // Step 2: Vehicle details
+    // Step 0: Vehicle details
     brand: '',
     model: '',
     version: '',
     year: new Date().getFullYear(),
     mileage: '',
     fuelType: '',
-    // Step 3: Project
+    licensePlate: '',
+    // Step 1: Project
     sellDelay: '',
     buyingProject: '',
-    // Step 4: Personal info
+    // Step 2: Personal info
     civility: '',
     first_name: '',
     last_name: '',
     email: '',
     phone: '',
     message: '',
-    // Step 5: Consent
+    // Step 3: Consent
     consent: false
   });
 
   const [submitted, setSubmitted] = useState(false);
 
   const steps = [
-    'Immatriculation',
     'Détails véhicule',
     'Votre projet',
     'Coordonnées',
@@ -63,52 +80,97 @@ export default function TradeIn() {
   ];
 
   const mutation = useMutation({
-    mutationFn: (data) => base44.entities.TradeIn.create(data),
-    onSuccess: () => {
-      setSubmitted(true);
-      toast.success('Votre demande a été envoyée avec succès !');
-    },
-    onError: () => {
-      toast.error('Une erreur est survenue. Veuillez réessayer.');
-    }
-  });
+    mutationFn: async (data) => {
+      // Préparer les informations du véhicule pour l'email
+      const vehicleInfo = `
+DÉTAILS DU VÉHICULE À REPRENDRE :
+- Marque : ${data.brand || 'Non renseigné'}
+- Modèle : ${data.model || 'Non renseigné'}
+- Version/Finition : ${data.version || 'Non renseigné'}
+- Année : ${data.year || 'Non renseigné'}
+- Kilométrage : ${data.mileage ? `${data.mileage} km` : 'Non renseigné'}
+- Carburant : ${data.fuelType || 'Non renseigné'}
+- Numéro de plaque d'immatriculation : ${data.licensePlate || 'Non renseigné'}
 
-  const searchByLicensePlate = async () => {
-    if (!formData.licensePlate || formData.licensePlate.length < 4) {
-      toast.error('Veuillez saisir une immatriculation valide');
-      return;
-    }
+PROJET :
+- Délai de vente souhaité : ${data.sellDelay || 'Non renseigné'}
+- Projet d'achat : ${data.buyingProject || 'Non renseigné'}
 
-    setIsSearching(true);
-    
-    try {
-      // Simulate API call - in production, integrate with real API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock data for demo
-      const mockData = {
-        brand: 'Renault',
-        model: 'Clio',
-        version: 'Intens',
-        year: 2019,
-        fuelType: 'Essence',
-        mileage: 45000
+${data.message ? `\nMESSAGE DU CLIENT :\n${data.message}` : ''}
+      `.trim();
+
+      // S'assurer que toutes les variables sont des strings non vides
+      const templateParams = {
+        from_name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'Client',
+        from_email: data.email || 'non-renseigne@example.com',
+        phone: data.phone || 'Non renseigné',
+        message: vehicleInfo || 'Aucun message',
+        subject: `Demande de reprise - ${data.brand || ''} ${data.model || ''}`.trim() || 'Demande de reprise',
+        type: 'Reprise de véhicule',
+        to_email: 'jdcauto33@orange.fr', // Email de destination JDC Auto
+        civility: data.civility || '',
+        vehicle_brand: data.brand || 'Non renseigné',
+        vehicle_model: data.model || 'Non renseigné',
+        vehicle_version: data.version || 'Non renseigné',
+        vehicle_year: data.year ? String(data.year) : 'Non renseigné',
+        vehicle_mileage: data.mileage ? `${data.mileage} km` : 'Non renseigné',
+        vehicle_fuel: data.fuelType || 'Non renseigné',
+        vehicle_license_plate: data.licensePlate || 'Non renseigné',
+        sell_delay: data.sellDelay || 'Non renseigné',
+        buying_project: data.buyingProject || 'Non renseigné'
       };
 
-      setFormData(prev => ({
-        ...prev,
-        ...mockData
-      }));
+      console.log('📧 Envoi EmailJS reprise avec:', {
+        serviceId: EMAILJS_CONFIG.SERVICE_ID,
+        templateId: EMAILJS_CONFIG.TEMPLATE_ID,
+        params: templateParams
+      });
 
-      toast.success('Véhicule trouvé !');
-      setCurrentStep(1);
-    } catch (error) {
-      toast.error('Véhicule non trouvé. Veuillez compléter manuellement.');
-      setCurrentStep(1);
-    } finally {
-      setIsSearching(false);
+      try {
+        // Envoyer via EmailJS
+        const response = await emailjs.send(
+          EMAILJS_CONFIG.SERVICE_ID,
+          EMAILJS_CONFIG.TEMPLATE_ID,
+          templateParams,
+          EMAILJS_CONFIG.PUBLIC_KEY
+        );
+
+        console.log('✅ EmailJS reprise envoyé avec succès:', response);
+
+        // Optionnel: Enregistrer aussi en base de données
+        try {
+          await base44.entities.TradeIn.create(data);
+        } catch (dbError) {
+          console.warn('Erreur enregistrement BDD (non bloquant):', dbError);
+        }
+
+        return { success: true, response };
+      } catch (error) {
+        console.error('❌ Erreur EmailJS détaillée:', {
+          message: error.text || error.message,
+          status: error.status,
+          fullError: error
+        });
+        
+        if (error.status === 400) {
+          throw new Error('Paramètres invalides. Vérifiez que toutes les variables du template sont correctement définies.');
+        } else if (error.status === 412) {
+          throw new Error('Erreur de configuration EmailJS. Vérifiez que le Service ID et Template ID sont corrects.');
+        } else {
+          throw new Error(`Erreur EmailJS: ${error.text || error.message || 'Erreur inconnue'}`);
+        }
+      }
+    },
+    onSuccess: () => {
+      setSubmitted(true);
+      toast.success('Votre demande de reprise a été envoyée avec succès ! Nous vous contacterons bientôt.');
+    },
+    onError: (error) => {
+      console.error('Erreur envoi:', error);
+      const errorMessage = error?.message || 'Une erreur est survenue. Veuillez réessayer.';
+      toast.error(errorMessage);
     }
-  };
+  });
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -118,31 +180,32 @@ export default function TradeIn() {
     });
   };
 
-  const handleNext = () => {
+  const handleNext = (e) => {
+    // Empêcher la soumission du formulaire si c'est un événement de formulaire
+    if (e) {
+      e.preventDefault();
+    }
+    
     // Validation per step
     if (currentStep === 0) {
-      if (!formData.licensePlate) {
-        toast.error('Veuillez saisir une immatriculation');
-        return;
-      }
-    } else if (currentStep === 1) {
       if (!formData.brand || !formData.model || !formData.year || !formData.mileage) {
         toast.error('Veuillez compléter tous les champs obligatoires');
         return;
       }
-    } else if (currentStep === 3) {
+    } else if (currentStep === 1) {
+      // Pas de validation nécessaire pour l'étape "Votre projet"
+    } else if (currentStep === 2) {
       if (!formData.first_name || !formData.last_name || !formData.email || !formData.phone) {
         toast.error('Veuillez compléter tous les champs obligatoires');
         return;
       }
-    } else if (currentStep === 4) {
-      if (!formData.consent) {
-        toast.error('Veuillez accepter les conditions');
-        return;
-      }
     }
+    // Note: La validation du consentement se fait dans handleSubmit, pas ici
     
-    setCurrentStep(prev => prev + 1);
+    // Passer à l'étape suivante seulement si on n'est pas à la dernière étape
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(prev => prev + 1);
+    }
   };
 
   const handlePrevious = () => {
@@ -151,7 +214,31 @@ export default function TradeIn() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    mutation.mutate(formData);
+    
+    // Vérifier qu'on est bien à la dernière étape
+    if (currentStep !== steps.length - 1) {
+      // Si on n'est pas à la dernière étape, passer à l'étape suivante
+      handleNext(e);
+      return;
+    }
+    
+    // Vérifier le consentement avant de soumettre
+    if (!formData.consent) {
+      toast.error('Veuillez accepter les conditions pour continuer');
+      return;
+    }
+    
+    // Vérifier reCAPTCHA
+    const recaptchaValue = recaptchaRefTradeIn.current?.getValue();
+    if (!recaptchaValue) {
+      toast.error('Veuillez compléter la vérification "Je ne suis pas un robot"');
+      return;
+    }
+    
+    // Soumettre le formulaire
+    mutation.mutate({ ...formData, recaptcha: recaptchaValue });
+    // Réinitialiser reCAPTCHA après envoi
+    recaptchaRefTradeIn.current?.reset();
   };
 
   const scrollToForm = () => {
@@ -186,33 +273,33 @@ export default function TradeIn() {
               </li>
             </ul>
           </div>
-          <button
-            onClick={() => {
-              setSubmitted(false);
-              setCurrentStep(0);
-              setFormData({
-                licensePlate: '',
-                brand: '',
-                model: '',
-                version: '',
-                year: new Date().getFullYear(),
-                mileage: '',
-                fuelType: '',
-                sellDelay: '',
-                buyingProject: '',
-                civility: '',
-                first_name: '',
-                last_name: '',
-                email: '',
-                phone: '',
-                message: '',
-                consent: false
-              });
-            }}
-            className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md transition-colors"
-          >
-            Faire une nouvelle estimation
-          </button>
+            <button
+              onClick={() => {
+                setSubmitted(false);
+                setCurrentStep(0);
+                setFormData({
+                  brand: '',
+                  model: '',
+                  version: '',
+                  year: new Date().getFullYear(),
+                  mileage: '',
+                  fuelType: '',
+                  licensePlate: '',
+                  sellDelay: '',
+                  buyingProject: '',
+                  civility: '',
+                  first_name: '',
+                  last_name: '',
+                  email: '',
+                  phone: '',
+                  message: '',
+                  consent: false
+                });
+              }}
+              className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md transition-colors"
+            >
+              Faire une nouvelle estimation
+            </button>
         </div>
       </div>
     );
@@ -224,32 +311,57 @@ export default function TradeIn() {
       <div className="relative h-[90vh] min-h-[600px] overflow-hidden">
         {/* Image de fond avec effets de parallaxe et fade-out */}
         <div 
-          className="absolute inset-0 w-full h-[120%] bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 w-full h-[120%] bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-out"
           style={{
             backgroundImage: 'url(https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80)',
-            opacity: opacity,
-            transform: `translateY(${translateY}px)`,
-            transition: 'opacity 0.1s ease-out, transform 0.1s ease-out',
+            opacity: isLoaded ? opacity : 0,
+            transform: isLoaded ? `translateY(${translateY}px) scale(1)` : 'translateY(0px) scale(1.1)',
+            transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
             willChange: 'opacity, transform'
           }}
         >
           {/* Overlay gradient pour améliorer la lisibilité */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
+          <div 
+            className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80 transition-opacity duration-1000"
+            style={{
+              opacity: isLoaded ? 1 : 0
+            }}
+          />
         </div>
 
         {/* Contenu hero */}
         <div className="relative z-10 h-full flex items-center justify-center">
           <div className="max-w-7xl mx-auto px-4 text-center">
-            <div className="max-w-4xl mx-auto">
+            <div 
+              className="max-w-4xl mx-auto transition-all duration-1000 ease-out"
+              style={{
+                opacity: isLoaded ? 1 : 0,
+                transform: isLoaded ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(30px)',
+                transition: 'opacity 0.8s ease-out 0.2s, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s'
+              }}
+            >
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
                 Reprise de votre voiture au meilleur prix
               </h1>
-              <p className="text-xl md:text-2xl lg:text-3xl text-gray-200 mb-10 font-light">
+              <p 
+                className="text-xl md:text-2xl lg:text-3xl text-gray-200 mb-10 font-light transition-all duration-1000 ease-out"
+                style={{
+                  opacity: isLoaded ? 1 : 0,
+                  transform: isLoaded ? 'translateY(0)' : 'translateY(20px)',
+                  transition: 'opacity 0.8s ease-out 0.4s, transform 0.8s ease-out 0.4s'
+                }}
+              >
                 Estimation rapide, gratuite, sans engagement
               </p>
               <button
                 onClick={scrollToForm}
                 className="px-10 py-5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 inline-flex items-center gap-3 text-lg shadow-2xl hover:shadow-red-500/50"
+                style={{
+                  opacity: isLoaded ? 1 : 0,
+                  transform: isLoaded ? 'scale(1)' : 'scale(0.8)',
+                  transition: 'opacity 0.8s ease-out 0.6s, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s',
+                  animation: isLoaded ? 'pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s' : 'none'
+                }}
               >
                 Estimer mon véhicule
                 <ChevronRight className="w-6 h-6" />
@@ -280,59 +392,8 @@ export default function TradeIn() {
             <ProgressBar steps={steps} currentStep={currentStep} />
 
             <form onSubmit={handleSubmit} className="mt-10">
-              {/* Step 0: License Plate */}
+              {/* Step 0: Vehicle Details */}
               {currentStep === 0 && (
-                <div className="space-y-6 animate-fadeIn">
-                  <div className="text-center mb-8">
-                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-                      Quelle est votre immatriculation ?
-                    </h3>
-                    <p className="text-gray-600">
-                      Nous allons identifier automatiquement votre véhicule
-                    </p>
-                  </div>
-
-                  <div className="max-w-md mx-auto">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        name="licensePlate"
-                        value={formData.licensePlate}
-                        onChange={handleChange}
-                        placeholder="XX-123-XX"
-                        className="w-full px-6 py-4 text-2xl font-bold text-center border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent uppercase transition-all"
-                        maxLength="9"
-                      />
-                      <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={searchByLicensePlate}
-                      disabled={isSearching}
-                      className="w-full mt-4 px-6 py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-bold rounded-lg transition-colors text-lg shadow-lg hover:shadow-xl"
-                    >
-                      {isSearching ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                          Recherche en cours...
-                        </span>
-                      ) : (
-                        'Rechercher mon véhicule'
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCurrentStep(1)}
-                      className="w-full mt-3 text-gray-600 hover:text-red-600 font-medium transition-colors"
-                    >
-                      Ou compléter manuellement
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 1: Vehicle Details */}
-              {currentStep === 1 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div className="text-center mb-8">
                     <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
@@ -432,12 +493,25 @@ export default function TradeIn() {
                         <option value="GPL">GPL</option>
                       </select>
                     </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Numéro de plaque d'immatriculation
+                      </label>
+                      <input
+                        type="text"
+                        name="licensePlate"
+                        value={formData.licensePlate}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all"
+                        placeholder="Ex: AB-123-CD"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Step 2: Project */}
-              {currentStep === 2 && (
+              {/* Step 1: Project */}
+              {currentStep === 1 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div className="text-center mb-8">
                     <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
@@ -489,8 +563,8 @@ export default function TradeIn() {
                 </div>
               )}
 
-              {/* Step 3: Personal Info */}
-              {currentStep === 3 && (
+              {/* Step 2: Personal Info */}
+              {currentStep === 2 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div className="text-center mb-8">
                     <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
@@ -612,8 +686,8 @@ export default function TradeIn() {
                 </div>
               )}
 
-              {/* Step 4: Consent */}
-              {currentStep === 4 && (
+              {/* Step 3: Consent */}
+              {currentStep === 3 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div className="text-center mb-8">
                     <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
@@ -648,6 +722,14 @@ export default function TradeIn() {
                       Je peux exercer mes droits d'accès, de rectification et de suppression en contactant JDC AUTO.
                     </span>
                   </label>
+
+                  <div className="flex justify-center mt-4">
+                    <ReCAPTCHA
+                      ref={recaptchaRefTradeIn}
+                      sitekey={RECAPTCHA_SITE_KEY}
+                      theme="light"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -668,7 +750,7 @@ export default function TradeIn() {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className={`${currentStep === 0 ? 'ml-auto' : 'ml-auto'} px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors inline-flex items-center gap-2 shadow-lg hover:shadow-xl`}
+                    className="ml-auto px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors inline-flex items-center gap-2 shadow-lg hover:shadow-xl"
                   >
                     Suivant
                     <ChevronRight className="w-5 h-5" />
@@ -735,14 +817,14 @@ export default function TradeIn() {
               }
             ].map((item, index) => (
               <AnimatedSection key={index} animation="fade-up" delay={item.delay}>
-                <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 text-center group border border-gray-100">
-                  <div className={`inline-flex items-center justify-center w-20 h-20 ${item.color} rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 text-center group border border-gray-100 h-full flex flex-col">
+                  <div className={`inline-flex items-center justify-center w-20 h-20 ${item.color} rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}>
                     <item.icon className="w-10 h-10" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-red-600 transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-gray-600 leading-relaxed">{item.desc}</p>
+                  <p className="text-gray-600 leading-relaxed flex-grow">{item.desc}</p>
                 </div>
               </AnimatedSection>
             ))}
@@ -816,50 +898,120 @@ export default function TradeIn() {
         </div>
       </div>
 
-      {/* Section conversion finale */}
-      <div className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white py-20 md:py-28">
-        <div className="max-w-5xl mx-auto px-4 text-center">
-          <AnimatedSection animation="zoom-in">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Vous souhaitez vendre votre voiture aujourd'hui ?
-            </h2>
-            <p className="text-xl md:text-2xl text-red-100 mb-10 max-w-2xl mx-auto">
-              Obtenez une estimation gratuite en 2 minutes et recevez la meilleure offre du marché
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <button
-                onClick={scrollToForm}
-                className="px-10 py-5 bg-white text-red-600 hover:bg-gray-100 font-bold rounded-lg transition-all transform hover:scale-105 inline-flex items-center gap-3 text-lg shadow-2xl hover:shadow-white/50"
-              >
-                Estimer mon véhicule
-                <ArrowRight className="w-6 h-6" />
-              </button>
-              <button
-                onClick={scrollToForm}
-                className="px-10 py-5 bg-transparent border-2 border-white text-white hover:bg-white/10 font-bold rounded-lg transition-all transform hover:scale-105 inline-flex items-center gap-3 text-lg"
-              >
-                <DollarSign className="w-6 h-6" />
-                Rachat cash immédiat
-              </button>
+      {/* Section conversion finale avec image animée et animations pop au scroll */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white py-20 md:py-28">
+        {/* Image de fond animée */}
+        <div className="absolute inset-0 z-0">
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+            style={{
+              backgroundImage: 'url(https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920&q=80)',
+              animation: 'zoomInOut 20s ease-in-out infinite',
+              transformOrigin: 'center center'
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-black/60" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Contenu texte */}
+            <div className="text-center lg:text-left">
+              {/* Badge */}
+              <AnimatedSection animation="pop" delay={0}>
+                <div className="inline-block mb-4">
+                  <span className="px-4 py-2 bg-red-600/20 border border-red-500/30 rounded-full text-sm font-semibold text-red-400 backdrop-blur-sm">
+                    Estimation gratuite
+                  </span>
+                </div>
+              </AnimatedSection>
+
+              {/* Titre */}
+              <AnimatedSection animation="pop" delay={100}>
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                  Vendez votre voiture au <span className="text-red-500">meilleur prix</span>
+                </h2>
+              </AnimatedSection>
+
+              {/* Description */}
+              <AnimatedSection animation="pop" delay={200}>
+                <p className="text-xl text-gray-300 mb-8 leading-relaxed">
+                  Obtenez une estimation en 2 minutes. Réponse sous 48h. Meilleur prix garanti. Gratuit et sans engagement.
+                </p>
+              </AnimatedSection>
+              
+              {/* Boutons */}
+              <AnimatedSection animation="pop" delay={300}>
+                <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                  <button
+                    onClick={scrollToForm}
+                    className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all transform hover:scale-105 inline-flex items-center justify-center gap-3 text-lg shadow-2xl hover:shadow-red-500/50"
+                  >
+                    Estimer mon véhicule
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={scrollToForm}
+                    className="px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/20 text-white hover:bg-white/20 font-bold rounded-xl transition-all transform hover:scale-105 inline-flex items-center justify-center gap-3 text-lg"
+                  >
+                    <DollarSign className="w-5 h-5" />
+                    Rachat cash
+                  </button>
+                </div>
+              </AnimatedSection>
+
+              {/* Points de confiance */}
+              <AnimatedSection animation="pop" delay={400}>
+                <div className="flex flex-wrap gap-6 text-sm text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-5 h-5 text-green-400" />
+                    <span>Gratuit</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-5 h-5 text-green-400" />
+                    <span>Sans engagement</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-5 h-5 text-green-400" />
+                    <span>Réponse 48h</span>
+                  </div>
+                </div>
+              </AnimatedSection>
             </div>
 
-            {/* Points de confiance */}
-            <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm">
-              <div className="flex items-center gap-2">
-                <Check className="w-5 h-5" />
-                <span>Gratuit et sans engagement</span>
+            {/* Image animée */}
+            <AnimatedSection animation="pop" delay={200} className="relative">
+              <div className="relative">
+                <div 
+                  className="relative rounded-2xl overflow-hidden shadow-2xl"
+                  style={{
+                    animation: 'float 6s ease-in-out infinite'
+                  }}
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=80"
+                    alt="Véhicule d'occasion"
+                    className="w-full h-[400px] object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                </div>
+                {/* Éléments décoratifs animés */}
+                <div 
+                  className="absolute -top-4 -right-4 w-24 h-24 bg-red-500/20 rounded-full blur-2xl"
+                  style={{
+                    animation: 'pulse 3s ease-in-out infinite'
+                  }}
+                />
+                <div 
+                  className="absolute -bottom-4 -left-4 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl"
+                  style={{
+                    animation: 'pulse 4s ease-in-out infinite'
+                  }}
+                />
               </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-5 h-5" />
-                <span>Réponse sous 48h</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-5 h-5" />
-                <span>Meilleur prix garanti</span>
-              </div>
-            </div>
-          </AnimatedSection>
+            </AnimatedSection>
+          </div>
         </div>
       </div>
     </div>

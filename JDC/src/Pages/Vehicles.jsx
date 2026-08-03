@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import VehicleCard from '../Components/VehicleCard';
 import VehicleListItem from '../Components/VehicleListItem';
@@ -18,15 +17,19 @@ import {
 } from 'lucide-react';
 
 export default function Vehicles() {
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  // Read URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlBrand = urlParams.get('brand');
+  const urlModel = urlParams.get('model');
+  const urlMaxPrice = urlParams.get('maxPrice');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('recent'); // 'recent', 'price-asc', 'price-desc', 'year-asc', 'year-desc', 'mileage-asc', 'mileage-desc'
   
   const [filters, setFilters] = useState({
-    brand: '',
-    model: '',
+    brand: urlBrand || '',
+    model: urlModel || '',
     minPrice: 0,
-    maxPrice: 100000,
+    maxPrice: urlMaxPrice ? parseInt(urlMaxPrice) : null, // Sera ajusté après chargement des données
     minYear: 2010,
     maxYear: new Date().getFullYear(),
     maxMileage: null,
@@ -35,27 +38,58 @@ export default function Vehicles() {
   });
 
   const [tempFilters, setTempFilters] = useState(filters); // Pour le panneau mobile
+  
+  // Initialize filters from URL on mount
+  useEffect(() => {
+    if (urlBrand) setFilters(prev => ({ ...prev, brand: urlBrand }));
+    if (urlModel) setFilters(prev => ({ ...prev, model: urlModel }));
+    if (urlMaxPrice) setFilters(prev => ({ ...prev, maxPrice: parseInt(urlMaxPrice) }));
+  }, []); // Only on mount
   const [showFilters, setShowFilters] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const vehiclesPerPage = 12;
 
-  // Fetch all vehicles
+  // Fetch all vehicles from PHP API
   const { data: allVehicles = [], isLoading } = useQuery({
     queryKey: ['vehicles'],
-    queryFn: () => base44.entities.Vehicle.list('-created_date'),
+    queryFn: async () => {
+      const response = await fetch('/api/index.php?action=vehicles&limit=100&status=all');
+      if (!response.ok) throw new Error('Erreur API');
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Erreur API');
+      return data.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   // Get price and year ranges from data
+  // Calculer dynamiquement mais avec marge de sécurité pour éviter problèmes d'arrondi
   const priceRange = allVehicles.length > 0 ? {
     min: Math.min(...allVehicles.map(v => v.price)),
-    max: Math.max(...allVehicles.map(v => v.price))
-  } : { min: 0, max: 100000 };
+    // Arrondir vers le haut (Math.ceil) et ajouter 10% de marge pour éviter problèmes d'arrondi des curseurs
+    max: Math.ceil(Math.max(...allVehicles.map(v => v.price)) * 1.1)
+  } : { min: 0, max: 500000 };
 
   const yearRange = allVehicles.length > 0 ? {
     min: Math.min(...allVehicles.map(v => v.year)),
-    max: Math.max(...allVehicles.map(v => v.year))
-  } : { min: 2010, max: new Date().getFullYear() };
+    // Année max + 1 pour marge
+    max: Math.max(...allVehicles.map(v => v.year)) + 1
+  } : { min: 2010, max: new Date().getFullYear() + 1 };
+
+  // Ajuster maxPrice après chargement des données si pas défini ou trop bas
+  useEffect(() => {
+    if (allVehicles.length > 0 && priceRange.max) {
+      const currentMax = filters.maxPrice || 0;
+      if (currentMax < priceRange.max) {
+        setFilters(prev => ({
+          ...prev,
+          maxPrice: priceRange.max
+        }));
+      }
+    }
+  }, [allVehicles.length, priceRange.max]);
 
   // Get unique brands
   const uniqueBrands = [...new Set(allVehicles.map(v => v.brand))].sort();
@@ -71,31 +105,44 @@ export default function Vehicles() {
     max: Math.max(...allVehicles.map(v => v.mileage))
   } : { min: 0, max: 200000 };
 
-  // Categories
-  const categories = [
-    { id: 'all', name: 'Tous', icon: Car },
-    { id: 'Voiture', name: 'Voitures', icon: Car },
-    { id: 'Camion', name: 'Camions', icon: Truck },
-    { id: 'Utilitaire', name: 'Utilitaires', icon: Package }
-  ];
+  // Categories - Supprimé car il n'y a que des voitures
 
   // Filter vehicles
   const filteredVehicles = allVehicles.filter(vehicle => {
-    if (vehicle.status !== 'Disponible') return false;
-    // Utiliser selectedCategory pour la catégorie (géré séparément)
-    if (selectedCategory !== 'all' && vehicle.category !== selectedCategory) return false;
     if (filters.brand && vehicle.brand !== filters.brand) return false;
     if (filters.model && vehicle.model !== filters.model) return false;
-    if (vehicle.price < filters.minPrice || vehicle.price > filters.maxPrice) return false;
+    if (vehicle.price < filters.minPrice) return false;
+    if (filters.maxPrice !== null && vehicle.price > filters.maxPrice) return false;
     if (vehicle.year < filters.minYear || vehicle.year > filters.maxYear) return false;
     if (filters.maxMileage && vehicle.mileage > filters.maxMileage) return false;
-    if (filters.fuelTypes.length > 0 && !filters.fuelTypes.includes(vehicle.fuel_type)) return false;
+    // Filtre carburant avec normalisation (insensible à la casse)
+    if (filters.fuelTypes.length > 0) {
+      const vehicleFuelNormalized = (vehicle.fuel_type || '').toUpperCase().trim();
+      const matches = filters.fuelTypes.some(fuel => {
+        const fuelNormalized = fuel.toUpperCase().trim();
+        // Mapping des valeurs (Essence -> ESSENCE, Diesel -> DIESEL, etc.)
+        if (fuelNormalized === 'ESSENCE' && vehicleFuelNormalized === 'ESSENCE') return true;
+        if (fuelNormalized === 'DIESEL' && vehicleFuelNormalized === 'DIESEL') return true;
+        if (fuelNormalized === 'HYBRIDE' && vehicleFuelNormalized.includes('HYBRIDE')) return true;
+        if ((fuelNormalized === 'ÉLECTRIQUE' || fuelNormalized === 'ELECTRIQUE') && 
+            (vehicleFuelNormalized.includes('ÉLECTRIQUE') || vehicleFuelNormalized.includes('ELECTRIQUE'))) return true;
+        if (fuelNormalized === 'GPL' && vehicleFuelNormalized.includes('GPL')) return true;
+        return false;
+      });
+      if (!matches) return false;
+    }
     if (filters.gearboxes.length > 0 && !filters.gearboxes.includes(vehicle.gearbox)) return false;
     return true;
   });
 
   // Sort vehicles
   const sortedVehicles = [...filteredVehicles].sort((a, b) => {
+    const statusPriority = {
+      'Disponible': 0,
+      'Réservé': 1,
+      'Vendu': 2,
+    };
+
     switch (sortBy) {
       case 'price-asc': return a.price - b.price;
       case 'price-desc': return b.price - a.price;
@@ -103,7 +150,10 @@ export default function Vehicles() {
       case 'year-desc': return b.year - a.year;
       case 'mileage-asc': return a.mileage - b.mileage;
       case 'mileage-desc': return b.mileage - a.mileage;
-      default: return 0; // recent (already sorted by API)
+      default: {
+        const statusDelta = (statusPriority[a.status] ?? 99) - (statusPriority[b.status] ?? 99);
+        return statusDelta;
+      }
     }
   });
 
@@ -115,7 +165,12 @@ export default function Vehicles() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, selectedCategory, sortBy]);
+  }, [filters, sortBy]);
+
+  // Scroll to top when page changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
 
   const toggleFuelType = (fuelType) => {
     setFilters(prev => ({
@@ -145,21 +200,15 @@ export default function Vehicles() {
       maxYear: yearRange.max,
       maxMileage: null,
       fuelTypes: [],
-      gearboxes: [],
-      category: 'all'
+      gearboxes: []
     };
     setFilters(resetFiltersState);
     setTempFilters(resetFiltersState);
-    setSelectedCategory('all');
   };
 
   // Gestion du panneau mobile
   const openMobileFilter = () => {
-    // Copier les filtres actuels dans tempFilters avec la catégorie
-    setTempFilters({
-      ...filters,
-      category: selectedCategory
-    });
+    setTempFilters(filters);
     setIsMobileFilterOpen(true);
   };
 
@@ -168,12 +217,7 @@ export default function Vehicles() {
   };
 
   const applyMobileFilters = () => {
-    // Appliquer les filtres (sans category qui est géré séparément)
-    const { category, ...filtersToApply } = tempFilters;
-    setFilters(filtersToApply);
-    if (category) {
-      setSelectedCategory(category);
-    }
+    setFilters(tempFilters);
     setIsMobileFilterOpen(false);
   };
 
@@ -187,46 +231,21 @@ export default function Vehicles() {
       maxYear: yearRange.max,
       maxMileage: null,
       fuelTypes: [],
-      gearboxes: [],
-      category: 'all'
+      gearboxes: []
     };
     setTempFilters(resetFiltersState);
   };
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      {/* Categories */}
-      <div className="bg-white shadow-md py-6 sticky top-[73px] z-40">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-wrap justify-center gap-4">
-            {categories.map((category) => {
-              const Icon = category.icon;
-              const isActive = selectedCategory === category.id;
-              return (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`flex items-center gap-3 px-6 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 ${
-                    isActive
-                      ? 'bg-red-600 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{category.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar - Desktop only */}
           <aside className="hidden lg:block lg:w-80">
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-48">
-              <div className="flex justify-between items-center mb-6">
+            <div className="bg-white rounded-lg shadow-md sticky top-24 max-h-[calc(100vh-8rem)] flex flex-col">
+              {/* Header - Fixed */}
+              <div className="flex justify-between items-center p-6 pb-4 border-b border-gray-200">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                   <Filter className="w-5 h-5" />
                   Filtres
@@ -239,7 +258,8 @@ export default function Vehicles() {
                 </button>
               </div>
 
-              <div className="space-y-6">
+              {/* Scrollable content */}
+              <div className="p-6 pt-4 overflow-y-auto flex-1 space-y-6 scrollbar-thin">
                 {/* Marque */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -247,7 +267,7 @@ export default function Vehicles() {
                   </label>
                   <select
                     value={filters.brand}
-                    onChange={(e) => setFilters({ ...filters, brand: e.target.value })}
+                    onChange={(e) => setFilters({ ...filters, brand: e.target.value, model: '' })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-600"
                   >
                     <option value="">Toutes les marques</option>
@@ -257,10 +277,33 @@ export default function Vehicles() {
                   </select>
                 </div>
 
+                {/* Modèle */}
+                {filters.brand && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Modèle
+                    </label>
+                    {uniqueModels.length > 0 ? (
+                      <select
+                        value={filters.model}
+                        onChange={(e) => setFilters({ ...filters, model: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-600"
+                      >
+                        <option value="">Tous les modèles</option>
+                        {uniqueModels.map(model => (
+                          <option key={model} value={model}>{model}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">Sélectionnez d'abord une marque</p>
+                    )}
+                  </div>
+                )}
+
                 {/* Prix */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Prix ({filters.minPrice.toLocaleString('fr-FR')} € - {filters.maxPrice.toLocaleString('fr-FR')} €)
+                    Prix ({filters.minPrice.toLocaleString('fr-FR')} € - {(filters.maxPrice || priceRange.max || 0).toLocaleString('fr-FR')} €)
                   </label>
                   <div className="space-y-3">
                     <input
@@ -277,7 +320,7 @@ export default function Vehicles() {
                       min={priceRange.min}
                       max={priceRange.max}
                       step="1000"
-                      value={filters.maxPrice}
+                      value={filters.maxPrice || priceRange.max || 0}
                       onChange={(e) => setFilters({ ...filters, maxPrice: parseInt(e.target.value) })}
                       className="w-full accent-red-600"
                     />
@@ -372,9 +415,12 @@ export default function Vehicles() {
             {/* Toolbar */}
             <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <span className="text-gray-700 font-medium">
+                <div>
+                  <span className="text-gray-700 font-medium">
                   {sortedVehicles.length} véhicule{sortedVehicles.length > 1 ? 's' : ''}
-                </span>
+                  </span>
+
+                </div>
               </div>
 
               <div className="flex items-center gap-4">

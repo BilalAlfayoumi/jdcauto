@@ -1,0 +1,46 @@
+# =============================================
+# JDC Auto - Configuration sécurité Apache
+# =============================================
+
+# Désactiver le listage des répertoires
+Options -Indexes
+
+# Forcer HTTPS : le mot de passe admin ne doit jamais transiter en clair.
+# Derrière le proxy Gandi (Varnish), seul X-Forwarded-Proto est fiable —
+# %{HTTPS} vaut "off" quand la requête arrive via le cache, ce qui boucle.
+RewriteEngine On
+RewriteCond %{HTTP:X-Forwarded-Proto} =http
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# SPA fallback : toutes les routes React → index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ /index.html [L]
+
+# Bloquer l'accès direct aux fichiers de configuration PHP
+<FilesMatch "(admin_auth|mysql_gandi)\.php$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Bloquer l'accès direct au dossier config/
+<IfModule mod_rewrite.c>
+    RewriteRule ^config/ - [F,L]
+</IfModule>
+
+# Headers de sécurité
+<IfModule mod_headers.c>
+    # HSTS : les navigateurs n'essaieront plus jamais le site en HTTP (1 an)
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "same-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Empêcher l'accès aux fichiers sensibles
+<FilesMatch "\.(env|log|sql|bak|backup|sh|md)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>

@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useMutation } from '@tanstack/react-query';
+import emailjs from '@emailjs/browser';
+import ReCAPTCHA from 'react-google-recaptcha';
 import { 
   MapPin, 
   Phone, 
@@ -17,7 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AnimatedSection from '../Components/AnimatedSection';
-import { useHeroScroll } from '../hooks/useHeroScroll';
+import { useParallax } from '../hooks/useParallax';
 import { createPageUrl } from '../utils';
 
 export default function Contact() {
@@ -27,7 +29,8 @@ export default function Contact() {
     email: '',
     phone: '',
     message: '',
-    type: 'achat'
+    type: 'achat',
+    consent: false
   });
 
   const [formDataCarteGrise, setFormDataCarteGrise] = useState({
@@ -36,65 +39,195 @@ export default function Contact() {
     email: '',
     phone: '',
     message: '',
-    type: 'carte_grise'
+    type: 'carte_grise',
+    consent: false
   });
 
   const [submitted, setSubmitted] = useState(false);
   const [submittedType, setSubmittedType] = useState(null);
+  const { opacity, translateY } = useParallax();
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [mapError, setMapError] = useState(false);
+  
+  // reCAPTCHA refs
+  const recaptchaRefAchat = useRef(null);
+  const recaptchaRefCarteGrise = useRef(null);
+  
+  // Clé reCAPTCHA (à remplacer par votre clé de site)
+  const RECAPTCHA_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'; // Clé de test Google (à remplacer)
 
-  const heroScroll = useHeroScroll();
+  useEffect(() => {
+    setIsLoaded(true);
+    // Initialiser EmailJS avec la Public Key
+    emailjs.init('AQaaMiMFeiYBqPjIr');
+  }, []);
+
+  // Configuration EmailJS
+  // ✅ Service Gmail configuré (service_uxxnivr)
+  const EMAILJS_CONFIG = {
+    SERVICE_ID: 'service_uxxnivr', // Service Gmail
+    TEMPLATE_ID_ACHAT: 'template_sq3rlfb', // Template pour achat
+    TEMPLATE_ID_CARTE_GRISE: 'template_sq3rlfb', // Template pour carte grise (même template)
+    PUBLIC_KEY: 'AQaaMiMFeiYBqPjIr' // ✅ Public Key configurée
+  };
+
+  // Fonction pour envoyer via EmailJS
+  const sendEmailViaEmailJS = async (data, templateId, toEmail = 'jdcauto33@orange.fr') => {
+    try {
+      // Initialiser EmailJS
+      emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+
+      const templateParams = {
+        from_name: `${data.first_name} ${data.last_name}`,
+        from_email: data.email,
+        phone: data.phone,
+        message: data.message,
+        subject: data.subject || 'Demande de contact',
+        type: data.type === 'achat' ? 'Achat de véhicule' : 'Carte grise & Immatriculation',
+        to_email: toEmail // Email de destination
+      };
+
+      console.log('📧 Envoi EmailJS avec:', {
+        serviceId: EMAILJS_CONFIG.SERVICE_ID,
+        templateId: templateId,
+        publicKey: EMAILJS_CONFIG.PUBLIC_KEY.substring(0, 5) + '...',
+        params: templateParams
+      });
+
+      const response = await emailjs.send(
+        EMAILJS_CONFIG.SERVICE_ID,
+        templateId,
+        templateParams,
+        EMAILJS_CONFIG.PUBLIC_KEY
+      );
+
+      console.log('✅ EmailJS envoyé avec succès:', response);
+      return { success: true, response };
+    } catch (error) {
+      console.error('❌ Erreur EmailJS détaillée:', {
+        message: error.text || error.message,
+        status: error.status,
+        fullError: error
+      });
+      
+      // Afficher un message d'erreur plus détaillé
+      if (error.status === 412) {
+        throw new Error('Erreur de configuration EmailJS. Vérifiez que le Service ID et Template ID sont corrects.');
+      } else if (error.status === 400) {
+        throw new Error('Paramètres invalides. Vérifiez que toutes les variables du template sont fournies.');
+      } else {
+        throw new Error(`Erreur EmailJS: ${error.text || error.message || 'Erreur inconnue'}`);
+      }
+    }
+  };
 
   const mutationAchat = useMutation({
-    mutationFn: (data) => base44.entities.ContactRequest.create(data),
+    mutationFn: async (data) => {
+      // Envoyer via EmailJS
+      await sendEmailViaEmailJS(data, EMAILJS_CONFIG.TEMPLATE_ID_ACHAT);
+      
+      // Optionnel: Enregistrer aussi en base de données
+      try {
+        await base44.entities.ContactRequest.create(data);
+      } catch (dbError) {
+        console.warn('Erreur enregistrement BDD (non bloquant):', dbError);
+      }
+      
+      return { success: true };
+    },
     onSuccess: () => {
       setSubmitted(true);
       setSubmittedType('achat');
       toast.success('Message envoyé avec succès ! Notre équipe vous contactera bientôt.');
     },
-    onError: () => {
-      toast.error('Une erreur est survenue. Veuillez réessayer.');
+    onError: (error) => {
+      console.error('Erreur envoi:', error);
+      const errorMessage = error?.message || 'Une erreur est survenue. Veuillez réessayer.';
+      toast.error(errorMessage);
     }
   });
 
   const mutationCarteGrise = useMutation({
-    mutationFn: (data) => base44.entities.ContactRequest.create(data),
+    mutationFn: async (data) => {
+      // Envoyer via EmailJS vers l'email dédié carte grise
+      await sendEmailViaEmailJS(data, EMAILJS_CONFIG.TEMPLATE_ID_CARTE_GRISE, 'jdcauto.cartegrise@orange.fr');
+      
+      // Optionnel: Enregistrer aussi en base de données
+      try {
+        await base44.entities.ContactRequest.create(data);
+      } catch (dbError) {
+        console.warn('Erreur enregistrement BDD (non bloquant):', dbError);
+      }
+      
+      return { success: true };
+    },
     onSuccess: () => {
       setSubmitted(true);
       setSubmittedType('carte_grise');
       toast.success('Message envoyé avec succès ! Notre équipe vous contactera bientôt.');
     },
-    onError: () => {
-      toast.error('Une erreur est survenue. Veuillez réessayer.');
+    onError: (error) => {
+      console.error('Erreur envoi:', error);
+      const errorMessage = error?.message || 'Une erreur est survenue. Veuillez réessayer.';
+      toast.error(errorMessage);
     }
   });
 
   const handleSubmitAchat = (e) => {
     e.preventDefault();
+    if (!formDataAchat.consent) {
+      toast.error('Veuillez accepter les conditions pour continuer');
+      return;
+    }
+    // Vérifier reCAPTCHA
+    const recaptchaValue = recaptchaRefAchat.current?.getValue();
+    if (!recaptchaValue) {
+      toast.error('Veuillez compléter la vérification "Je ne suis pas un robot"');
+      return;
+    }
     mutationAchat.mutate({
       ...formDataAchat,
-      subject: 'Demande de contact - Achat de véhicule'
+      subject: 'Demande de contact - Achat de véhicule',
+      recaptcha: recaptchaValue
     });
+    // Réinitialiser reCAPTCHA après envoi
+    recaptchaRefAchat.current?.reset();
   };
 
   const handleSubmitCarteGrise = (e) => {
     e.preventDefault();
+    if (!formDataCarteGrise.consent) {
+      toast.error('Veuillez accepter les conditions pour continuer');
+      return;
+    }
+    // Vérifier reCAPTCHA
+    const recaptchaValue = recaptchaRefCarteGrise.current?.getValue();
+    if (!recaptchaValue) {
+      toast.error('Veuillez compléter la vérification "Je ne suis pas un robot"');
+      return;
+    }
     mutationCarteGrise.mutate({
       ...formDataCarteGrise,
-      subject: 'Demande de contact - Carte grise & Immatriculation'
+      subject: 'Demande de contact - Carte grise & Immatriculation',
+      recaptcha: recaptchaValue
     });
+    // Réinitialiser reCAPTCHA après envoi
+    recaptchaRefCarteGrise.current?.reset();
   };
 
   const handleChangeAchat = (e) => {
+    const { name, value, type, checked } = e.target;
     setFormDataAchat({
       ...formDataAchat,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
   const handleChangeCarteGrise = (e) => {
+    const { name, value, type, checked } = e.target;
     setFormDataCarteGrise({
       ...formDataCarteGrise,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
@@ -152,45 +285,61 @@ export default function Contact() {
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Hero Section avec image immersive et animation au scroll */}
-      <section className="relative h-[600px] md:h-[700px] overflow-hidden">
-        {/* Image de fond avec animation */}
+      {/* Hero Section avec image dynamique et effets de scroll */}
+      <div className="relative h-[72vh] min-h-[420px] sm:min-h-[520px] md:h-[82vh] md:min-h-[600px] overflow-hidden">
+        {/* Image de fond avec effets de parallaxe et fade-out */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 w-full h-[112%] sm:h-[120%] bg-cover bg-no-repeat transition-all duration-1000 ease-out bg-[center_top]"
           style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920&q=80)',
-            opacity: heroScroll.imageOpacity,
-            transform: `scale(${heroScroll.imageScale})`,
-            transition: 'opacity 0.1s ease-out, transform 0.1s ease-out'
+            backgroundImage: 'url(/lambo_jaune.png)',
+            opacity: isLoaded ? opacity : 0,
+            transform: isLoaded ? `translateY(${translateY}px) scale(1)` : 'translateY(0px) scale(1.1)',
+            transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
+            willChange: 'opacity, transform',
+            backgroundPosition: '68% center',
           }}
-        />
-        
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
-        
-        {/* Contenu du hero */}
-        <div className="relative z-10 h-full flex items-center justify-center">
+        >
+          {/* Overlay gradient pour améliorer la lisibilité */}
           <div 
-            className="text-center px-4 max-w-4xl mx-auto"
+            className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80 transition-opacity duration-1000"
             style={{
-              opacity: heroScroll.contentOpacity,
-              transform: `translateY(${heroScroll.contentTranslateY}px)`,
-              transition: 'opacity 0.3s ease-out, transform 0.3s ease-out'
+              opacity: isLoaded ? 1 : 0
+            }}
+          />
+        </div>
+
+        {/* Contenu hero */}
+        <div className="relative z-10 h-full flex items-center justify-center">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <div 
+              className="max-w-4xl mx-auto transition-all duration-1000 ease-out"
+              style={{
+                opacity: isLoaded ? 1 : 0,
+                transform: isLoaded ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(30px)',
+                transition: 'opacity 0.8s ease-out 0.2s, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s'
             }}
           >
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6">
+              <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight">
               Contactez notre agence
             </h1>
-            <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto">
+              <p 
+                className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-gray-200 mb-8 sm:mb-10 font-light transition-all duration-1000 ease-out"
+                style={{
+                  opacity: isLoaded ? 1 : 0,
+                  transform: isLoaded ? 'translateY(0)' : 'translateY(20px)',
+                  transition: 'opacity 0.8s ease-out 0.4s, transform 0.8s ease-out 0.4s'
+                }}
+              >
               Notre équipe est à votre écoute pour répondre à toutes vos questions et vous accompagner dans votre projet automobile
             </p>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Bloc d'informations clés avec icônes */}
-      <AnimatedSection animation="fade-up" className="max-w-7xl mx-auto px-4 -mt-20 relative z-20">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 border border-gray-100">
+      <AnimatedSection animation="fade-up" className="max-w-7xl mx-auto px-4 -mt-12 sm:-mt-16 md:-mt-20 relative z-20">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 md:p-12 border border-gray-100">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             <AnimatedSection animation="fade-up" delay={100}>
               <div className="text-center md:text-left">
@@ -213,9 +362,8 @@ export default function Contact() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2 text-lg">Horaires</h3>
                 <div className="text-gray-600 text-sm space-y-1">
-                  <p><strong>Lun - Ven:</strong> 9h00 - 19h00</p>
-                  <p><strong>Samedi:</strong> 9h00 - 18h00</p>
-                  <p><strong>Dimanche:</strong> Fermé</p>
+                  <p><strong>Du lundi au vendredi:</strong> 08H00 - 12H00 & 14H00-19H30</p>
+                  <p><strong>Le samedi:</strong> Sur rendez-vous</p>
                 </div>
               </div>
             </AnimatedSection>
@@ -227,10 +375,10 @@ export default function Contact() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2 text-lg">Téléphone</h3>
                 <a 
-                  href="tel:0556973752" 
+                  href="tel:+33650256734" 
                   className="text-red-600 hover:text-red-700 transition-colors font-semibold text-lg"
                 >
-                  05 56 97 37 52
+                  06 50 25 67 34
                 </a>
               </div>
             </AnimatedSection>
@@ -242,10 +390,10 @@ export default function Contact() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2 text-lg">Email</h3>
                 <a 
-                  href="mailto:contact@jdcauto.fr" 
+                  href="mailto:jdcauto33@orange.fr" 
                   className="text-red-600 hover:text-red-700 transition-colors font-semibold break-all"
                 >
-                  contact@jdcauto.fr
+                  jdcauto33@orange.fr
                 </a>
               </div>
             </AnimatedSection>
@@ -269,8 +417,8 @@ export default function Contact() {
               </div>
               
               <p className="text-gray-600 mb-8 leading-relaxed">
-                Notre équipe de conseillers est à votre disposition pour vous accompagner dans votre projet d'achat. 
-                Nous vous aidons à trouver le véhicule qui correspond à vos besoins et à votre budget.
+                Notre équipe commerciale se fera un plaisir de répondre à vos attentes pour toute recherche de véhicules neufs ou d'occasions. 
+                Avec plus de 7 200 concessions partenaires et 2 millions de véhicules disponibles en Europe, nous vous aidons à trouver le véhicule qui correspond à vos besoins et à votre budget.
               </p>
 
               <form onSubmit={handleSubmitAchat} className="space-y-5">
@@ -331,7 +479,7 @@ export default function Contact() {
                       value={formDataAchat.phone}
                       onChange={handleChangeAchat}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all"
-                      placeholder="05 56 97 37 52"
+                      placeholder="06 50 25 67 34"
                     />
                   </div>
                 </div>
@@ -348,6 +496,28 @@ export default function Contact() {
                     rows="5"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all resize-none"
                     placeholder="Décrivez votre projet d'achat, le type de véhicule recherché..."
+                  />
+                </div>
+
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    name="consent"
+                    checked={formDataAchat.consent}
+                    onChange={handleChangeAchat}
+                    className="w-5 h-5 mt-1 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                  />
+                  <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
+                    J'accepte que mes données soient utilisées par JDC AUTO pour me recontacter dans le cadre d'une relation commerciale. 
+                    Je peux exercer mes droits d'accès, de rectification et de suppression en contactant JDC AUTO.
+                  </span>
+                </label>
+
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    ref={recaptchaRefAchat}
+                    sitekey={RECAPTCHA_SITE_KEY}
+                    theme="light"
                   />
                 </div>
 
@@ -382,8 +552,8 @@ export default function Contact() {
               </div>
               
               <p className="text-gray-600 mb-8 leading-relaxed">
-                Besoin d'aide pour vos démarches administratives ? Notre service dédié vous accompagne 
-                dans l'obtention de votre carte grise et toutes les formalités d'immatriculation.
+                Nous avons un point carte grise qui vous permettra d'établir votre nouvelle carte grise en 15 minutes. 
+                Notre service dédié vous accompagne dans l'obtention de votre carte grise et toutes les formalités d'immatriculation.
               </p>
 
               <form onSubmit={handleSubmitCarteGrise} className="space-y-5">
@@ -444,7 +614,7 @@ export default function Contact() {
                       value={formDataCarteGrise.phone}
                       onChange={handleChangeCarteGrise}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
-                      placeholder="05 56 97 37 52"
+                      placeholder="06 50 25 67 34"
                     />
                   </div>
                 </div>
@@ -461,6 +631,28 @@ export default function Contact() {
                     rows="5"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all resize-none"
                     placeholder="Décrivez votre demande (carte grise, changement de propriétaire, etc.)..."
+                  />
+                </div>
+
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    name="consent"
+                    checked={formDataCarteGrise.consent}
+                    onChange={handleChangeCarteGrise}
+                    className="w-5 h-5 mt-1 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
+                    J'accepte que mes données soient utilisées par JDC AUTO pour me recontacter dans le cadre d'une relation commerciale. 
+                    Je peux exercer mes droits d'accès, de rectification et de suppression en contactant JDC AUTO.
+                  </span>
+                </label>
+
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    ref={recaptchaRefCarteGrise}
+                    sitekey={RECAPTCHA_SITE_KEY}
+                    theme="light"
                   />
                 </div>
 
@@ -520,9 +712,8 @@ export default function Contact() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-3 text-lg">Horaires d'ouverture</h3>
                 <div className="text-gray-600 text-sm space-y-1">
-                  <p><strong>Lun - Ven:</strong> 9h00 - 19h00</p>
-                  <p><strong>Samedi:</strong> 9h00 - 18h00</p>
-                  <p><strong>Dimanche:</strong> Fermé</p>
+                  <p><strong>Du lundi au vendredi:</strong> 08H00 - 12H00 & 14H00-19H30</p>
+                  <p><strong>Le samedi:</strong> Sur rendez-vous</p>
                 </div>
               </div>
             </AnimatedSection>
@@ -534,10 +725,10 @@ export default function Contact() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-3 text-lg">Téléphone</h3>
                 <a 
-                  href="tel:0556973752" 
+                  href="tel:+33650256734" 
                   className="text-red-600 hover:text-red-700 transition-colors font-semibold text-lg block"
                 >
-                  05 56 97 37 52
+                  06 50 25 67 34
                 </a>
               </div>
             </AnimatedSection>
@@ -549,10 +740,10 @@ export default function Contact() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-3 text-lg">Email</h3>
                 <a 
-                  href="mailto:contact@jdcauto.fr" 
+                  href="mailto:jdcauto33@orange.fr" 
                   className="text-red-600 hover:text-red-700 transition-colors font-semibold break-all text-sm block"
                 >
-                  contact@jdcauto.fr
+                  jdcauto33@orange.fr
                 </a>
               </div>
             </AnimatedSection>
@@ -576,7 +767,7 @@ export default function Contact() {
 
           <AnimatedSection animation="fade-up" delay={200}>
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-              <div className="aspect-video w-full">
+              <div className="aspect-video w-full relative bg-gray-100">
                 <iframe
                   src="https://www.google.com/maps?q=JDC+Auto+93+Av.+de+Magudas+33700+Mérignac&hl=fr&z=15&output=embed"
                   width="100%"
@@ -586,7 +777,31 @@ export default function Contact() {
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   title="Localisation JDC Auto - 93 Av. de Magudas, 33700 Mérignac"
+                  onError={() => setMapError(true)}
                 />
+                {/* Overlay avec liens alternatifs si la carte ne charge pas */}
+                <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10">
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=JDC+Auto+Mérignac+93+Av.+de+Magudas+33700"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-white hover:bg-red-600 text-gray-900 hover:text-white font-semibold rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl text-sm"
+                    title="Ouvrir dans Google Maps"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Google Maps
+                  </a>
+                  <a
+                    href="https://www.openstreetmap.org/?mlat=44.85&mlon=-0.63&zoom=15#map=15/44.85/-0.63"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-white hover:bg-blue-600 text-gray-900 hover:text-white font-semibold rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl text-sm"
+                    title="Ouvrir dans OpenStreetMap"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    OpenStreetMap
+                  </a>
+                </div>
               </div>
               <div className="p-6 bg-gray-50 border-t border-gray-200">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

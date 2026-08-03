@@ -1,266 +1,426 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import { useParallax } from '../hooks/useParallax';
+import AnimatedSection from '../Components/AnimatedSection';
+import { getCarteGriseContent } from '../api/adminClient';
+import { defaultCarteGriseContent } from '../data/carteGriseContent';
 import { 
   FileText, 
-  UserCheck, 
-  FileSignature, 
-  CreditCard,
   CheckCircle,
   Clock,
   Shield,
-  Phone
+  Phone,
+  Mail,
+  MapPin,
+  Download,
+  X,
+  ZoomIn,
+  ExternalLink
 } from 'lucide-react';
 
+const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+
+function isImageFile(path = '') {
+  const lower = path.toLowerCase();
+  return imageExtensions.some((extension) => lower.endsWith(extension));
+}
+
 export default function Administrative() {
-  const services = [
-    {
-      icon: FileText,
-      title: 'Carte grise',
-      description: 'Obtention ou renouvellement de votre certificat d\'immatriculation en ligne',
-      details: [
-        'Démarches 100% en ligne',
-        'Traitement rapide sous 24-48h',
-        'Envoi sécurisé de votre carte grise',
-        'Suivi en temps réel'
-      ]
-    },
-    {
-      icon: UserCheck,
-      title: 'Changement de propriétaire',
-      description: 'Transfert de la carte grise lors de l\'achat d\'un véhicule d\'occasion',
-      details: [
-        'Déclaration de cession',
-        'Mise à jour du certificat d\'immatriculation',
-        'Conformité avec l\'ANTS',
-        'Accompagnement personnalisé'
-      ]
-    },
-    {
-      icon: FileSignature,
-      title: 'Certificat de cession',
-      description: 'Document officiel obligatoire pour toute vente de véhicule',
-      details: [
-        'Rédaction conforme à la réglementation',
-        'Signature électronique sécurisée',
-        'Conservation légale des documents',
-        'Envoi aux autorités compétentes'
-      ]
-    },
-    {
-      icon: CreditCard,
-      title: 'Immatriculation',
-      description: 'Première immatriculation de véhicule neuf ou importé',
-      details: [
-        'Véhicules neufs',
-        'Véhicules importés',
-        'Changement de région',
-        'Plaques d\'immatriculation fournies'
-      ]
-    }
-  ];
+  const { opacity, translateY } = useParallax();
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [lightboxTitle, setLightboxTitle] = useState('');
+  
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
+
+  const { data: contentData } = useQuery({
+    queryKey: ['carte-grise-content'],
+    queryFn: getCarteGriseContent,
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
+  const carteGriseContent = contentData || defaultCarteGriseContent;
+  const pricingItems = carteGriseContent.pricingItems || defaultCarteGriseContent.pricingItems;
+  const documentSections = carteGriseContent.documentSections || defaultCarteGriseContent.documentSections;
+
+  // Fonction pour ouvrir le lightbox
+  const openLightbox = (imagePath, title) => {
+    setLightboxImage(imagePath);
+    setLightboxTitle(title);
+    setLightboxOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Fonction pour fermer le lightbox
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+    setLightboxImage(null);
+    setLightboxTitle('');
+    document.body.style.overflow = 'unset';
+  };
+
+  // Navigation clavier pour le lightbox
+  useEffect(() => {
+    if (!lightboxOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        closeLightbox();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen]);
+
+  // Fonction pour télécharger une image
+  const downloadImage = (imagePath, filename) => {
+    const link = document.createElement('a');
+    link.href = imagePath;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="relative bg-black text-white py-16 overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src="/jdcauto-1.jpg"
-            alt="JDC Auto"
-            className="w-full h-full object-cover"
+      {/* Hero Section */}
+      <div className="relative h-[90vh] min-h-[600px] overflow-hidden">
+        <div 
+          className="absolute inset-0 w-full h-[120%] bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-out"
+          style={{
+            backgroundImage: 'url(/jdcauto-2.jpg)',
+            opacity: isLoaded ? opacity : 0,
+            transform: isLoaded ? `translateY(${translateY}px) scale(1)` : 'translateY(0px) scale(1.1)',
+            transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
+            willChange: 'opacity, transform'
+          }}
+        >
+          <div 
+            className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80 transition-opacity duration-1000"
+            style={{
+              opacity: isLoaded ? 1 : 0
+            }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/80 z-0" />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 z-10">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Carte grise & démarches administratives
-          </h1>
-          <p className="text-xl text-gray-300">
-            Nous gérons toutes vos démarches administratives en toute simplicité
-          </p>
+
+        <div className="relative z-10 h-full flex items-center justify-center">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <div 
+              className="max-w-4xl mx-auto transition-all duration-1000 ease-out"
+              style={{
+                opacity: isLoaded ? 1 : 0,
+                transform: isLoaded ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(30px)',
+                transition: 'opacity 0.8s ease-out 0.2s, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s'
+              }}
+            >
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+                Carte grise & démarches administratives
+              </h1>
+              <p 
+                className="text-xl md:text-2xl lg:text-3xl text-gray-200 mb-10 font-light transition-all duration-1000 ease-out"
+                style={{
+                  opacity: isLoaded ? 1 : 0,
+                  transform: isLoaded ? 'translateY(0)' : 'translateY(20px)',
+                  transition: 'opacity 0.8s ease-out 0.4s, transform 0.8s ease-out 0.4s'
+                }}
+              >
+                Service Express - 15 minutes
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Introduction */}
+      {/* Introduction avec horaires et contact */}
       <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="bg-white rounded-lg shadow-md p-8 mb-12">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Des démarches simplifiées et rapides
-            </h2>
-            <p className="text-lg text-gray-700 leading-relaxed mb-6">
-              Chez <strong>JDC Auto</strong>, nous prenons en charge l'ensemble de vos démarches administratives liées à votre véhicule. Fini les complications et les files d'attente : nous nous occupons de tout pour que vous puissiez profiter rapidement de votre nouvelle voiture.
-            </p>
-            <div className="flex flex-wrap justify-center gap-8 mt-8">
-              <div className="flex items-center gap-2 text-gray-700">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-                <span className="font-semibold">100% en ligne</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-700">
-                <Clock className="w-6 h-6 text-blue-600" />
-                <span className="font-semibold">Rapide et efficace</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-700">
-                <Shield className="w-6 h-6 text-red-600" />
-                <span className="font-semibold">Sécurisé et conforme</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-          {services.map((service, index) => (
-            <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
-              <div className="bg-gradient-to-r from-red-600 to-red-700 p-6">
-                <div className="flex items-center gap-4 text-white">
-                  <div className="bg-white/20 p-3 rounded-lg">
-                    <service.icon className="w-8 h-8" />
+        <AnimatedSection animation="fade-up">
+          <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-lg shadow-lg p-6 md:p-8 mb-8 text-white">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-6 h-6" />
+                  <div>
+                    <p className="font-semibold text-lg">Horaires d'ouverture</p>
+                    <p className="text-red-100">
+                      Lundi : 14h - 19h30<br />
+                      Mardi au jeudi : 9H - 12h et 14h - 17h30<br />
+                      Vendredi : 9H - 13h
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-bold">{service.title}</h3>
+                </div>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <a 
+                    href="tel:+33981369814"
+                    className="flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors whitespace-nowrap"
+                  >
+                    <Phone className="w-5 h-5" />
+                    +33 9 81 36 98 14
+                  </a>
+                  <a 
+                    href="mailto:jdcauto.cartegrise@orange.fr"
+                    className="flex items-center gap-2 bg-white text-red-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                  >
+                    <Mail className="w-5 h-5" />
+                    jdcauto.cartegrise@orange.fr
+                  </a>
                 </div>
               </div>
-              <div className="p-6">
-                <p className="text-gray-700 mb-4">{service.description}</p>
-                <ul className="space-y-2">
-                  {service.details.map((detail, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm text-gray-600">
-                      <CheckCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                      <span>{detail}</span>
-                    </li>
+            </div>
+          </div>
+        </AnimatedSection>
+
+
+        {/* Tarifs */}
+        <AnimatedSection animation="fade-up">
+          <div className="bg-white rounded-lg shadow-md p-8 mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+              Nos tarifs transparents
+            </h2>
+            <div className="max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {pricingItems.map((item, index) => (
+                  <div 
+                    key={index} 
+                    className={`border-2 ${item.popular ? 'border-red-600 bg-red-50' : 'border-gray-200 hover:border-red-600'} rounded-lg p-6 transition-colors`}
+                  >
+                    {item.popular && (
+                      <div className="inline-block bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-3">
+                        POPULAIRE
+                      </div>
+                    )}
+                    {item.imageUrl && (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="w-full h-32 object-contain rounded mb-4 bg-white cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => openLightbox(item.imageUrl, item.title)}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">{item.title}</h3>
+                    {item.subtitle && (
+                      <p className="text-sm text-gray-600 mb-3">{item.subtitle}</p>
+                    )}
+                    <div className="text-3xl font-bold text-red-600 mb-1">
+                      {item.price.includes('€') ? (
+                        (() => {
+                          const [euros, centimes] = item.price.split('€');
+                          return (
+                            <>
+                              {euros}€<span className="text-xl">{centimes}</span>
+                            </>
+                          );
+                        })()
+                      ) : (
+                        item.price
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600">{item.note}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+                <p className="text-sm text-blue-800">
+                  <strong>Professionnel habilité & agréé MINISTÈRE DE L'INTÉRIEUR</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+        </AnimatedSection>
+
+        {/* Documents nécessaires */}
+        <AnimatedSection animation="fade-up">
+          <div className="bg-white rounded-lg shadow-md p-8 mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+              Documents nécessaires pour l'élaboration d'une carte grise
+            </h2>
+            
+            {documentSections.map((section, sectionIndex) => (
+              <div key={section.id || sectionIndex} className={sectionIndex < documentSections.length - 1 ? 'mb-8' : ''}>
+                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                  <FileText className="w-7 h-7 text-red-600" />
+                  {section.title}
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                  {(section.items || []).map((item, itemIndex) => (
+                    <div key={`${section.id || sectionIndex}-item-${itemIndex}`} className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-gray-700">{item}</span>
+                    </div>
                   ))}
-                </ul>
-              </div>
-            </div>
-          ))}
-        </div>
 
-        {/* Process Section */}
-        <div className="bg-white rounded-lg shadow-md p-8 mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-            Notre processus en 4 étapes
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {[
-              {
-                step: '1',
-                title: 'Collecte des documents',
-                desc: 'Nous recueillons tous les documents nécessaires'
-              },
-              {
-                step: '2',
-                title: 'Vérification',
-                desc: 'Contrôle de conformité et validation des informations'
-              },
-              {
-                step: '3',
-                title: 'Traitement',
-                desc: 'Envoi sécurisé de votre dossier aux autorités'
-              },
-              {
-                step: '4',
-                title: 'Réception',
-                desc: 'Vous recevez vos documents directement chez vous'
-              }
-            ].map((item, index) => (
-              <div key={index} className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-red-600 text-white rounded-full text-2xl font-bold mb-4">
-                  {item.step}
+                  {section.infoText && (
+                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mt-4">
+                      <p className="text-sm text-blue-800">{section.infoText}</p>
+                    </div>
+                  )}
+
+                  {(section.cerfaCards || []).length > 0 && (
+                    <div className="mt-6 pt-6 border-t border-gray-300">
+                      {section.cerfaTitle && (
+                        <p className="font-semibold text-gray-900 mb-4">{section.cerfaTitle}</p>
+                      )}
+                      <div className={`grid grid-cols-1 ${(section.cerfaCards || []).length > 1 ? 'md:grid-cols-2' : ''} gap-4`}>
+                        {section.cerfaCards.map((card) => {
+                          const imageFile = isImageFile(card.fileUrl);
+                          const fallbackName = card.downloadFilename || `${card.title || 'cerfa'}.jpg`;
+
+                          return (
+                            <div key={card.id} className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-red-600 transition-colors">
+                              <div className="flex items-center justify-between mb-3 gap-3">
+                                <h4 className="font-semibold text-gray-900">{card.title}</h4>
+                                {card.badge && (
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{card.badge}</span>
+                                )}
+                              </div>
+                              <div className="relative mb-3">
+                                {imageFile ? (
+                                  <>
+                                    <img
+                                      src={card.fileUrl}
+                                      alt={card.title}
+                                      className="w-full h-48 object-contain rounded border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity bg-gray-50"
+                                      onClick={() => openLightbox(card.fileUrl, card.title)}
+                                      onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.nextSibling.style.display = 'flex';
+                                      }}
+                                    />
+                                    <div className="hidden w-full h-48 bg-gray-100 rounded border border-gray-200 items-center justify-center">
+                                      <FileText className="w-12 h-12 text-gray-400" />
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="w-full h-48 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
+                                    <div className="text-center text-gray-500">
+                                      <FileText className="w-12 h-12 mx-auto mb-2" />
+                                      <p className="text-sm">Aperçu non disponible</p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                {imageFile ? (
+                                  <button
+                                    onClick={() => openLightbox(card.fileUrl, card.title)}
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                                  >
+                                    <ZoomIn className="w-4 h-4" />
+                                    Agrandir
+                                  </button>
+                                ) : (
+                                  <a
+                                    href={card.fileUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                                  >
+                                    <ExternalLink className="w-4 h-4" />
+                                    Ouvrir
+                                  </a>
+                                )}
+                                <button
+                                  onClick={() => downloadImage(card.fileUrl, fallbackName)}
+                                  className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <h4 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h4>
-                <p className="text-sm text-gray-600">{item.desc}</p>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Documents Required */}
-        <div className="bg-gray-900 text-white rounded-lg p-8 mb-12">
-          <h2 className="text-2xl font-bold mb-6 text-center">
-            Documents généralement nécessaires
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
-            {[
-              'Pièce d\'identité en cours de validité',
-              'Justificatif de domicile de moins de 6 mois',
-              'Permis de conduire',
-              'Certificat de cession (pour occasion)',
-              'Contrôle technique de moins de 6 mois (si véhicule de plus de 4 ans)',
-              'Ancienne carte grise barrée et signée',
-              'Demande de certificat d\'immatriculation',
-              'Certificat de conformité (si véhicule neuf ou importé)'
-            ].map((doc, index) => (
-              <div key={index} className="flex items-start gap-3 bg-white/10 p-4 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                <span className="text-sm">{doc}</span>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-gray-400 text-sm mt-6">
-            * Les documents requis peuvent varier selon votre situation. Nous vous accompagnons pour constituer votre dossier.
-          </p>
-        </div>
-
-        {/* Pricing */}
-        <div className="bg-white rounded-lg shadow-md p-8 mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">
-            Tarifs transparents
-          </h2>
-          <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="border-2 border-gray-200 rounded-lg p-6 text-center hover:border-red-600 transition-colors">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Carte grise</h3>
-                <div className="text-3xl font-bold text-red-600 mb-4">À partir de 50€</div>
-                <p className="text-sm text-gray-600">+ taxes régionales</p>
-              </div>
-              <div className="border-2 border-red-600 rounded-lg p-6 text-center bg-red-50">
-                <div className="inline-block bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-2">
-                  POPULAIRE
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Pack complet</h3>
-                <div className="text-3xl font-bold text-red-600 mb-4">120€</div>
-                <p className="text-sm text-gray-600">Toutes démarches incluses</p>
-              </div>
-              <div className="border-2 border-gray-200 rounded-lg p-6 text-center hover:border-red-600 transition-colors">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Changement titulaire</h3>
-                <div className="text-3xl font-bold text-red-600 mb-4">75€</div>
-                <p className="text-sm text-gray-600">+ taxes régionales</p>
-              </div>
-            </div>
-            <p className="text-center text-gray-600 text-sm mt-6">
-              Les tarifs affichés sont TTC et ne comprennent pas les taxes régionales qui varient selon votre département.
-            </p>
-          </div>
-        </div>
+        </AnimatedSection>
 
         {/* CTA */}
-        <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-lg p-8 md:p-12 text-center text-white">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Besoin d'aide pour vos démarches ?
-          </h2>
-          <p className="text-xl mb-8 text-red-100">
-            Notre équipe est à votre disposition pour vous accompagner
-          </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link
-              to={createPageUrl('Contact')}
-              className="px-8 py-4 bg-white text-red-600 hover:bg-gray-100 font-semibold rounded-md transition-colors inline-flex items-center gap-2"
+        <AnimatedSection animation="fade-up">
+          <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-lg p-8 md:p-12 text-center text-white">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Besoin d'aide pour vos démarches ?
+            </h2>
+            <p className="text-xl mb-8 text-red-100">
+              Notre équipe est à votre disposition pour vous accompagner
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Link
+                to={createPageUrl('Contact')}
+                className="px-8 py-4 bg-white text-red-600 hover:bg-gray-100 font-semibold rounded-md transition-colors inline-flex items-center gap-2"
+              >
+                <FileText className="w-5 h-5" />
+                Nous contacter
+              </Link>
+              <a
+                href="tel:+33981369814"
+                className="px-8 py-4 bg-black hover:bg-gray-900 text-white font-semibold rounded-md transition-colors inline-flex items-center gap-2 whitespace-nowrap"
+              >
+                <Phone className="w-5 h-5" />
+                +33 9 81 36 98 14
+              </a>
+            </div>
+          </div>
+        </AnimatedSection>
+      </div>
+
+      {/* Lightbox Modal */}
+      {lightboxOpen && lightboxImage && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={closeLightbox}
+        >
+          <div className="relative max-w-7xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white text-xl font-semibold">{lightboxTitle}</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    downloadImage(lightboxImage, lightboxTitle.replace(/\s+/g, '-') + '.jpg');
+                  }}
+                  className="px-4 py-2 bg-white text-gray-900 rounded hover:bg-gray-100 transition-colors flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Télécharger
+                </button>
+                <button
+                  onClick={closeLightbox}
+                  className="p-2 bg-white/20 text-white rounded hover:bg-white/30 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Image */}
+            <div 
+              className="flex-1 overflow-auto flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
             >
-              <FileText className="w-5 h-5" />
-              Nous contacter
-            </Link>
-            <a
-              href="tel:0556973752"
-              className="px-8 py-4 bg-black hover:bg-gray-900 text-white font-semibold rounded-md transition-colors inline-flex items-center gap-2"
-            >
-              <Phone className="w-5 h-5" />
-              05 56 97 37 52
-            </a>
+              <img 
+                src={lightboxImage} 
+                alt={lightboxTitle}
+                className="max-w-full max-h-[calc(90vh-100px)] object-contain rounded"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
