@@ -215,3 +215,26 @@ sftp <id>@sftp.sd3.gpaas.net
 Comparer avec `git ls-files htdocs/` : tout `.php` présent sur le serveur et absent du
 dépôt est un reliquat à supprimer (ou à réintégrer volontairement au dépôt).
 `maintenance.html` est conservé volontairement (page de maintenance manuelle).
+
+## Points de sécurité assumés / à surveiller
+
+- **`htdocs/uploads/` est PUBLIC.** Ce dossier sert le contenu du site (visuels des
+  tarifs, modèles CERFA) : tout fichier qui y est déposé est téléchargeable par
+  n'importe qui, sans authentification (noms rendus imprévisibles + `uploads/.htaccess`
+  interdit l'exécution de scripts). **Ne jamais y déposer de document client**
+  (carte grise, pièce d'identité, devis signé) : pour cela il faudrait un dossier hors
+  docroot servi par un endpoint admin authentifié — non implémenté à ce jour.
+- **Hash du mot de passe admin dans l'historique public** (`git log -p` du commit
+  `0bbb21b`) : il correspond à l'ancien mot de passe. Tant que le mot de passe n'est pas
+  changé, il reste théoriquement cassable hors ligne (bcrypt coût 10). Pour changer :
+  générer un hash (`php -r 'echo password_hash("...", PASSWORD_BCRYPT, ["cost"=>12]);'`),
+  le coller dans `htdocs/config/admin_auth.local.php`, puis `put` en SFTP (procédure
+  complète dans « Tokens et secrets »).
+- **CSP** : déployée en `Content-Security-Policy-Report-Only` (n'indique rien côté
+  serveur — les violations s'affichent dans la console du navigateur). Après quelques
+  jours sans violation, remplacer l'en-tête par `Content-Security-Policy` pour activer
+  le blocage réel.
+- **Configuration MySQL choisie via l'en-tête `Host`** (`shouldUseEnvironmentDbConfig()`) :
+  un client qui envoie `Host: php.exemple` force le chemin « environnement » et peut
+  provoquer une erreur de connexion sur sa propre requête. Impact limité (auto-déni de
+  service), laissé tel quel car la production définit `USE_ENV_DB_CONFIG`.
