@@ -39,7 +39,9 @@ if (!$isCLI) {
         exit('Backup non configuré (token absent)');
     }
 
-    $providedToken = $_SERVER['HTTP_X_BACKUP_TOKEN'] ?? ($_GET['token'] ?? '');
+    // En-tête uniquement : un jeton en paramètre d'URL est écrit en clair dans
+    // access.log (et dans l'historique du navigateur / des proxies).
+    $providedToken = $_SERVER['HTTP_X_BACKUP_TOKEN'] ?? '';
     if (!hash_equals($backupToken, (string)$providedToken)) {
         http_response_code(403);
         header('Content-Type: text/plain');

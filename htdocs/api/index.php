@@ -183,9 +183,12 @@ class SimpleVehiclesAPI {
     private const LOGIN_ATTEMPT_WINDOW_SECONDS = 900;
     private const LOGIN_MAX_ATTEMPTS = 5;
     private const SESSION_ROTATE_INTERVAL_SECONDS = 900;
-    private const VEHICLE_IMAGE_PROXY_HOST_SUFFIXES = [
-        'edge.scw.cloud',
-        's3.fr-par.scw.cloud',
+    private const VEHICLE_IMAGE_PROXY_HOSTS = [
+        // Hôtes EXACTS : les buckets Scaleway sont partagés entre tous les clients,
+        // une correspondance par suffixe (s3.fr-par.scw.cloud) laisserait n'importe
+        // quel tiers héberger une image servie depuis notre propre origine.
+        'spidervo.s3.fr-par.scw.cloud',
+        'spidervo.edge.scw.cloud',
     ];
     
     public function __construct() {
@@ -357,9 +360,8 @@ class SimpleVehiclesAPI {
             return false;
         }
 
-        foreach (self::VEHICLE_IMAGE_PROXY_HOST_SUFFIXES as $suffix) {
-            $suffix = strtolower(trim((string)$suffix));
-            if ($host === $suffix || substr($host, -strlen('.' . $suffix)) === '.' . $suffix) {
+        foreach (self::VEHICLE_IMAGE_PROXY_HOSTS as $allowedHost) {
+            if ($host === strtolower(trim((string)$allowedHost))) {
                 return true;
             }
         }
@@ -446,6 +448,14 @@ class SimpleVehiclesAPI {
             return $this->outputDefaultVehicleImage();
         }
 
+        // Même sur le bon hôte, on ne sert que le dossier des photos du bucket :
+        // interdit de relayer un objet arbitraire du compte Scaleway.
+        $sourcePath = (string)($parsedUrl['path'] ?? '');
+        if (strpos($sourcePath, '/photos/') !== 0) {
+            error_log('[JDC-ImageProxy] Path not allowed: ' . $sourcePath);
+            return $this->outputDefaultVehicleImage();
+        }
+
         $ch = curl_init($sourceUrl);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -510,6 +520,13 @@ class SimpleVehiclesAPI {
         header('X-Content-Type-Options: nosniff');
         header('Referrer-Policy: same-origin');
         header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+        // Interdiction de mise en cache explicite : le Varnish de Gandi met les réponses
+        // en cache par défaut, et une réponse admin (session, liste de contacts…)
+        // servie depuis le cache à un autre visiteur serait une fuite. Le proxy
+        // d'images repose aujourd'hui implicitement sur session.cache_limiter ; on
+        // l'écrit ici noir sur blanc (le proxy redéfinit ensuite son propre en-tête).
+        header('Cache-Control: no-store, no-cache, must-revalidate, private');
+        header('Pragma: no-cache');
         if ($this->isHttpsRequest()) {
             header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         }
@@ -853,6 +870,20 @@ class SimpleVehiclesAPI {
         ]);
     }
 
+    private function clearLoginFailures($ipAddress) {
+        if ($this->pdo === null) {
+            return;
+        }
+
+        $this->ensureAdminLoginAttemptsTableExists();
+
+        // Une connexion réussie remet le compteur à zéro : sans cela, quelques
+        // fautes de frappe (ou des tentatives venues d'une IP partagée derrière le
+        // proxy Gandi) bloquaient l'administrateur légitime pendant 15 minutes.
+        $this->pdo->prepare("DELETE FROM admin_login_attempts WHERE ip_address = ? AND success = 0")
+            ->execute([$ipAddress]);
+    }
+
     private function verifyAdminPassword($plainPassword) {
         $passwordHash = $this->getAdminPasswordHash();
         if (!empty($passwordHash)) {
@@ -949,10 +980,6 @@ class SimpleVehiclesAPI {
 
         $this->validateCsrfToken();
 
-        if ($this->isLoginRateLimited($ipAddress)) {
-            return $this->error('Trop de tentatives de connexion. Réessayez plus tard.', 429);
-        }
-
         if ($username === '') {
             return $this->error('Identifiant requis', 400);
         }
@@ -961,7 +988,17 @@ class SimpleVehiclesAPI {
             return $this->error('Mot de passe requis', 400);
         }
 
-        if (!hash_equals($configuredUsername, $username) || !$this->verifyAdminPassword($password)) {
+        // Les identifiants sont vérifiés AVANT le limiteur de débit : un mot de passe
+        // correct passe toujours, même si l'IP a accumulé des échecs (IP partagée
+        // derrière le proxy Gandi, fautes de frappe). Le limiteur continue de freiner
+        // les tentatives infructueuses (5 par 15 minutes).
+        $credentialsValid = hash_equals($configuredUsername, $username)
+            && $this->verifyAdminPassword($password);
+
+        if (!$credentialsValid) {
+            if ($this->isLoginRateLimited($ipAddress)) {
+                return $this->error('Trop de tentatives de connexion. Réessayez dans 15 minutes.', 429);
+            }
             $this->recordLoginAttempt($ipAddress, $username, false);
             return $this->error('Identifiants invalides', 401);
         }
@@ -978,6 +1015,7 @@ class SimpleVehiclesAPI {
         unset($_SESSION['admin_csrf_token']);
         $csrfToken = $this->issueCsrfToken();
         $this->recordLoginAttempt($ipAddress, $username, true);
+        $this->clearLoginFailures($ipAddress);
 
         $this->logAdminActivity('login', 'session', null, 'Connexion administrateur', [
             'username' => $configuredUsername,
@@ -1255,6 +1293,34 @@ class SimpleVehiclesAPI {
 
         if (!in_array($extension, $allowed, true)) {
             return $this->error('Format de fichier non autorisé', 400);
+        }
+
+        // Taille maximale : évite de saturer le disque du serveur (20 Mo).
+        $maxUploadBytes = 20 * 1024 * 1024;
+        if ((int)($file['size'] ?? 0) > $maxUploadBytes) {
+            return $this->error('Fichier trop volumineux (20 Mo maximum)', 400);
+        }
+
+        // Le type RÉEL doit correspondre à l'extension : une extension .jpg posée sur
+        // un autre contenu est refusée (défense en profondeur, en plus de
+        // uploads/.htaccess qui interdit déjà l'exécution de scripts).
+        $allowedMimeByExtension = [
+            'png' => ['image/png'],
+            'jpg' => ['image/jpeg'],
+            'jpeg' => ['image/jpeg'],
+            'webp' => ['image/webp'],
+            'pdf' => ['application/pdf'],
+        ];
+        $detectedMime = '';
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $detectedMime = (string)(finfo_file($finfo, (string)$file['tmp_name']) ?: '');
+                finfo_close($finfo);
+            }
+        }
+        if ($detectedMime !== '' && !in_array($detectedMime, $allowedMimeByExtension[$extension] ?? [], true)) {
+            return $this->error('Type de fichier incohérent avec son extension', 400);
         }
 
         $uploadDir = dirname(__DIR__) . '/uploads/carte-grise';
@@ -2081,36 +2147,7 @@ class SimpleVehiclesAPI {
     /**
      * Récupérer tous les messages de contact (pour API)
      */
-    private function getContacts() {
-        try {
-            $this->ensureContactTableExists();
-            
-            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 100;
-            $status = $_GET['status'] ?? null;
-            
-            $sql = "SELECT * FROM contact_requests";
-            $params = [];
-            
-            if ($status) {
-                $sql .= " WHERE status = ?";
-                $params[] = $status;
-            }
-            
-            $sql .= " ORDER BY created_at DESC LIMIT ?";
-            $params[] = $limit;
-            
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
-            $contacts = $stmt->fetchAll();
-            
-            return $this->success($contacts);
-            
-        } catch (PDOException $e) {
-            error_log("Erreur récupération contacts: " . $e->getMessage());
-            return $this->error('Erreur lors de la récupération des messages', 500);
-        }
-    }
-    
+
     /**
      * S'assurer que la table contact_requests existe
      */

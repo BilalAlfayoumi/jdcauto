@@ -43,6 +43,11 @@ RedirectMatch 404 ^/(install|test|test-mobile|index-simple|diagnostic|view_conta
     Header always set Referrer-Policy "same-origin"
     Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
     Header always set X-XSS-Protection "1; mode=block"
+
+    # Content-Security-Policy en mode RAPPORT SEUL : ne bloque rien, sert à repérer
+    # les ressources non déclarées avant de passer en mode bloquant.
+    # Sources du site : Sentry (erreurs JS), Google reCAPTCHA, EmailJS, photos Spider-VO.
+    Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' https://www.google.com https://www.gstatic.com https://browser.sentry-cdn.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://spidervo.s3.fr-par.scw.cloud https://www.google.com https://www.gstatic.com; font-src 'self' data:; connect-src 'self' https://*.ingest.de.sentry.io https://*.sentry.io https://api.emailjs.com https://www.google.com; frame-src https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
 </IfModule>
 
 # Empêcher l'accès aux fichiers sensibles
