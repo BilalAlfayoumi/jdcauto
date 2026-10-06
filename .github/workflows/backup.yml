@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: '30 4 * * *'  # Tous les jours à 4h30 UTC
 
+# Le workflow ne fait que télécharger un dump : aucun droit d'écriture nécessaire.
+permissions:
+  contents: read
+
 jobs:
   db-backup:
     name: Sauvegarde base de données
@@ -32,7 +36,8 @@ jobs:
             echo "Echec: dump suspicieusement petit ($size bytes)"
             exit 1
           fi
-          gunzip -c backup.sql.gz | head -5
+          # Ne pas afficher le contenu du dump : les logs d'un dépôt public sont
+          # lisibles par tout compte GitHub (l'en-tête révèle hôte, base, version MySQL).
           if ! gunzip -c backup.sql.gz | grep -q "CREATE TABLE"; then
             echo "Echec: aucun CREATE TABLE dans le dump"
             exit 1
@@ -50,7 +55,8 @@ jobs:
           rm backup.sql.gz
 
       - name: Archiver la sauvegarde
-        uses: actions/upload-artifact@v4
+        # Épinglé par SHA (v4.6.2) : un tag est mutable, un SHA ne l'est pas.
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: jdcauto-db-${{ github.run_id }}
           path: jdcauto-db-*.sql.gz.gpg

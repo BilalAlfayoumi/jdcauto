@@ -17,11 +17,17 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ /index.html [L]
 
-# Bloquer l'accès direct aux fichiers de configuration PHP
-<FilesMatch "(admin_auth|mysql_gandi)\.php$">
+# Bloquer l'accès direct aux fichiers de configuration et aux secrets
+# (mysql_gandi.php, *auth*.php, mais aussi *.local.php : tokens sync/backup/flux).
+<FilesMatch "(admin_auth|mysql_gandi|backup_token|sync_token|spider_vo)(\.local)?\.php$">
     Order Allow,Deny
     Deny from all
 </FilesMatch>
+
+# Reliquats de développement : ne doivent jamais être servis. Défense en profondeur,
+# car le déploiement Gandi ne supprime pas les fichiers retirés du dépôt (un
+# installateur /install/setup.php est resté exécutable en production pendant des mois).
+RedirectMatch 404 ^/(install|test|test-mobile|index-simple|diagnostic|view_contacts|style\.txt)
 
 # Bloquer l'accès direct au dossier config/
 <IfModule mod_rewrite.c>

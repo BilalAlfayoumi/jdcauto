@@ -1,0 +1,9 @@
+# Sécurité : aucun script ne doit pouvoir s'exécuter depuis le dossier des fichiers
+# déposés (le whitelist d'extensions est côté PHP, ceci est la défense en profondeur).
+# Ne PAS utiliser php_flag (incompatible PHP-FPM : erreur 500 sur tout le dossier).
+<FilesMatch "\.(php|phtml|phar|php3|php4|php5|php7|php8|pl|py|cgi|sh|shtml|htaccess)$">
+    Require all denied
+</FilesMatch>
+
+# Pas de listage du dossier (hérite normalement de la racine, on l'explicite).
+Options -Indexes

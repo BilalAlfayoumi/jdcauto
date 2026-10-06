@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: '0 * * * *'  # Toutes les heures
 
+# Déclenchement d'un endpoint HTTP : aucun droit sur le dépôt nécessaire.
+permissions:
+  contents: read
+
 jobs:
   spider-vo-sync:
     name: Sync Spider-VO
@@ -22,7 +26,10 @@ jobs:
             -H "X-Sync-Token: ${SYNC_TOKEN}" \
             "https://www.jdcauto.fr/sync/spider_vo_sync.php")
           echo "Code HTTP: $http_code"
-          cat /tmp/sync_body.txt | sed 's/<[^>]*>//g' | grep -v "^[[:space:]]*$" || true
+          # Masquer les URLs (l'URL du flux Spider-VO contient une clé de compte) :
+          # les logs d'un dépôt public sont lisibles par tout compte GitHub.
+          cat /tmp/sync_body.txt | sed 's/<[^>]*>//g' | grep -v "^[[:space:]]*$" \
+            | sed -E 's#https?://[^ <"]+#[URL masquée]#g' | head -30 || true
           if [ "$http_code" != "200" ]; then
             echo "Echec: code HTTP $http_code (403 = secret SYNC_TOKEN absent ou différent du serveur)"
             exit 1

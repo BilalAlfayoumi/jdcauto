@@ -38,7 +38,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Récupérer le dépôt
-        uses: actions/checkout@v4
+        # Épinglé par SHA (v4.2.2) : un tag est mutable, un SHA ne l'est pas.
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: État des workflows avant intervention
         env:

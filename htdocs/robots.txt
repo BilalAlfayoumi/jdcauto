@@ -4,13 +4,7 @@ Allow: /
 # Sitemap
 Sitemap: https://www.jdcauto.fr/sitemap.xml
 
-# Disallow admin and test pages
+# Endpoints techniques : l'accès est de toute façon refusé côté serveur
+# (token, session admin). Ces directives ne servent qu'à éviter l'indexation.
 Disallow: /api/
 Disallow: /sync/
-Disallow: /install/
-Disallow: /test.html
-Disallow: /test-mobile.html
-Disallow: /diagnostic.html
-Disallow: /diagnostic.php
-
-

@@ -7,6 +7,10 @@ on:
   schedule:
     - cron: '*/10 * * * *'  # Toutes les 10 minutes (délais GitHub possibles)
 
+# Surveillance en lecture seule : aucun droit d'écriture nécessaire.
+permissions:
+  contents: read
+
 jobs:
   healthcheck:
     name: Site et API en ligne

@@ -12,6 +12,9 @@ ini_set('session.use_strict_mode', '1');
 ini_set('session.use_only_cookies', '1');
 ini_set('session.cookie_httponly', '1');
 
+// Ne pas divulguer la version de PHP (reconnaissance) dans les en-têtes de réponse.
+header_remove('X-Powered-By');
+
 if (session_status() === PHP_SESSION_NONE) {
     session_name('jdcauto_admin');
     session_start([
@@ -435,10 +438,11 @@ class SimpleVehiclesAPI {
         $ch = curl_init($sourceUrl);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
+            // Pas de redirection : une 302 depuis un objet hébergé sur un domaine
+            // autorisé permettrait de faire appeler n'importe quelle URL (SSRF interne).
+            CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_TIMEOUT => 12,
             CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_MAXREDIRS => 3,
             CURLOPT_USERAGENT => 'JDC-Auto-ImageProxy/1.0',
             CURLOPT_HTTPHEADER => ['Accept: image/*'],
             CURLOPT_HEADER => true,
@@ -461,11 +465,23 @@ class SimpleVehiclesAPI {
             return $this->outputDefaultVehicleImage();
         }
 
-        if ($contentType === '' || stripos($contentType, 'image/') !== 0) {
-            $contentType = 'image/jpeg';
+        // Liste blanche de types : ne JAMAIS réfléchir le Content-Type amont, sinon un
+        // SVG (document exécutable) hébergé sur un domaine autorisé donnerait un XSS
+        // sur l'origine du site. Et on vérifie que le corps est bien une image bitmap.
+        $allowedContentTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
+        $normalizedContentType = strtolower(trim(explode(';', $contentType)[0] ?? ''));
+        if (!in_array($normalizedContentType, $allowedContentTypes, true)) {
+            $normalizedContentType = 'image/jpeg';
         }
 
-        header('Content-Type: ' . $contentType);
+        if (@getimagesizefromstring($body) === false) {
+            error_log('[JDC-ImageProxy] Contenu non reconnu comme image bitmap — url: ' . $sourceUrl);
+            return $this->outputDefaultVehicleImage();
+        }
+
+        header('Content-Type: ' . $normalizedContentType);
+        header('X-Content-Type-Options: nosniff');
+        header('Content-Security-Policy: default-src \'none\'; sandbox');
         header('Cache-Control: public, max-age=86400');
         header('Content-Length: ' . strlen($body));
         echo $body;
@@ -769,16 +785,21 @@ class SimpleVehiclesAPI {
     }
 
     private function getClientIpAddress() {
-        foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $header) {
-            if (empty($_SERVER[$header])) {
-                continue;
+        // X-Forwarded-For est fourni par le client puis complété par le proxy : la
+        // DERNIÈRE valeur est celle ajoutée par l'infrastructure, les précédentes sont
+        // falsifiables. Prendre la première (comportement précédent) permettait de
+        // contourner le rate limiting du login en changeant d'IP à chaque essai.
+        $forwardedFor = (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
+        if ($forwardedFor !== '') {
+            $parts = array_values(array_filter(array_map('trim', explode(',', $forwardedFor)), 'strlen'));
+            if (!empty($parts)) {
+                return substr((string)end($parts), 0, 64);
             }
+        }
 
-            $rawValue = (string)$_SERVER[$header];
-            $ip = trim(explode(',', $rawValue)[0]);
-            if ($ip !== '') {
-                return substr($ip, 0, 64);
-            }
+        $remoteAddress = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+        if ($remoteAddress !== '') {
+            return substr($remoteAddress, 0, 64);
         }
 
         return 'unknown';
@@ -941,6 +962,9 @@ class SimpleVehiclesAPI {
         $_SESSION['admin_fingerprint'] = $this->getRequestFingerprint();
         $_SESSION['admin_last_rotation'] = time();
         $this->touchAdminSession();
+        // Nouveau jeton CSRF après authentification : celui distribué avant la
+        // connexion (à tout visiteur anonyme) ne doit plus être valable.
+        unset($_SESSION['admin_csrf_token']);
         $csrfToken = $this->issueCsrfToken();
         $this->recordLoginAttempt($ipAddress, $username, true);
 
@@ -956,6 +980,10 @@ class SimpleVehiclesAPI {
     }
 
     private function adminLogout() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return $this->error('Méthode non autorisée. Utilisez POST.', 405);
+        }
+
         if ($this->isAdminAuthenticated()) {
             $this->logAdminActivity('logout', 'session', null, 'Déconnexion administrateur', [
                 'username' => $this->getCurrentAdminUsername(),
@@ -1229,7 +1257,10 @@ class SimpleVehiclesAPI {
             $safeName = 'cerfa';
         }
 
-        $filename = $safeName . '-' . date('YmdHis') . '.' . $extension;
+        // Suffixe aléatoire : le dossier uploads/ est servi publiquement sans
+        // authentification ; un nom devinable (<nom>-<horodatage>) permettrait de
+        // retrouver des pièces déposées. Le nom d'origine reste tracé dans les logs admin.
+        $filename = $safeName . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(8)) . '.' . $extension;
         $targetPath = $uploadDir . '/' . $filename;
 
         if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
@@ -1637,7 +1668,7 @@ class SimpleVehiclesAPI {
     
     private function getVehicles() {
         if ($this->pdo === null) {
-            return $this->error('Base de données non configurée. Veuillez exécuter install/setup.php', 503);
+            return $this->error('Base de données non configurée', 503);
         }
 
         $limit = min((int)($_GET['limit'] ?? 12), 100);
@@ -1659,10 +1690,13 @@ class SimpleVehiclesAPI {
         try {
             $checkTable = $this->pdo->query("SHOW TABLES LIKE 'vehicles'");
             if ($checkTable->rowCount() === 0) {
-                return $this->error('Base de données non initialisée. Veuillez exécuter install/setup.php', 503);
+                return $this->error('Base de données non initialisée', 503);
             }
         } catch (PDOException $e) {
-            return $this->error('Erreur base de données: ' . $e->getMessage(), 500);
+            // Ne jamais renvoyer le message PDO au client : il révèle SQLSTATE, hôte et
+            // utilisateur MySQL. Le détail part dans les logs serveur (www-error.log).
+            error_log('[JDC-API] Erreur PDO getVehicles: ' . $e->getMessage());
+            return $this->error('Erreur base de données', 500);
         }
         
         // Requête simple pour commencer - avec gestion colonnes manquantes
@@ -1939,7 +1973,8 @@ class SimpleVehiclesAPI {
             LIMIT ?
         ";
         
-        $searchTerm = "%$query%";
+        // Échapper les jokers LIKE : sans cela, « % » force un scan complet de la table.
+        $searchTerm = '%' . addcslashes($query, '%_\\') . '%';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$searchTerm, $searchTerm, $searchTerm, $limit]);
         $results = $stmt->fetchAll();
@@ -2100,15 +2135,26 @@ class SimpleVehiclesAPI {
 
     private function verifyRecaptcha(string $token): bool {
         $secretKey = getenv('RECAPTCHA_SECRET_KEY') ?: '';
-        // Si pas de clé configurée, on skip la vérification (dev/local)
+        // Si pas de clé configurée, on skip la vérification (dev/local).
+        // ⚠️ En production cela signifie AUCUNE protection anti-robot : définir
+        // RECAPTCHA_SECRET_KEY dans l'environnement du serveur (cf. RUNBOOK.md).
         if (empty($secretKey)) {
+            error_log('[JDC-API] ATTENTION: RECAPTCHA_SECRET_KEY absente — vérification anti-robot désactivée.');
             return true;
         }
         if (empty($token)) {
             return false;
         }
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 5, // sans timeout, un ralentissement de Google bloque un worker PHP
+                'method' => 'GET',
+            ],
+        ]);
         $response = @file_get_contents(
-            'https://www.google.com/recaptcha/api/siteverify?secret=' . urlencode($secretKey) . '&response=' . urlencode($token)
+            'https://www.google.com/recaptcha/api/siteverify?secret=' . urlencode($secretKey) . '&response=' . urlencode($token),
+            false,
+            $context
         );
         if ($response === false) {
             return false;

@@ -24,9 +24,14 @@ Temporary Items
 
 # Docker local
 .docker/mysql-data/
-htdocs/uploads/
+htdocs/uploads/*
+!htdocs/uploads/.htaccess
 htdocs/config/admin_auth.local.php
 htdocs/config/backup_token.local.php
 htdocs/config/sync_token.local.php
+htdocs/config/spider_vo.local.php
 htdocs/config/admin_auth.php
+.claude/
 .env
+# Flux Spider-VO (prix marchand, inventaire) — ne jamais versionner
+export.xml

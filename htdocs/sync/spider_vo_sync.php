@@ -89,11 +89,27 @@ if (shouldUseEnvironmentDbConfig()) {
 }
 
 // ⚠️ IMPORTANT : URL du flux XML Spider-VO
-// URL fournie par Spider-VO dans votre compte
-$spiderVoXmlUrl = getenv('SPIDER_VO_XML_URL');
-if ($spiderVoXmlUrl === false) {
-    $spiderVoXmlUrl = 'https://www.spider-vo.net/export,st2div6b0860458b-fbb07722e1-03df2748e1-6e82247ae0.html';
+// Cette URL contient la clé du compte Spider-VO : elle n'a rien à faire dans le dépôt
+// public. Elle est lue, par ordre de priorité :
+//   1. htdocs/config/spider_vo.local.php (non versionné, déposé en SFTP sur le serveur)
+//   2. la variable d'environnement SPIDER_VO_XML_URL
+$spiderVoXmlUrl = '';
+$spiderVoConfigFile = __DIR__ . '/../config/spider_vo.local.php';
+if (file_exists($spiderVoConfigFile)) {
+    $spiderVoConfig = require $spiderVoConfigFile;
+    if (is_string($spiderVoConfig)) {
+        $spiderVoXmlUrl = $spiderVoConfig;
+    } elseif (is_array($spiderVoConfig) && !empty($spiderVoConfig['feed_url'])) {
+        $spiderVoXmlUrl = (string)$spiderVoConfig['feed_url'];
+    }
 }
+if (trim($spiderVoXmlUrl) === '') {
+    $envSpiderVoUrl = getenv('SPIDER_VO_XML_URL');
+    if ($envSpiderVoUrl !== false) {
+        $spiderVoXmlUrl = (string)$envSpiderVoUrl;
+    }
+}
+$spiderVoXmlUrl = trim($spiderVoXmlUrl);
 
 // Si pas d'URL configurée, utiliser le fichier local en fallback
 $xmlFile = getenv('SPIDER_VO_XML_FILE') ?: (__DIR__ . '/../../export.xml');
