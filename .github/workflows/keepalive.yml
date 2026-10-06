@@ -52,7 +52,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows" \
-            --jq '.workflows[].path' | sort -u | while IFS= read -r path; do
+            --jq '.workflows[] | select(.path | startswith(".github/workflows/")) | .path' \
+            | sort -u | while IFS= read -r path; do
               file="${path#.github/workflows/}"
               echo "→ activation de ${file}"
               # No-op si le workflow est déjà actif ; répare sinon.
