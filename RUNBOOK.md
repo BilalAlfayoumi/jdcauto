@@ -199,8 +199,9 @@ C'est ainsi qu'un installateur `htdocs/install/setup.php` est resté exécutable
 publiquement pendant des mois (n'importe quel visiteur pouvait relancer une
 installation et réinjecter des véhicules de test), et que 9 scripts de debug
 (`api/debug.php`, `api/view_contacts.php`, `api/remove_duplicates.php`…) sont restés
-accessibles. Tous ont été supprimés le 2026-10-06 (sauvegarde dans les artefacts de
-la session ; `htdocs/.htaccess` bloque désormais `^/(install|test|test-mobile|index-simple|diagnostic|view_contacts|style\.txt)`).
+accessibles. Tous ont été supprimés le 2026-10-06 et sauvegardés localement dans
+`_sauvegardes-serveur/orphelins-20261006/` (dossier non versionné). `htdocs/.htaccess`
+bloque désormais ces chemins (`RedirectMatch 404`).
 
 **Après toute suppression de fichier dans `htdocs/`, vérifier le serveur** :
 

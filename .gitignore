@@ -35,3 +35,6 @@ htdocs/config/admin_auth.php
 .env
 # Flux Spider-VO (prix marchand, inventaire) — ne jamais versionner
 export.xml
+
+# Sauvegardes de fichiers retirés du serveur (jamais versionnées)
+_sauvegardes-serveur/
