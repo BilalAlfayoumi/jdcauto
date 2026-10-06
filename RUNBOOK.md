@@ -86,6 +86,14 @@ Réflexe : en cas d'erreur 500 sur l'API, regarder d'abord `www/www-error.log`
 Côté applicatif, la table MySQL `admin_activity_log` trace toutes les actions admin
 (qui a modifié quoi et quand) — consultable via l'espace admin ou la console MySQL Gandi.
 
+### Erreurs JavaScript côté visiteurs (Sentry)
+
+Les crashs React et erreurs JS dans le navigateur des visiteurs (invisibles dans les
+logs serveur) sont remontés à Sentry : https://bilalfym.sentry.io (projet
+`javascript-react`, événements uniquement en production). Chaque nouvelle erreur
+déclenche un email. L'initialisation est dans `JDC/src/main.jsx` ; le DSN est une
+clé publique d'envoi, sa présence dans le code est normale et sans risque.
+
 ## Rappels d'architecture
 
 - `htdocs/` est ce que Gandi sert (build React + API PHP + sync).

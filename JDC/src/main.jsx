@@ -1,8 +1,17 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import * as Sentry from '@sentry/react'
 import './index.css'
 import App from './App.jsx'
+
+// Suivi des erreurs JS côté navigateur (le DSN est une clé publique, faite pour être embarquée)
+Sentry.init({
+  dsn: 'https://eb5723f4d9404655b220860c54027d23@o4511742122786816.ingest.de.sentry.io/4511742128619600',
+  enabled: import.meta.env.PROD,
+  environment: import.meta.env.MODE,
+  sendDefaultPii: false,
+})
 
 const queryClient = new QueryClient({
   defaultOptions: {

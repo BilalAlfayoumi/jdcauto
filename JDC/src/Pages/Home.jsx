@@ -99,7 +99,7 @@ export default function Home() {
               },
               { 
                 icon: Shield, 
-                title: 'Garantie 6 mois minimum', 
+                title: 'Garantie 3 mois minimum', 
                 desc: 'Chaque véhicule inspecté et garanti',
                 color: 'text-green-600 bg-green-50'
               },
@@ -168,7 +168,7 @@ export default function Home() {
               title: 'Vente de véhicules',
               desc: '10 modèles les plus vendus en France. Recherche sur mesure si véhicule non disponible en stock',
               link: 'Vehicles',
-              features: ['Garantie 6 mois minimum', 'Véhicules inspectés', '2 millions disponibles']
+              features: ['Garantie 3 mois minimum', 'Véhicules inspectés', '2 millions disponibles']
             },
             {
               icon: Handshake,
@@ -281,7 +281,7 @@ export default function Home() {
                     Mandataire depuis plus de <strong className="text-red-600">30 ans</strong> en Aquitaine, JDC Auto propose les <strong>10 modèles les plus vendus en France</strong>. Si le véhicule de vos rêves n'est pas en stock, nous nous engageons à le trouver pour vous.
                   </p>
                   <p>
-                    Chaque véhicule est inspecté et bénéficie d'une <strong>garantie minimum de 6 mois</strong>. Nous proposons également des services de reprise, financement, LOA, mécanique et carrosserie sur notre site.
+                    Chaque véhicule est inspecté et bénéficie d'une <strong>garantie minimum de 3 mois</strong>. Nous proposons également des services de reprise, financement, LOA, mécanique et carrosserie sur notre site.
                   </p>
                   <p>
                     Avec <strong>7 200 concessions partenaires</strong> et <strong>2 millions de véhicules disponibles</strong> en Europe, nous vous accompagnons dans votre projet. <strong>+99% de satisfaction client</strong> et près de <strong>16 000 véhicules livrés</strong>.

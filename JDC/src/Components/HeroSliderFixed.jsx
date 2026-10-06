@@ -16,7 +16,7 @@ const heroSlides = [
   {
     image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=1920&h=1080&auto=format&fit=crop',
     title: 'Votre partenaire de confiance pour l\'achat de véhicules',
-    subtitle: 'Garantie minimum 6 mois • Véhicules contrôlés • Meilleur rapport qualité/prix',
+    subtitle: 'Garantie minimum 3 mois • Véhicules contrôlés • Meilleur rapport qualité/prix',
     ctaPrimary: { text: 'Découvrir nos véhicules', link: 'Vehicles' },
     ctaSecondary: { text: 'Nous contacter', link: 'Contact' }
   },
