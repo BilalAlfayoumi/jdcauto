@@ -137,6 +137,43 @@ gh workflow run keepalive.yml
 la désactivation revient au bout de 60 jours. Il n'existe aucun réglage GitHub pour désactiver
 cette politique sur un dépôt public.
 
+### Tokens et secrets (le dépôt GitHub est public)
+
+Aucun secret ne doit se trouver dans le code. Chaque token vit à deux endroits :
+
+| Token | Côté serveur (Gandi) | Côté CI (GitHub) |
+|---|---|---|
+| Sync Spider-VO | `htdocs/config/sync_token.local.php` | secret `SYNC_TOKEN` (workflow `deploy.yml`) |
+| Sauvegarde MySQL | `htdocs/config/backup_token.local.php` | secret `BACKUP_TOKEN` (workflow `backup.yml`) |
+| Admin (login) | `htdocs/config/admin_auth.local.php` | — |
+
+Les fichiers `htdocs/config/*.local.php` sont **non versionnés** (`.gitignore`) : ils existent
+en local et sur le serveur, et doivent être déposés en SFTP après toute modification —
+le déploiement git (rsync) ne les transporte pas.
+
+**Rotation d'un token** (ex. `SYNC_TOKEN`) :
+
+```bash
+# 1. Nouveau token
+openssl rand -hex 32
+
+# 2. Fichier serveur (SFTP)
+sftp <id>@sftp.sd3.gpaas.net
+  put htdocs/config/sync_token.local.php /vhosts/www.jdcauto.fr/htdocs/config/sync_token.local.php
+  chmod 640 /vhosts/www.jdcauto.fr/htdocs/config/sync_token.local.php
+
+# 3. Secret GitHub
+gh secret set SYNC_TOKEN --body "<nouveau token>"
+
+# 4. Vérifier : 200 avec le bon token, 403 sinon
+curl -s -o /dev/null -w "%{http_code}\n" -H "X-Sync-Token: <nouveau token>" \
+  https://www.jdcauto.fr/sync/spider_vo_sync.php
+```
+
+Le token est accepté en en-tête `X-Sync-Token` (recommandé : il n'apparaît pas dans les
+logs Apache) ou en `?token=` (compatibilité). Un token en paramètre d'URL s'écrit en clair
+dans `access.log` : à éviter pour les appels automatisés.
+
 ## Rappels d'architecture
 
 - `htdocs/` est ce que Gandi sert (build React + API PHP + sync).

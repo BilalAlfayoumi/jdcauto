@@ -123,6 +123,16 @@ R : Le véhicule reste dans la base de données avec son dernier état connu. Il
 Si la synchronisation échoue :
 1. Vérifiez que l'URL Spider-VO est correcte
 2. Vérifiez les logs d'erreur dans l'interface Gandi
-3. Testez manuellement via l'URL : `https://www.jdcauto.fr/sync/spider_vo_sync.php`
+3. Testez manuellement — l'accès HTTP exige le token (le déclenchement en ligne de
+   commande, lui, n'en a pas besoin) :
+
+   ```bash
+   # Depuis le serveur ou en local (CLI) : aucun token
+   php htdocs/sync/spider_vo_sync.php
+
+   # En HTTP : token obligatoire, sinon 403 « Access denied »
+   # Le token est dans htdocs/config/sync_token.local.php (non versionné, dépôt public)
+   curl -H "X-Sync-Token: <token>" https://www.jdcauto.fr/sync/spider_vo_sync.php
+   ```
 4. Contactez le support si le problème persiste
 

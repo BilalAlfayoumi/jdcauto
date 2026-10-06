@@ -1558,19 +1558,38 @@ class SimpleVehiclesAPI {
 
         // Relancer la sync Spider-VO pour réimporter le véhicule immédiatement.
         // En cas d'échec, il reviendra de toute façon à la prochaine sync automatique.
+        // Le token est lu depuis htdocs/config/sync_token.local.php (non versionné : le
+        // dépôt est public) et envoyé en en-tête : un token en paramètre d'URL finirait
+        // dans les logs Apache et dans l'historique.
         $syncTriggered = false;
-        $syncUrl = 'https://www.jdcauto.fr/sync/spider_vo_sync.php?token=jdcauto_sync_2024_secret';
-        $ch = curl_init($syncUrl);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 120,
-            CURLOPT_CONNECTTIMEOUT => 10,
-        ]);
-        $syncOutput = curl_exec($ch);
-        if ($syncOutput !== false && curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200) {
-            $syncTriggered = true;
+        $syncToken = '';
+        $syncTokenFile = __DIR__ . '/../config/sync_token.local.php';
+        if (file_exists($syncTokenFile)) {
+            $loaded = require $syncTokenFile;
+            if (is_string($loaded)) {
+                $syncToken = $loaded;
+            } elseif (is_array($loaded) && isset($loaded['token'])) {
+                $syncToken = (string)$loaded['token'];
+            }
         }
-        curl_close($ch);
+        if ($syncToken === '') {
+            $syncToken = (string)getenv('SYNC_SECRET_TOKEN');
+        }
+
+        if ($syncToken !== '') {
+            $ch = curl_init('https://www.jdcauto.fr/sync/spider_vo_sync.php');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 120,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_HTTPHEADER => ['X-Sync-Token: ' . $syncToken],
+            ]);
+            $syncOutput = curl_exec($ch);
+            if ($syncOutput !== false && curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200) {
+                $syncTriggered = true;
+            }
+            curl_close($ch);
+        }
 
         return $this->success([
             'message' => $syncTriggered

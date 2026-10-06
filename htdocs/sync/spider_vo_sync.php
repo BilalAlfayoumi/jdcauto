@@ -9,10 +9,34 @@
 $isCLI = php_sapi_name() === 'cli';
 
 // Sécurité : authentification par token pour les requêtes HTTP
+// Le token est lu depuis htdocs/config/sync_token.local.php (non versionné : le
+// dépôt est public). Sans ce fichier, l'accès HTTP est refusé — jamais de token
+// par défaut, sinon n'importe qui pourrait déclencher la sync en boucle.
+// Le token peut être passé en en-tête X-Sync-Token (recommandé : il ne finit pas
+// dans les logs Apache) ou en paramètre ?token= (compatibilité).
 if (!$isCLI) {
-    $syncToken = getenv('SYNC_SECRET_TOKEN') ?: 'jdcauto_sync_2024_secret';
-    $providedToken = $_GET['token'] ?? $_SERVER['HTTP_X_SYNC_TOKEN'] ?? '';
-    if (!hash_equals($syncToken, $providedToken)) {
+    $syncToken = '';
+    $tokenFile = __DIR__ . '/../config/sync_token.local.php';
+    if (file_exists($tokenFile)) {
+        $loaded = require $tokenFile;
+        if (is_string($loaded)) {
+            $syncToken = $loaded;
+        } elseif (is_array($loaded) && isset($loaded['token'])) {
+            $syncToken = (string)$loaded['token'];
+        }
+    }
+    if ($syncToken === '') {
+        $syncToken = (string)getenv('SYNC_SECRET_TOKEN');
+    }
+
+    if ($syncToken === '') {
+        http_response_code(503);
+        header('Content-Type: text/plain');
+        exit('Sync non configurée (token absent)');
+    }
+
+    $providedToken = $_SERVER['HTTP_X_SYNC_TOKEN'] ?? ($_GET['token'] ?? '');
+    if (!hash_equals($syncToken, (string)$providedToken)) {
         http_response_code(403);
         header('Content-Type: text/plain');
         exit('Access denied');

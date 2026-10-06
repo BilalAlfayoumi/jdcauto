@@ -11,13 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Lancer la synchronisation Spider-VO
+        env:
+          # Le token n'est plus dans le code : le dépôt est public.
+          # Secret à définir dans Settings → Secrets and variables → Actions (SYNC_TOKEN),
+          # et à faire correspondre à htdocs/config/sync_token.local.php sur le serveur.
+          SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
         run: |
           http_code=$(curl -s -o /tmp/sync_body.txt -w "%{http_code}" \
             --max-time 120 \
-            "https://www.jdcauto.fr/sync/spider_vo_sync.php?token=jdcauto_sync_2024_secret")
+            -H "X-Sync-Token: ${SYNC_TOKEN}" \
+            "https://www.jdcauto.fr/sync/spider_vo_sync.php")
           echo "Code HTTP: $http_code"
           cat /tmp/sync_body.txt | sed 's/<[^>]*>//g' | grep -v "^[[:space:]]*$" || true
           if [ "$http_code" != "200" ]; then
-            echo "Echec: code HTTP $http_code"
+            echo "Echec: code HTTP $http_code (403 = secret SYNC_TOKEN absent ou différent du serveur)"
             exit 1
           fi
