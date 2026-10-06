@@ -533,8 +533,11 @@ class SimpleVehiclesAPI {
         ];
 
         $configFiles = [
-            __DIR__ . '/../config/admin_auth.php',
+            // admin_auth.local.php d'abord : non versionné, c'est lui qui porte les
+            // identifiants réels. admin_auth.php n'est qu'un modèle versionné, sans
+            // secret (l'ancien hash publié dans le dépôt public n'est plus utilisé).
             __DIR__ . '/../config/admin_auth.local.php',
+            __DIR__ . '/../config/admin_auth.php',
         ];
 
         foreach ($configFiles as $configFile) {

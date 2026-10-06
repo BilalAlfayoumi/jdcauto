@@ -8,6 +8,14 @@
 // Mode CLI ou HTTP
 $isCLI = php_sapi_name() === 'cli';
 
+if (!$isCLI) {
+    // Indispensable : sans no-store, le Varnish de Gandi met en cache la réponse 200
+    // (qui contient l'URL privée du flux Spider-VO et les statistiques d'import) et la
+    // sert ensuite à n'importe qui SANS vérification du token. Même piège que db_backup.php.
+    header('Cache-Control: no-store, no-cache, private, max-age=0');
+    header('Pragma: no-cache');
+}
+
 // Sécurité : authentification par token pour les requêtes HTTP
 // Le token est lu depuis htdocs/config/sync_token.local.php (non versionné : le
 // dépôt est public). Sans ce fichier, l'accès HTTP est refusé — jamais de token
