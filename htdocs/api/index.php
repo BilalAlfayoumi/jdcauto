@@ -333,7 +333,18 @@ class SimpleVehiclesAPI {
             exit;
         }
 
-        header('Content-Type: image/jpeg');
+        // Type réel du fichier : l'image par défaut est un PNG servi jusqu'ici en
+        // image/jpeg, ce que les navigateurs refusent à cause de X-Content-Type-Options: nosniff.
+        $defaultMimeType = 'image/jpeg';
+        if (function_exists('getimagesize')) {
+            $defaultInfo = @getimagesize($defaultPath);
+            if (is_array($defaultInfo) && !empty($defaultInfo['mime'])) {
+                $defaultMimeType = (string)$defaultInfo['mime'];
+            }
+        }
+
+        header('Content-Type: ' . $defaultMimeType);
+        header('X-Content-Type-Options: nosniff');
         header('Cache-Control: public, max-age=300');
         header('Content-Length: ' . filesize($defaultPath));
         readfile($defaultPath);

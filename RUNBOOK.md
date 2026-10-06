@@ -145,11 +145,22 @@ Aucun secret ne doit se trouver dans le code. Chaque token vit à deux endroits 
 |---|---|---|
 | Sync Spider-VO | `htdocs/config/sync_token.local.php` | secret `SYNC_TOKEN` (workflow `deploy.yml`) |
 | Sauvegarde MySQL | `htdocs/config/backup_token.local.php` | secret `BACKUP_TOKEN` (workflow `backup.yml`) |
+| Flux Spider-VO (URL + clé de compte) | `htdocs/config/spider_vo.local.php` | — (le serveur s'en sert pour la sync) |
 | Admin (login) | `htdocs/config/admin_auth.local.php` | — |
+| reCAPTCHA (anti-robot) | variable d'environnement `RECAPTCHA_SECRET_KEY` | clé de site dans le code (publique) |
 
 Les fichiers `htdocs/config/*.local.php` sont **non versionnés** (`.gitignore`) : ils existent
 en local et sur le serveur, et doivent être déposés en SFTP après toute modification —
 le déploiement git (rsync) ne les transporte pas.
+
+**Historique (2026-10-06)** : le token de sync, l'URL du flux Spider-VO et un hash bcrypt
+du mot de passe admin étaient présents dans le dépôt public. Ils ont été retirés du code,
+le token de sync et le mot de passe admin ont été changés. Un secret publié reste gravé
+dans l'historique git : **toute valeur ayant séjourné dans le dépôt doit être considérée
+comme compromise et régénérée à la source** (c'est pourquoi l'URL du flux Spider-VO doit
+être régénérée dans le compte Spider-VO — elle est encore celle de l'ancien code).
+Vérifier aussi régulièrement : `.env` et `htdocs/config/*.local.php` ne doivent jamais
+apparaître dans `git status`.
 
 **Rotation d'un token** (ex. `SYNC_TOKEN`) :
 
@@ -180,3 +191,26 @@ dans `access.log` : à éviter pour les appels automatisés.
 - La sync Spider-VO tourne par cron sur le serveur Gandi (quotidien 6h) et via GitHub Actions.
 - Le rsync de déploiement Gandi **ne supprime pas** les fichiers existants sur le serveur.
 - Tout endpoint PHP sensible doit envoyer `Cache-Control: no-store` (piège Varnish).
+
+### Fichiers orphelins sur le serveur (à vérifier après chaque nettoyage)
+
+Le déploiement Gandi **ne supprime rien** : tout fichier retiré du dépôt reste servi.
+C'est ainsi qu'un installateur `htdocs/install/setup.php` est resté exécutable
+publiquement pendant des mois (n'importe quel visiteur pouvait relancer une
+installation et réinjecter des véhicules de test), et que 9 scripts de debug
+(`api/debug.php`, `api/view_contacts.php`, `api/remove_duplicates.php`…) sont restés
+accessibles. Tous ont été supprimés le 2026-10-06 (sauvegarde dans les artefacts de
+la session ; `htdocs/.htaccess` bloque désormais `^/(install|test|test-mobile|index-simple|diagnostic|view_contacts|style\.txt)`).
+
+**Après toute suppression de fichier dans `htdocs/`, vérifier le serveur** :
+
+```bash
+sftp <id>@sftp.sd3.gpaas.net
+  ls -l /vhosts/www.jdcauto.fr/htdocs
+  ls -l /vhosts/www.jdcauto.fr/htdocs/api
+  ls -l /vhosts/www.jdcauto.fr/htdocs/sync
+```
+
+Comparer avec `git ls-files htdocs/` : tout `.php` présent sur le serveur et absent du
+dépôt est un reliquat à supprimer (ou à réintégrer volontairement au dépôt).
+`maintenance.html` est conservé volontairement (page de maintenance manuelle).
