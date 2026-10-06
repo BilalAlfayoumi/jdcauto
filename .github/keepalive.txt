@@ -1,0 +1,5 @@
+Dernier maintien : 2026-10-06 (initialisation manuelle)
+Rôle : empêcher GitHub de désactiver les workflows planifiés du dépôt
+        (règle des 60 jours sans activité). Fichier mis à jour
+        automatiquement par .github/workflows/keepalive.yml.
+Documentation : RUNBOOK.md > Workflows planifiés désactivés par GitHub.

@@ -1,0 +1,88 @@
+name: Maintien des workflows planifiés
+
+# Pourquoi ce workflow existe
+# --------------------------
+# GitHub désactive automatiquement TOUS les workflows planifiés (cron) d'un dépôt
+# public après 60 jours sans activité :
+#   "This scheduled workflow is disabled because there hasn't been activity in
+#    this repository for at least 60 days."
+# Les exécutions de workflows ne comptent PAS comme activité : seul un push
+# (nouveau commit) réinitialise le compteur. C'est ce qui est arrivé aux workflows
+# "Sync Spider-VO", "Backup MySQL" et "Surveillance du site".
+#
+# Ce workflow garantit donc, une fois par mois :
+#   1. un vrai commit poussé sur la branche par défaut -> réinitialise le compteur
+#      d'inactivité de tout le dépôt (mécanisme fiable, indépendant de GitHub Actions) ;
+#   2. la réactivation via l'API de tous les workflows du dépôt -> répare un workflow
+#      qui aurait quand même été désactivé.
+#
+# Détails et dépannage : RUNBOOK.md > "Workflows planifiés désactivés par GitHub".
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Le 1er de chaque mois à 5h17 UTC. Cadence de 30 jours pour garder 30 jours de
+    # marge avant la coupure automatique des 60 jours (les crons GitHub peuvent être
+    # retardés de plusieurs dizaines de minutes, voire sautés en cas de forte charge).
+    - cron: '17 5 1 * *'
+
+# contents: write -> pousser le commit de maintien
+# actions: write  -> réactiver les workflows via l'API
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  keepalive:
+    name: Réactivation + commit de maintien
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: État des workflows avant intervention
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows" \
+            --jq '.workflows[] | "\(.state)\t\(.path)"' | sort
+
+      - name: Réactiver les workflows du dépôt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows" \
+            --jq '.workflows[].path' | sort -u | while IFS= read -r path; do
+              file="${path#.github/workflows/}"
+              echo "→ activation de ${file}"
+              # No-op si le workflow est déjà actif ; répare sinon.
+              gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/${file}/enable" \
+                || echo "⚠️  activation impossible pour ${file} (ignoré)"
+            done
+
+      - name: État des workflows après intervention
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows" \
+            --jq '.workflows[] | "\(.state)\t\(.path)"' | sort
+
+      - name: Commit de maintien (activité du dépôt)
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          {
+            echo "Dernier maintien : $(date -u +'%Y-%m-%d %H:%M UTC')"
+            echo "Rôle : empêcher GitHub de désactiver les workflows planifiés du dépôt"
+            echo "        (règle des 60 jours sans activité). Fichier mis à jour"
+            echo "        automatiquement par .github/workflows/keepalive.yml."
+            echo "Documentation : RUNBOOK.md > Workflows planifiés désactivés par GitHub."
+          } > .github/keepalive.txt
+          git add .github/keepalive.txt
+          if git diff --staged --quiet; then
+            echo "Aucun changement à committer (maintien déjà à jour aujourd'hui)."
+            exit 0
+          fi
+          git commit -m "chore(ci): maintien des workflows planifiés ($(date -u +'%Y-%m-%d'))"
+          git push

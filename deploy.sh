@@ -44,6 +44,11 @@ else
     git commit -m "Deploy: $(date +'%Y-%m-%d %H:%M:%S')" || echo "Aucun changement à committer"
 fi
 
+# Récupérer les commits distants (ex. commit mensuel de maintien des workflows,
+# .github/keepalive.txt) pour éviter un rejet "non-fast-forward" au push.
+echo "🔄 Synchronisation avec le dépôt distant..."
+git pull --rebase origin "$CURRENT_BRANCH" || echo "⚠️  pull --rebase impossible, on tente le push quand même"
+
 # Push vers GitHub (origin)
 echo "⬆️  Push vers GitHub..."
 git push origin "$CURRENT_BRANCH" || echo "⚠️  Erreur lors du push vers GitHub (peut être ignorée)"

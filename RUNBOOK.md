@@ -94,6 +94,49 @@ logs serveur) sont remontés à Sentry : https://bilalfym.sentry.io (projet
 déclenche un email. L'initialisation est dans `JDC/src/main.jsx` ; le DSN est une
 clé publique d'envoi, sa présence dans le code est normale et sans risque.
 
+### Workflows planifiés désactivés par GitHub (règle des 60 jours)
+
+**Symptôme** : email « The "Surveillance du site" workflow in BilalAlfayoumi/jdcauto has been
+disabled » (idem pour « Sync Spider-VO » et « Backup MySQL »), ou bandeau GitHub Actions
+« Scheduled workflows are disabled automatically after 60 days of repository inactivity ».
+
+**Cause** : sur un dépôt public, GitHub coupe les déclencheurs `schedule` (cron) de **tous**
+les workflows après **60 jours sans activité du dépôt**. Les *exécutions* de workflows ne
+comptent pas comme activité : seul un **push** (nouveau commit) réinitialise le compteur.
+Un dépôt sans commit pendant 2 mois perd donc sa surveillance, ses backups et sa sync.
+
+**Solution en place (permanente)** : `.github/workflows/keepalive.yml`, déclenché le 1er de
+chaque mois, fait deux choses :
+
+1. il pousse un commit sur `master` (mise à jour de `.github/keepalive.txt`) → activité du
+   dépôt garantie tous les 30 jours, soit 30 jours de marge avant la coupure des 60 jours ;
+2. il réactive via l'API (`PUT /actions/workflows/<fichier>/enable`) **tous** les workflows du
+   dépôt, ce qui répare un workflow désactivé manuellement ou par inactivité.
+
+`deploy.sh` fait un `git pull --rebase` avant de pousser, pour ne pas être bloqué par ce
+commit automatique.
+
+**Vérifier que tout est actif** :
+
+```bash
+gh workflow list --all          # attendu : "active" pour les 4 workflows
+gh run list --workflow=keepalive.yml --limit 5
+```
+
+**Réparer à la main** (si un workflow est repassé en `disabled_inactivity`) :
+
+```bash
+gh workflow enable "Surveillance du site"
+gh workflow enable "Sync Spider-VO"
+gh workflow enable "Backup MySQL"
+# … ou forcer le workflow de maintien :
+gh workflow run keepalive.yml
+```
+
+**Ne pas supprimer** `.github/workflows/keepalive.yml` ni `.github/keepalive.txt` : sans eux,
+la désactivation revient au bout de 60 jours. Il n'existe aucun réglage GitHub pour désactiver
+cette politique sur un dépôt public.
+
 ## Rappels d'architecture
 
 - `htdocs/` est ce que Gandi sert (build React + API PHP + sync).
