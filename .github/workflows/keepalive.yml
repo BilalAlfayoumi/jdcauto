@@ -74,7 +74,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           {
-            echo "Dernier maintien : $(date -u +'%Y-%m-%d %H:%M UTC')"
+            echo "Dernier maintien : $(date -u +'%Y-%m')"
             echo "Rôle : empêcher GitHub de désactiver les workflows planifiés du dépôt"
             echo "        (règle des 60 jours sans activité). Fichier mis à jour"
             echo "        automatiquement par .github/workflows/keepalive.yml."
@@ -82,7 +82,7 @@ jobs:
           } > .github/keepalive.txt
           git add .github/keepalive.txt
           if git diff --staged --quiet; then
-            echo "Aucun changement à committer (maintien déjà à jour aujourd'hui)."
+            echo "Aucun changement à committer : maintien déjà effectué ce mois-ci."
             exit 0
           fi
           git commit -m "chore(ci): maintien des workflows planifiés ($(date -u +'%Y-%m-%d'))"
