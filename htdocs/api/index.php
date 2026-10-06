@@ -2223,7 +2223,10 @@ class SimpleVehiclesAPI {
      */
     private function sendContactEmail($data) {
         // Email de destination (modifiez selon vos besoins)
-        $toEmail = 'belallfym@gmail.com'; // ⚠️ REMPLACER par votre email
+        // Adresse de réception configurable (variable d'environnement
+        // CONTACT_NOTIFICATION_EMAIL sur le serveur). Valeur neutre par défaut :
+        // aucune adresse personnelle ne doit figurer dans un dépôt public.
+        $toEmail = trim((string)(getenv('CONTACT_NOTIFICATION_EMAIL') ?: 'contact@jdcauto.fr'));
         $toName = 'JDC Auto';
         
         // Sujet de l'email
@@ -2256,10 +2259,10 @@ class SimpleVehiclesAPI {
         }
         
         // Si aucune méthode configurée, juste logger
-        error_log("📧 Email non envoyé - Aucune méthode configurée");
-        error_log("📧 Message stocké en base (ID: " . ($data['id'] ?? 'N/A') . ")");
-        error_log("📧 Consultez les messages via: /api/view_contacts.php");
-        error_log("📧 Pour activer l'email, voir EMAIL-SOLUTIONS.md");
+        // Aucune méthode d'envoi configurée : le message reste enregistré en base et
+        // consultable dans l'espace admin (le script /api/view_contacts.php a été supprimé).
+        error_log("📧 Email non envoyé - aucune méthode d'envoi configurée (voir RUNBOOK.md)");
+        error_log("📧 Message stocké en base (ID: " . ($data['id'] ?? 'N/A') . ") - consultable dans l'espace admin");
         
         return false;
     }
