@@ -67,7 +67,18 @@ function shouldUseEnvironmentDbConfig() {
         || strpos($host, 'php') !== false;
 }
 
-if (shouldUseEnvironmentDbConfig()) {
+// Configuration MySQL : le fichier non versionné htdocs/config/db.local.php est lu
+// EN PRIORITÉ. Il est fiable dans tous les contextes (web ET CLI/cron), contrairement
+// aux variables DB_* : Gandi ne les injecte pas dans l'environnement du cron, ce qui
+// faisait échouer la synchronisation horaire (utilisateur « hosting-db » sans accès).
+$dbLocalConfigFile = __DIR__ . '/../config/db.local.php';
+$dbLocalConfig = file_exists($dbLocalConfigFile) ? require $dbLocalConfigFile : null;
+if (is_array($dbLocalConfig) && !empty($dbLocalConfig['username'])) {
+    $dbHost = (string)($dbLocalConfig['host'] ?? 'localhost');
+    $dbName = (string)($dbLocalConfig['dbname'] ?? 'jdcauto');
+    $dbUser = (string)$dbLocalConfig['username'];
+    $dbPass = (string)($dbLocalConfig['password'] ?? '');
+} elseif (shouldUseEnvironmentDbConfig()) {
     $dbHost = getenv('DB_HOST') ?: 'localhost';
     $dbName = getenv('DB_NAME') ?: 'jdcauto';
     $dbUser = getenv('DB_USER') ?: 'root';

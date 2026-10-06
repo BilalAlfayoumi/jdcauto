@@ -105,6 +105,33 @@ class GandiDatabaseConfig {
     }
 
     private static function getConfig() {
+        // Fichier non versionné prioritaire : évite de dépendre de l'en-tête Host
+        // (falsifiable par le client) et des variables DB_* absentes en CLI.
+        $localConfigFile = __DIR__ . '/../config/db.local.php';
+        if (file_exists($localConfigFile)) {
+            $localConfig = require $localConfigFile;
+            if (is_array($localConfig) && !empty($localConfig['username'])) {
+                return [
+                    'host' => (string)($localConfig['host'] ?? 'localhost'),
+                    'dbname' => (string)($localConfig['dbname'] ?? 'jdcauto'),
+                    'username' => (string)$localConfig['username'],
+                    'password' => (string)($localConfig['password'] ?? ''),
+                ];
+            }
+        }
+
+        // Repli : variables d'environnement si explicitement demandé. Le repli sur
+        // l'en-tête Host est supprimé (un simple « Host: php.exemple » faisait
+        // basculer l'API vers une configuration sans accès à la base).
+        if (getenv('USE_ENV_DB_CONFIG') !== false) {
+            return [
+                'host' => getenv('DB_HOST') ?: 'localhost',
+                'dbname' => getenv('DB_NAME') ?: 'jdcauto',
+                'username' => getenv('DB_USER') ?: 'root',
+                'password' => getenv('DB_PASSWORD') ?: ''
+            ];
+        }
+
         if (!self::shouldUseEnvironmentConfig()) {
             return [
                 'host' => 'localhost',
